@@ -10,7 +10,7 @@ export interface Word {
   confidence: number;
 }
 
-export type BehaviorType = "filler_um" | "filler_uh" | "filler_like" | "rushing";
+export type BehaviorType = "filler_um" | "filler_uh" | "filler_like" | "rushing" | "too_quiet";
 
 /**
  * How a particular "like" is being used. Only some of these are fillers;
@@ -49,6 +49,8 @@ export interface SpeechEvent {
   context: string;
   like?: LikeVerdict;
   pace?: { sps: number; wpm: number };
+  /** For too_quiet: recent speech level and the wearer's normal, in dBFS. */
+  level?: { db: number; baselineDb: number };
 }
 
 export interface CueDecision {

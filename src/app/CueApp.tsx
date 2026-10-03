@@ -5,7 +5,7 @@ import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib
 import type { Pace } from "@/lib/cue/pace";
 import type { Correction, SessionFile } from "@/lib/cue/evaluate";
 import { PATTERNS, patternFor, type CueKind, type CuePattern } from "@/lib/cue/patterns";
-import { CueSession, type SessionUpdate } from "@/lib/cue/session";
+import { CueSession, type SessionUpdate, type VolumeStatus } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
 import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
@@ -16,14 +16,14 @@ const LABEL: Record<CueKind, string> = {
   filler_uh: "“uh”",
   filler_like: "filler “like”",
   rushing: "speaking fast",
-  volume: "volume",
+  too_quiet: "speaking quietly",
 };
 
 /** The legend's preview entries, one per rhythm. */
 const LEGEND: { kind: CueKind; label: string }[] = [
   { kind: "filler_um", label: "Filler word" },
   { kind: "rushing", label: "Too fast" },
-  { kind: "volume", label: "Volume (preview)" },
+  { kind: "too_quiet", label: "Too quiet" },
 ];
 
 const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
@@ -41,6 +41,9 @@ interface Clock {
 
 const wordKey = (start: number) => Math.round(start * 100);
 
+/** Filler cues point at a word; pace and volume cues describe a stretch of speech. */
+const isFiller = (d: CueDecision) => d.event.type.startsWith("filler_");
+
 function percentile(xs: number[], p: number) {
   if (xs.length === 0) return null;
   const sorted = [...xs].sort((a, b) => a - b);
@@ -53,6 +56,7 @@ const EXAMPLES = [
   "So um, she was like, no way.",
   "There were like twenty people there.",
   "It looks like rain, and I feel like we should go.",
+  "So we spent the whole weekend planning the launch, and honestly it went better than expected. The team pulled together, we fixed the last bugs on Saturday, and by Sunday night everything was ready to ship to our first customers.",
 ];
 
 type Status = "idle" | "connecting" | "listening" | "demo" | "error";
@@ -62,6 +66,8 @@ export default function CueApp() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [pace, setPace] = useState<Pace | null>(null);
+  const [volume, setVolume] = useState<VolumeStatus | null>(null);
+  const [demoQuiet, setDemoQuiet] = useState(false);
   const [log, setLog] = useState<CueDecision[]>([]);
   const [checks, setChecks] = useState<LikeCheck[]>([]);
   const [recorded, setRecorded] = useState(0);
@@ -80,6 +86,8 @@ export default function CueApp() {
   const timersRef = useRef<number[]>([]);
   /** Raw Deepgram messages from the last live session, for "Download session". */
   const rawRef = useRef<DgMessage[]>([]);
+  /** Mic level frames [audio time s, dBFS] from the last live session. */
+  const levelsRef = useRef<[number, number][]>([]);
   const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
 
@@ -98,10 +106,11 @@ export default function CueApp() {
   const apply = useCallback(
     (u: SessionUpdate) => {
       if (u.pace !== null) setPace(u.pace);
+      if (u.volume !== null) setVolume(u.volume);
       const hit = u.decisions.find((d) => d.delivered);
       if (hit) {
         triggerBuzz(hit.event.type);
-        const endedAt = hit.event.type !== "rushing" ? clockRef.current?.toPage(hit.event.end) : null;
+        const endedAt = isFiller(hit) ? clockRef.current?.toPage(hit.event.end) : null;
         if (endedAt != null) {
           const ms = Math.max(0, performance.now() - endedAt);
           setLatency((l) => ({ ...l, [hit.event.id]: ms }));
@@ -126,6 +135,8 @@ export default function CueApp() {
     setCorrections([]);
     setSpeakingSec(0);
     setPace(null);
+    setVolume(null);
+    levelsRef.current = [];
     setError(null);
   }, [config]);
 
@@ -149,6 +160,10 @@ export default function CueApp() {
         const u = feedMessage(sessionRef.current, msg);
         if (u) apply(u);
       },
+      onLevel: (t, db) => {
+        levelsRef.current.push([t, db]);
+        sessionRef.current.ingestLevel(t, db);
+      },
       onStatus: (s, detail) => {
         if (s === "stopped") return;
         setStatus(s === "error" ? "error" : s);
@@ -169,6 +184,14 @@ export default function CueApp() {
     const demoStart = performance.now();
     clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
     const sim = simulateWords(text, { wpm: demoWpm });
+    // Simulated mic level: steady speech at −20 dBFS, optionally trailing off to −32 for
+    // the last 45%. The demo learns "normal" from its first third instead of 15 s.
+    const total = sim.at(-1)?.end ?? 0;
+    sessionRef.current.config = { ...config, calibrationSec: Math.min(config.calibrationSec, total * 0.35) };
+    for (let t = 0; t <= total; t += 0.05) {
+      const speaking = sim.some((w) => t >= w.start && t <= w.end);
+      sessionRef.current.ingestLevel(t, speaking ? (demoQuiet && t > total * 0.55 ? -32 : -20) : -60);
+    }
     sim.forEach((w, k) => {
       timersRef.current.push(
         window.setTimeout(() => apply(sessionRef.current.ingest(sim.slice(0, k + 1), false)), w.end * 1000),
@@ -203,6 +226,7 @@ export default function CueApp() {
       config,
       messages: rawRef.current,
       corrections,
+      levels: levelsRef.current,
       latenciesMs: Object.values(latency),
     };
     const blob = new Blob([JSON.stringify(file)], { type: "application/json" });
@@ -213,7 +237,7 @@ export default function CueApp() {
     URL.revokeObjectURL(a.href);
   };
 
-  const flagged = new Map(log.filter((d) => d.event.type !== "rushing").map((d) => [wordKey(d.event.start), d]));
+  const flagged = new Map(log.filter(isFiller).map((d) => [wordKey(d.event.start), d]));
   const checked = new Map(checks.map((c) => [wordKey(c.start), c]));
   const corrected = new Map(corrections.map((c) => [wordKey(c.start), c]));
   type Entry = { key: string; start: number; d?: CueDecision; c?: LikeCheck };
@@ -223,8 +247,9 @@ export default function CueApp() {
   ].sort((a, b) => b.start - a.start);
 
   // "This session" numbers.
-  const fillerCues = log.filter((d) => d.delivered && d.event.type !== "rushing").length;
+  const fillerCues = log.filter((d) => d.delivered && isFiller(d)).length;
   const paceCues = log.filter((d) => d.delivered && d.event.type === "rushing").length;
+  const quietCues = log.filter((d) => d.delivered && d.event.type === "too_quiet").length;
   const lat = Object.values(latency);
   const p50 = percentile(lat, 0.5);
   const p90 = percentile(lat, 0.9);
@@ -314,6 +339,48 @@ export default function CueApp() {
               </div>
             </div>
 
+            {/* Volume meter: level relative to the wearer's own normal */}
+            <div className="w-full max-w-sm">
+              <div className="mb-1 flex justify-between text-xs text-muted">
+                <span>Volume</span>
+                <span className="font-mono">
+                  {!volume
+                    ? "—"
+                    : volume.baselineDb === null
+                      ? `learning your normal… ${Math.round(volume.calibration * 100)}%`
+                      : volume.db === null
+                        ? "normal set"
+                        : `${volume.db - volume.baselineDb >= 0 ? "+" : "−"}${Math.abs(Math.round(volume.db - volume.baselineDb))} dB vs normal`}
+                </span>
+              </div>
+              <div className="relative h-2 overflow-hidden rounded-full bg-surface-2">
+                {volume?.baselineDb == null ? (
+                  <div
+                    className="h-full rounded-full bg-muted/40 transition-all duration-500"
+                    style={{ width: `${(volume?.calibration ?? 0) * 100}%` }}
+                  />
+                ) : (
+                  volume.db !== null && (
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        // Scale: 20 dB below normal (empty) … normal (75%) … 7 dB above (full).
+                        width: `${Math.max(0, Math.min(1, (volume.db - volume.baselineDb + 20) / 27)) * 100}%`,
+                        background: volume.db < volume.baselineDb - config.quietDropDb ? "var(--cue)" : "var(--accent)",
+                      }}
+                    />
+                  )
+                )}
+                {volume?.baselineDb != null && (
+                  <div
+                    className="absolute top-0 h-full w-0.5 bg-text/60"
+                    style={{ left: `${((20 - config.quietDropDb) / 27) * 100}%` }}
+                    title="too quiet below here"
+                  />
+                )}
+              </div>
+            </div>
+
             {/* Pace meter */}
             <div className="w-full max-w-sm">
               <div className="mb-1 flex justify-between text-xs text-muted">
@@ -386,6 +453,10 @@ export default function CueApp() {
               Play
             </button>
           </div>
+          <label className="mt-3 flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" checked={demoQuiet} onChange={(e) => setDemoQuiet(e.target.checked)} />
+            Trail off quietly (tests the “speak up” cue; works best with the long passage)
+          </label>
         </section>
 
         {/* --- Transcript (dev aid) --- */}
@@ -451,7 +522,11 @@ export default function CueApp() {
               label="Speaking"
               value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingMin * 60)} s`}
             />
-            <Stat label="Cues" value={`${fillerCues}${paceCues ? ` + ${paceCues} pace` : ""}`} />
+            <Stat
+              label="Cues"
+              value={String(fillerCues + paceCues + quietCues)}
+              hint={`${fillerCues} filler · ${paceCues} pace · ${quietCues} quiet`}
+            />
             <Stat
               label="Cue delay"
               value={p50 == null ? "—" : `${(p50 / 1000).toFixed(2)}s`}
@@ -512,7 +587,7 @@ export default function CueApp() {
                       “…{d.event.context}…” · {Math.round(d.event.confidence * 100)}%
                       {latency[d.event.id] != null && ` · ${(latency[d.event.id] / 1000).toFixed(2)}s after`}
                     </p>
-                    {d.event.type !== "rushing" && (
+                    {isFiller(d) && (
                       <CorrectionButton
                         on={corrected.get(wordKey(d.event.start))?.label === "false_buzz"}
                         onClick={() => toggleCorrection(d.event.start, "false_buzz")}
@@ -534,7 +609,7 @@ export default function CueApp() {
             <fieldset>
               <legend className="mb-2 text-xs uppercase tracking-wide text-muted">Cue me for</legend>
               <div className="flex flex-wrap gap-2">
-                {(["um", "uh", "like", "rushing"] as const).map((k) => (
+                {(["um", "uh", "like", "rushing", "quiet"] as const).map((k) => (
                   <Chip
                     key={k}
                     on={config.categories[k]}
@@ -545,7 +620,7 @@ export default function CueApp() {
                       }))
                     }
                   >
-                    {k === "rushing" ? "speaking fast" : `“${k}”`}
+                    {k === "rushing" ? "speaking fast" : k === "quiet" ? "speaking quietly" : `“${k}”`}
                   </Chip>
                 ))}
               </div>

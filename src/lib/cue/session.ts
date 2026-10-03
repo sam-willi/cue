@@ -1,6 +1,7 @@
 import { DEFAULT_CONFIG, type CueConfig } from "./config";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
+import { FRAME_SEC, median, speechLevels, type LevelFrame } from "./loudness";
 import { measurePace, type Pace } from "./pace";
 import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word } from "./types";
 
@@ -18,6 +19,23 @@ const EARLY_NEXT_WORD_CONFIDENCE = 0.8;
 const SCAN_WINDOW = 40;
 /** Once rushing starts, pace must drop this far below the limit to reset (syllables/s). */
 const PACE_HYSTERESIS = 0.3;
+/** Window over which the current speaking level is measured, seconds. */
+const VOLUME_WINDOW = 4;
+/** Minimum speech inside that window to judge volume, seconds. */
+const VOLUME_MIN_SPEECH = 1;
+/** Once quiet, level must recover this much above the quiet line to reset (dB). */
+const VOLUME_HYSTERESIS = 2;
+/** Keep this many seconds of level frames. */
+const LEVEL_HISTORY = 60;
+
+export interface VolumeStatus {
+  /** Recent speaking level, dBFS, or null when not enough recent speech. */
+  db: number | null;
+  /** The wearer's normal speaking level once learned, dBFS. */
+  baselineDb: number | null;
+  /** 0..1 progress toward learning the normal level. */
+  calibration: number;
+}
 
 const FILLER_LIKE_USES: Record<LikeUse, keyof CueConfig["likeCounts"] | true | false> = {
   discourse: true,
@@ -36,6 +54,7 @@ export interface SessionUpdate {
   /** "like"s judged during this update, including non-fillers. */
   likeChecks: LikeCheck[];
   pace: Pace | null;
+  volume: VolumeStatus | null;
 }
 
 /**
@@ -56,6 +75,12 @@ export class CueSession {
   private lastCueEnd = -Infinity;
   private lastPaceCueEnd = -Infinity;
   private paceAboveSince: number | null = null;
+  private levels: LevelFrame[] = [];
+  private calibrationLevels: number[] = [];
+  private calibratedUpTo = -Infinity;
+  private baselineDb: number | null = null;
+  private quietSince: number | null = null;
+  private lastQuietCueEnd = -Infinity;
   private nextId = 1;
   /** All decisions so far, newest last. */
   readonly history: CueDecision[] = [];
@@ -81,6 +106,13 @@ export class CueSession {
 
   endUtterance(): SessionUpdate {
     return this.process(true);
+  }
+
+  /** Add one loudness frame from the mic (engine-clock time, dBFS). Frames must arrive in time order. */
+  ingestLevel(t: number, db: number) {
+    this.levels.push({ t, db });
+    const cutoff = t - LEVEL_HISTORY;
+    if (this.levels[0].t < cutoff - 10) this.levels = this.levels.filter((f) => f.t >= cutoff);
   }
 
   /** Seconds of speech so far, excluding pauses longer than 0.6 s. */
@@ -154,10 +186,12 @@ export class CueSession {
     const pace = measurePace(words, this.config.paceWindowSec);
     const paceDecision = this.checkPace(words, pace);
     if (paceDecision) decisions.push(paceDecision);
+    const { status: volume, decision: volumeDecision } = this.checkVolume(words);
+    if (volumeDecision) decisions.push(volumeDecision);
 
     this.history.push(...decisions);
     this.likeChecks.push(...likeChecks);
-    return { decisions, likeChecks, pace };
+    return { decisions, likeChecks, pace, volume };
   }
 
   private checkPace(words: Word[], pace: Pace | null): CueDecision | null {
@@ -187,10 +221,60 @@ export class CueSession {
     return this.decide(ev);
   }
 
+  /**
+   * Too quiet = recent speech well below the wearer's own normal level, sustained.
+   * The normal level is learned from the first `calibrationSec` of speech.
+   */
+  private checkVolume(words: Word[]): { status: VolumeStatus | null; decision?: CueDecision } {
+    if (this.levels.length === 0 || words.length === 0) return { status: null };
+    const c = this.config;
+    const now = words[words.length - 1].end;
+
+    if (this.baselineDb === null) {
+      this.calibrationLevels.push(...speechLevels(this.levels, words, this.calibratedUpTo, now));
+      this.calibratedUpTo = now + 1e-6;
+      const learned = this.calibrationLevels.length * FRAME_SEC;
+      if (learned >= c.calibrationSec) this.baselineDb = median(this.calibrationLevels);
+      else return { status: { db: null, baselineDb: null, calibration: learned / c.calibrationSec } };
+    }
+    const baselineDb = this.baselineDb!;
+
+    const recent = speechLevels(this.levels, words, now - VOLUME_WINDOW, now);
+    if (recent.length * FRAME_SEC < VOLUME_MIN_SPEECH) return { status: { db: null, baselineDb, calibration: 1 } };
+    const db = median(recent);
+    const status: VolumeStatus = { db, baselineDb, calibration: 1 };
+
+    const quietLine = baselineDb - c.quietDropDb;
+    if (db > quietLine + VOLUME_HYSTERESIS) this.quietSince = null;
+    if (db >= quietLine) return { status };
+    this.quietSince ??= now;
+    if (now - this.quietSince < c.quietSustainSec || now - this.lastQuietCueEnd < c.quietCooldownSec) return { status };
+
+    this.lastQuietCueEnd = now;
+    const last = words[words.length - 1];
+    const ev = this.event(
+      "too_quiet",
+      { ...last, start: this.quietSince },
+      0.9,
+      `~${Math.round(baselineDb - db)} dB below your normal speaking level for ${Math.round(now - this.quietSince)}s`,
+      words,
+      words.length - 1,
+    );
+    ev.level = { db, baselineDb };
+    this.quietSince = null;
+    return { status, decision: this.decide(ev) };
+  }
+
   /** The intervention policy: a detected event may correctly produce no cue. */
   private decide(event: SpeechEvent): CueDecision {
     const c = this.config;
-    const cat = { filler_um: "um", filler_uh: "uh", filler_like: "like", rushing: "rushing" } as const;
+    const cat = {
+      filler_um: "um",
+      filler_uh: "uh",
+      filler_like: "like",
+      rushing: "rushing",
+      too_quiet: "quiet",
+    } as const;
     let withheldReason: CueDecision["withheldReason"];
     if (!c.categories[cat[event.type]]) withheldReason = "category_off";
     else if (event.confidence < c.minConfidence) withheldReason = "low_confidence";

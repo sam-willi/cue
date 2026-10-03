@@ -8,15 +8,16 @@ This repository is the **software MVP**: a web app that listens through the micr
 
 ## What it detects
 
-| Behavior                              | How                                                                                                                                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "um", "uh"                            | Deepgram streaming ASR with `filler_words=true` (most engines silently drop these)                                                                                                                      |
-| Filler "like"                         | Rules over neighbouring words, part-of-speech tags, punctuation and pauses. "I like went to the mall" cues; "I like tofu" doesn't. Ambiguous cases never cue, and every decision has a readable reason. |
-| Quote "like" ("she was like, no way") | On by default, toggle in Settings                                                                                                                                                                       |
-| "About" "like" ("like twenty people") | Off by default, toggle in Settings                                                                                                                                                                      |
-| Speaking too fast                     | Syllables per second over a rolling 8 s window, long pauses excluded, sustained for 3 s. Presets: Conversation 4.5 syl/s (≈190 wpm), Presentation / interview 4.0 syl/s (≈170 wpm).                     |
+| Behavior                              | How                                                                                                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "um", "uh"                            | Deepgram streaming ASR with `filler_words=true` (most engines silently drop these)                                                                                                                                                          |
+| Filler "like"                         | Rules over neighbouring words, part-of-speech tags, punctuation and pauses. "I like went to the mall" cues; "I like tofu" doesn't. Ambiguous cases never cue, and every decision has a readable reason.                                     |
+| Quote "like" ("she was like, no way") | On by default, toggle in Settings                                                                                                                                                                                                           |
+| "About" "like" ("like twenty people") | Off by default, toggle in Settings                                                                                                                                                                                                          |
+| Speaking too fast                     | Syllables per second over a rolling 8 s window, long pauses excluded, sustained for 3 s. Presets: Conversation 4.5 syl/s (≈190 wpm), Presentation / interview 4.0 syl/s (≈170 wpm).                                                         |
+| Speaking too quietly                  | Mic level measured only while you're saying words, compared with your own normal level (learned from your first 15 s of speech). Cues after ~3 s at 6 dB or more below normal. Automatic gain control is off so quiet speech isn't boosted. |
 
-Cues are fast: "um"/"uh" cue on the first confident result, and a clear filler "like" cues as soon as the next word is heard. Ambiguous cases wait for more words. Each cue's measured delay appears in the app.
+Each alert has its own haptic rhythm: **one tap** = filler (pause), **two taps** = too fast (slow down), **long pulse** = too quiet (speak up). A setting switches to one tap for everything. Cues are fast: "um"/"uh" cue on the first confident result, and a clear filler "like" cues as soon as the next word is heard. Ambiguous cases wait for more words. Each cue's measured delay appears in the app.
 
 A cue is withheld when confidence is too low, within the cooldown after the last cue, while muted, or when its category is off. Withheld detections still show in the app's "Why Cue acted" log.
 

@@ -19,6 +19,8 @@ export interface SessionFile {
   config: CueConfig;
   messages: DgMessage[];
   corrections: Correction[];
+  /** Mic level frames as [engine time s, dBFS], for replaying volume cues. */
+  levels?: [number, number][];
   /** Measured cue delays in this session, ms after the filler ended. */
   latenciesMs?: number[];
 }
@@ -45,6 +47,8 @@ export interface SessionScore {
  */
 export function evaluateSession(file: SessionFile, config?: Partial<CueConfig>): SessionScore {
   const session = new CueSession({ ...file.config, muted: false, ...config });
+  // Level frames are keyed by audio time, so they can all be loaded before the words.
+  for (const [t, db] of file.levels ?? []) session.ingestLevel(t, db);
   for (const msg of file.messages) feedMessage(session, msg);
   session.endUtterance();
 
