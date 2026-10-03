@@ -4,18 +4,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
 import type { Correction, SessionFile } from "@/lib/cue/evaluate";
+import { PATTERNS, patternFor, type CueKind, type CuePattern } from "@/lib/cue/patterns";
 import { CueSession, type SessionUpdate } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
-import type { BehaviorType, CueDecision, LikeCheck, Word } from "@/lib/cue/types";
+import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
 
-const LABEL: Record<BehaviorType, string> = {
+const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
   filler_uh: "“uh”",
   filler_like: "filler “like”",
   rushing: "speaking fast",
+  volume: "volume",
 };
+
+/** The legend's preview entries, one per rhythm. */
+const LEGEND: { kind: CueKind; label: string }[] = [
+  { kind: "filler_um", label: "Filler word" },
+  { kind: "rushing", label: "Too fast" },
+  { kind: "volume", label: "Volume (preview)" },
+];
 
 const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   low_confidence: "not confident enough",
@@ -61,7 +70,7 @@ export default function CueApp() {
   const [corrections, setCorrections] = useState<Correction[]>([]);
   const [speakingSec, setSpeakingSec] = useState(0);
   const [words, setWords] = useState<Word[]>([]);
-  const [buzz, setBuzz] = useState<{ n: number; label: string } | null>(null);
+  const [buzz, setBuzz] = useState<{ n: number; label: string; pattern: CuePattern } | null>(null);
   const [showTranscript, setShowTranscript] = useState(true);
   const [demoText, setDemoText] = useState(EXAMPLES[0]);
   const [demoWpm, setDemoWpm] = useState(150);
@@ -78,11 +87,12 @@ export default function CueApp() {
     sessionRef.current.config = config;
   }, [config]);
 
-  const triggerBuzz = useCallback((label: string) => {
-    setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label }));
-    navigator.vibrate?.(60);
+  const triggerBuzz = useCallback((kind: CueKind) => {
+    const pattern = patternFor(kind, sessionRef.current.config.distinctCues);
+    setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: LABEL[kind], pattern }));
+    navigator.vibrate?.(PATTERNS[pattern].vibrate);
     window.clearTimeout(buzzTimer.current);
-    buzzTimer.current = window.setTimeout(() => setBuzz(null), 1400);
+    buzzTimer.current = window.setTimeout(() => setBuzz(null), PATTERNS[pattern].durationMs + 600);
   }, []);
 
   const apply = useCallback(
@@ -90,7 +100,7 @@ export default function CueApp() {
       if (u.pace !== null) setPace(u.pace);
       const hit = u.decisions.find((d) => d.delivered);
       if (hit) {
-        triggerBuzz(LABEL[hit.event.type]);
+        triggerBuzz(hit.event.type);
         const endedAt = hit.event.type !== "rushing" ? clockRef.current?.toPage(hit.event.end) : null;
         if (endedAt != null) {
           const ms = Math.max(0, performance.now() - endedAt);
@@ -242,10 +252,13 @@ export default function CueApp() {
         <section className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
           <div className="flex flex-col items-center gap-6">
             <BuzzIndicator buzz={buzz} />
-            <p className="h-5 text-center text-sm text-muted" aria-live="polite">
+            <p className="relative z-10 h-5 text-center text-sm text-muted" aria-live="polite">
               {buzz ? (
                 <>
-                  <span className="font-medium text-cue">Make space</span> · {buzz.label}
+                  <span className="font-medium text-cue">
+                    {config.distinctCues ? PATTERNS[buzz.pattern].action : "Make space"}
+                  </span>{" "}
+                  · {buzz.label}
                 </>
               ) : busy ? (
                 "Listening for fillers and pace…"
@@ -277,6 +290,29 @@ export default function CueApp() {
               </button>
             </div>
             {error && <p className="max-w-md text-center text-sm text-red-500">{error}</p>}
+
+            {/* Cue language: what each rhythm means; click to preview */}
+            <div className="w-full max-w-sm">
+              <p className="mb-2 text-xs text-muted">Cue language · tap to preview</p>
+              <div className="grid grid-cols-3 gap-2">
+                {LEGEND.map(({ kind, label }) => {
+                  const p = patternFor(kind, config.distinctCues);
+                  return (
+                    <button
+                      key={kind}
+                      onClick={() => triggerBuzz(kind)}
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border border-line px-2 py-2.5 text-xs hover:border-cue ${
+                        buzz?.pattern === p && buzz.label === LABEL[kind] ? "cue-playing border-cue" : ""
+                      }`}
+                    >
+                      <RhythmGlyph pattern={p} />
+                      <span className="font-medium">{config.distinctCues ? PATTERNS[p].action : "Make space"}</span>
+                      <span className="text-muted">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Pace meter */}
             <div className="w-full max-w-sm">
@@ -515,6 +551,12 @@ export default function CueApp() {
               </div>
             </fieldset>
             <Toggle
+              label="Different cue for each alert"
+              hint="Off: one tap for everything (“make space”)"
+              on={config.distinctCues}
+              onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
+            />
+            <Toggle
               label="Count quote “like”"
               hint="“she was like, no way”"
               on={config.likeCounts.quotative}
@@ -608,16 +650,17 @@ export default function CueApp() {
   );
 }
 
-function BuzzIndicator({ buzz }: { buzz: { n: number; label: string } | null }) {
+function BuzzIndicator({ buzz }: { buzz: { n: number; label: string; pattern: CuePattern } | null }) {
   return (
     <div
       key={buzz?.n ?? 0}
+      data-pattern={buzz?.pattern}
       className={`relative grid h-44 w-44 place-items-center ${buzz ? "cue-buzzing" : ""}`}
       role="img"
-      aria-label={buzz ? `Haptic cue: ${buzz.label}` : "Haptic cue idle"}
+      aria-label={buzz ? `Haptic cue: ${PATTERNS[buzz.pattern].name}, ${buzz.label}` : "Haptic cue idle"}
     >
       <div className="pointer-events-none absolute inset-0">
-        {[0, 1, 2].map((k) => (
+        {[0, 1].map((k) => (
           <span key={k} className="cue-ring absolute inset-0 rounded-full border-2 border-cue opacity-0" />
         ))}
       </div>
@@ -633,6 +676,18 @@ function BuzzIndicator({ buzz }: { buzz: { n: number; label: string } | null }) 
         </svg>
       </div>
     </div>
+  );
+}
+
+/** A pattern's rhythm drawn as beats: ▮ / ▮ ▮ / ▬. */
+function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
+  const beats = pattern === "double" ? ["w-1.5", "w-1.5"] : pattern === "long" ? ["w-6"] : ["w-1.5"];
+  return (
+    <span className="flex h-3 items-center gap-1" aria-hidden>
+      {beats.map((w, k) => (
+        <span key={k} className={`beat h-3 ${w} rounded-sm bg-cue opacity-35`} />
+      ))}
+    </span>
   );
 }
 

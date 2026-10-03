@@ -35,6 +35,8 @@ export interface CueConfig {
   /** Minimum gap between two pace buzzes, seconds. */
   paceCooldownSec: number;
   muted: boolean;
+  /** Different haptic rhythms per alert (filler / pace / volume) instead of one tap for all. */
+  distinctCues: boolean;
 }
 
 export const DEFAULT_CONFIG: CueConfig = {
@@ -48,4 +50,5 @@ export const DEFAULT_CONFIG: CueConfig = {
   cooldownSec: 2.5,
   paceCooldownSec: 12,
   muted: false,
+  distinctCues: true,
 };
