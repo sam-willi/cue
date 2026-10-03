@@ -1,0 +1,33 @@
+name: Detection miss or false buzz
+description: Cue buzzed when it shouldn't have, or missed a filler / fast speech.
+labels: [detection]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What happened?
+      options:
+        - Missed a filler (should have buzzed)
+        - False buzz (shouldn't have buzzed)
+        - Speaking-pace cue was wrong
+    validations:
+      required: true
+  - type: input
+    id: phrase
+    attributes:
+      label: What was said
+      description: The phrase, as close to verbatim as you can. Don't include anything private.
+      placeholder: "and we were just like sitting there"
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: What the "Why Cue acted" log said
+      description: Copy the entry (or "nothing appeared").
+  - type: checkboxes
+    id: session
+    attributes:
+      label: Session file
+      options:
+        - label: I have a downloaded session file I can share privately (don't attach it here; it contains a transcript)
