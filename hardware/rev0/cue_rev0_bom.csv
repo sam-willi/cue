@@ -1,0 +1,31 @@
+Refs,Qty,Value,Manufacturer part,Footprint,Status,Notes
+BT1,1,CP1254 A4X,VARTA CoinPower CP 1254 A4X,VARTA_CP1254_Tabs,FIT,"3.7 V, 74 mAh, 12.1 mm dia. Alt CP1240 A4X (50 mAh, thinner). Confirm whether cell needs external protection."
+C1 C4 C11 C12,4,1uF,X5R/X7R ceramic,C_0402,FIT,U5 REG | U5 VDD | VBUS | VSYS
+C2 C3 C6 C7,4,10uF,X5R/X7R ceramic,C_0603,FIT,1V8 out | 3V0 out | VBAT | VBUS
+C5,1,2.2uF,X5R/X7R ceramic,C_0402,FIT,VSYS
+C8 C9 C10,3,100nF,X5R/X7R ceramic,C_0201,FIT,"U3 VDD (typ.) | U3 VDD_IO (typ.) | U4 VDD, X7R, closest part to pin 7"
+C13 C14,2,1uF,X5R/X7R ceramic,C_0402,DNP,U7 VDDHI | U7 VREG
+C15,1,100nF,X5R/X7R ceramic,C_0201,DNP,U6 VDD (typ.)
+C16,1,TBC,X5R/X7R ceramic,C_0402,FIT,"U1 VDD bulk, value per BL54L15u datasheet (TBC)"
+D1,1,TVS 5V,"TBC (0201/0402 ESD diode, 5 V working)",D_0201,FIT,Part TBC.
+E1,1,Shell electrode,Contact to metal shell / touch area,Pad_Spring_Contact,FIT,Qvar touch surface. Shared by R5 (U7 fallback) and R6 (Qvar); fit one.
+J1,1,Pogo pads,Gold pads for case pogo pins,Pads_2x1.5mm,FIT,
+L1 L2,2,2.2uH,"DCR<400mOhm, +/-20%",L_0806,FIT,BUCK1 (nPM1300 ref). | BUCK2 (nPM1300 ref).
+M1,1,LRA 8 mm,Vybronics VG0832013D,LRA_Coin_8mm_Pads,FIT,"Alt: VG0640001D (6 mm). Mounted on flex, pressed toward skin."
+R1 R2,2,4.7k,1% thick film,R_0201,FIT,I2C SCL pull-up to 1V8 | I2C SDA pull-up to 1V8
+R3 R4 R6,3,TBC,1% thick film,R_0201,FIT,U3 QVAR1 series to shell electrode (TBC) | nPM1300 VSET1 - pick value for 1.8 V from datasheet table | nPM1300 VSET2 - pick value for 3.0 V from datasheet table
+R5,1,470R,1% thick film,R_0201,DNP,"U7 CX series (ESD), per IQS227 datasheet"
+TP1,1,TP SWDIO,Test pad,TestPoint_Pad_D1.0mm,FIT,
+TP2,1,TP SWDCLK,Test pad,TestPoint_Pad_D1.0mm,FIT,
+TP3,1,TP 1V8,Test pad,TestPoint_Pad_D1.0mm,FIT,
+TP4,1,TP GND,Test pad,TestPoint_Pad_D1.0mm,FIT,
+TP5,1,TP SHPHLD,Test pad,TestPoint_Pad_D1.0mm,FIT,
+TP6,1,TP TOUT,Test pad,TestPoint_Pad_D1.0mm,DNP,
+TP7,1,TP POUT,Test pad,TestPoint_Pad_D1.0mm,DNP,
+U1,1,BL54L15u,Ezurio 453-00223 (chip antenna),Ezurio_BL54L15u_LGA45_7.9x6.3mm,FIT,"7.9 x 6.3 x 1.75 mm, FCC/CE/ISED/MIC/RCM. Pad numbers TBC from module datasheet. Clock signals (SCL, PDM CLK, I2S BCLK/WCLK) must land on P1 clock pins - confirm in Nordic pin table. Interrupt inputs on P0/P1 only (P2 cannot raise pin interrupts)."
+U2,1,nPM1300,Nordic NPM1300-QEAA-R,QFN-32_5x5mm_P0.5mm,FIT,I2C 0x6B. Pad numbers TBC. PVDD (buck input) tied to VSYS - confirm against reference circuit (TBC). CC1/CC2/NTC/LSIN-LSOUT handling per datasheet (TBC).
+U3,1,LSM6DSV16BX,ST LSM6DSV16BXTR,ST_LGA-14_2.5x3.0mm,FIT,SA0 low -> I2C 0x6A (avoids nPM1300 0x6B). Qvar touch on QVAR1.
+U4,1,T5838,TDK InvenSense T5838,TDK_T5838_LGA-7_3.5x2.65mm,FIT,Supply 1.62-1.98 V only - this sets the board's 1.8 V logic.
+U5,1,DRV2605L,TI DRV2605LDGSR,VSSOP-10_3x3mm_P0.5mm,FIT,I2C 0x5A. EN high before register writes. Confirm 1.8 V I2C logic thresholds (TBC). Pad numbers TBC.
+U6,1,V2S200D,Syntiant V2S200D,V2S200D_3.30x2.30mm,DNP,Option: shares PDM bus on the left channel. Pin names/numbers TBC from datasheet.
+U7,1,IQS227B,Azoteq IQS227B-00000000-DNR,DFN-6_2x2mm,DNP,Fallback only if Qvar touch fails. Outputs swing to VDDHI (3.0 V): add a level translator before U1 if fitted.
