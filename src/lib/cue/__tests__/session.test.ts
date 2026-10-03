@@ -23,13 +23,75 @@ describe("CueSession", () => {
     expect(run("i like tofu")).toEqual([]);
   });
 
-  it("decides the like as soon as the next word is stable, before the utterance ends", () => {
+  it("cues a confident filler 'like' as soon as the next word is heard", () => {
     const s = new CueSession();
     const words = simulateWords("i like went to the mall");
-    s.ingest(words.slice(0, 3), false); // "i like went" — "went" not yet stable
+    s.ingest(words.slice(0, 2), false); // "i like" — needs the next word
     expect(s.history).toHaveLength(0);
-    s.ingest(words.slice(0, 5), false); // two more words heard
+    s.ingest(words.slice(0, 3), false); // "i like went" — interim, but clear
+    expect(s.history.map((d) => [d.event.type, d.delivered])).toEqual([["filler_like", true]]);
+  });
+
+  it("waits for stable words when the word after 'like' is uncertain", () => {
+    const s = new CueSession();
+    const words = simulateWords("i like went to the mall");
+    words[2].confidence = 0.5; // recognizer unsure about "went"
+    s.ingest(words.slice(0, 3), false);
+    expect(s.history).toHaveLength(0);
+    s.ingest(words.slice(0, 5), false); // "went" now followed by two words
     expect(s.history.map((d) => d.event.type)).toEqual(["filler_like"]);
+  });
+
+  it("never decides a non-filler on unstable words, so a revision can still be caught", () => {
+    const s = new CueSession();
+    // Interim mishears "went" as "wind": "i like wind" reads as the verb.
+    const misheard = simulateWords("i like wind");
+    s.ingest(misheard, false);
+    expect(s.likeChecks).toHaveLength(0);
+    s.ingest(simulateWords("i like went to the mall"), true);
+    expect(s.history.map((d) => d.event.type)).toEqual(["filler_like"]);
+  });
+
+  it("cues a confident interim 'um' immediately", () => {
+    const s = new CueSession();
+    s.ingest(simulateWords("so um"), false);
+    expect(s.history.map((d) => [d.event.type, d.delivered])).toEqual([["filler_um", true]]);
+  });
+
+  it("waits on a low-confidence interim 'um'", () => {
+    const s = new CueSession();
+    const words = simulateWords("so um");
+    words[1].confidence = 0.6;
+    s.ingest(words, false);
+    expect(s.history).toHaveLength(0);
+  });
+
+  it("withholds the cue when the wearer caught the filler first", () => {
+    const s = new CueSession();
+    const words = simulateWords("i like went to the mall");
+    s.selfCatch(words[1].end + 0.2); // pressed right after saying "like"
+    s.ingest(words, true);
+    expect(s.history.map((d) => [d.event.type, d.delivered, d.withheldReason])).toEqual([
+      ["filler_like", false, "self_caught"],
+    ]);
+  });
+
+  it("doesn't let a self-catch cover the next filler", () => {
+    const s = new CueSession({ cooldownSec: 0 });
+    const words = simulateWords("so um she was like really tired");
+    s.selfCatch(words[1].end + 0.1); // caught the "um"
+    s.ingest(words, true);
+    expect(s.history.map((d) => [d.event.type, d.withheldReason])).toEqual([
+      ["filler_um", "self_caught"],
+      ["filler_like", undefined],
+    ]);
+  });
+
+  it("measures speaking time without long pauses", () => {
+    const s = new CueSession();
+    s.ingest(simulateWords("one two three. four five six"), true);
+    // 6 words × 0.32 s + 4 short gaps × 0.08 s; the 0.88 s gap after "three." is excluded.
+    expect(s.speakingSeconds()).toBeCloseTo(6 * 0.32 + 4 * 0.08, 2);
   });
 
   it("buzzes for um/uh but not for backchannels", () => {

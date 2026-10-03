@@ -8,6 +8,16 @@ import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word }
 const SAME_EVENT = 0.25;
 /** Words an interim word must be followed by before we trust it. */
 const INTERIM_STABILITY = 2;
+/** Interim "um"/"uh" at or above this ASR confidence cue immediately (no context needed). */
+const FAST_HESITATION_CONFIDENCE = 0.8;
+/** A filler "like" decided on not-yet-stable words cues early only if this sure… */
+const EARLY_LIKE_CONFIDENCE = 0.85;
+/** …and the recognizer is this sure of the word right after it. */
+const EARLY_NEXT_WORD_CONFIDENCE = 0.8;
+/** A self-catch up to this long (s) before a filler starts (pressed while saying it)… */
+const SELF_CATCH_LEAD = 0.3;
+/** …or after it ends counts as catching that filler, and withholds its cue. */
+const SELF_CATCH_LAG = 3;
 /** Only rescan this many trailing words on each update. */
 const SCAN_WINDOW = 40;
 /** Once rushing starts, pace must drop this far below the limit to reset (syllables/s). */
@@ -54,6 +64,8 @@ export class CueSession {
   /** All decisions so far, newest last. */
   readonly history: CueDecision[] = [];
   readonly likeChecks: LikeCheck[] = [];
+  /** Engine-clock times (s) when the wearer flagged their own slip. */
+  readonly selfCatches: number[] = [];
 
   constructor(config: Partial<CueConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -77,6 +89,26 @@ export class CueSession {
     return this.process(true);
   }
 
+  /**
+   * The wearer noticed a slip themselves ("I caught it"). Recorded as a self-caught
+   * moment; a filler cue that would land around the same time is withheld.
+   */
+  selfCatch(at: number) {
+    this.selfCatches.push(at);
+  }
+
+  /** Seconds of speech so far, excluding pauses longer than 0.6 s. */
+  speakingSeconds(): number {
+    const words = this.words;
+    let total = 0;
+    for (let k = 0; k < words.length; k++) {
+      total += words[k].end - words[k].start;
+      const gap = k + 1 < words.length ? words[k + 1].start - words[k].end : 0;
+      if (gap > 0 && gap <= 0.6) total += gap;
+    }
+    return total;
+  }
+
   private process(rightClosed: boolean): SessionUpdate {
     const words = this.words;
     const finalCount = this.finalWords.length;
@@ -87,9 +119,11 @@ export class CueSession {
     for (let i = from; i < words.length; i++) {
       const w = words[i];
       const isInterim = i >= finalCount;
-      if (isInterim && !rightClosed && words.length - 1 - i < INTERIM_STABILITY) continue;
+      const stable = !isInterim || rightClosed || words.length - 1 - i >= INTERIM_STABILITY;
 
       if (UM_FORMS.has(w.norm) || UH_FORMS.has(w.norm)) {
+        // Hesitations need no context: a confident interim result is enough.
+        if (!stable && w.confidence < FAST_HESITATION_CONFIDENCE) continue;
         const type: BehaviorType = UM_FORMS.has(w.norm) ? "filler_um" : "filler_uh";
         if (this.isDecided(type, w.start)) continue;
         this.markDecided(type, w.start);
@@ -101,9 +135,20 @@ export class CueSession {
         if (this.isDecided("like_checked", w.start)) continue;
         const v = classifyLike(words, i, { rightClosed });
         if (v === NEED_MORE) continue;
-        this.markDecided("like_checked", w.start);
         const counts = FILLER_LIKE_USES[v.use];
         const isFiller = counts === true || (typeof counts === "string" && this.config.likeCounts[counts]);
+        // Decide on unstable words only for a confident filler whose next word is clearly heard;
+        // otherwise wait — a revised interim word could flip the verdict either way.
+        if (!stable) {
+          const next = words[i + 1];
+          const early =
+            isFiller &&
+            v.confidence >= EARLY_LIKE_CONFIDENCE &&
+            !!next &&
+            next.confidence >= EARLY_NEXT_WORD_CONFIDENCE;
+          if (!early) continue;
+        }
+        this.markDecided("like_checked", w.start);
         likeChecks.push({
           id: `l${this.nextId++}`,
           start: w.start,
@@ -164,6 +209,7 @@ export class CueSession {
     if (!c.categories[cat[event.type]]) withheldReason = "category_off";
     else if (event.confidence < c.minConfidence) withheldReason = "low_confidence";
     else if (c.muted) withheldReason = "muted";
+    else if (event.type !== "rushing" && this.selfCaughtNear(event)) withheldReason = "self_caught";
     else if (event.end - this.lastCueEnd < c.cooldownSec) withheldReason = "cooldown";
     const delivered = !withheldReason;
     if (delivered) this.lastCueEnd = event.end;
@@ -187,6 +233,10 @@ export class CueSession {
       reason,
       context: contextAround(words, i),
     };
+  }
+
+  private selfCaughtNear(event: SpeechEvent) {
+    return this.selfCatches.some((t) => t >= event.start - SELF_CATCH_LEAD && t <= event.end + SELF_CATCH_LAG);
   }
 
   private isDecided(type: BehaviorType | "like_checked", start: number) {

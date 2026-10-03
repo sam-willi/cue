@@ -1,10 +1,11 @@
-// Downsamples mic audio to 16 kHz mono 16-bit PCM and posts ~100 ms chunks.
+// Downsamples mic audio to 16 kHz mono 16-bit PCM and posts 50 ms chunks
+// (smaller chunks reach Deepgram sooner; 20–100 ms is the usual range).
 class PcmWorklet extends AudioWorkletProcessor {
   constructor() {
     super();
     this.ratio = sampleRate / 16000;
     this.pos = 0;
-    this.buf = new Int16Array(1600);
+    this.buf = new Int16Array(800);
     this.len = 0;
   }
 
@@ -25,7 +26,7 @@ class PcmWorklet extends AudioWorkletProcessor {
       this.buf[this.len++] = s < 0 ? s * 0x8000 : s * 0x7fff;
       if (this.len === this.buf.length) {
         this.port.postMessage(this.buf.buffer, [this.buf.buffer]);
-        this.buf = new Int16Array(1600);
+        this.buf = new Int16Array(800);
         this.len = 0;
       }
       this.pos += this.ratio;

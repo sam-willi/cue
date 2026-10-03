@@ -21,7 +21,12 @@
 3. Adjust the rule in `src/lib/cue/likeClassifier.ts` (or a word list in `lexicon.ts`). Keep the rule's `reason` string accurate.
 4. Make sure all existing cases still pass. A fix that causes a false buzz elsewhere isn't a fix.
 
-If you have a downloaded session file, replay it through `CueSession` locally to confirm the fix on real Deepgram output. Don't commit the file.
+### Checking against real sessions
+
+1. During a live session, click words in the transcript to mark wrong buzzes and misses, then **Download session**.
+2. Move the file into `sessions/` (git-ignored; session files contain transcripts and must never be committed).
+3. Run `npm run eval`. It replays each session through the current rules and reports which marked mistakes are still wrong, plus false buzzes per speaking hour.
+4. After changing a rule, run it again. The goal is fewer "still firing" and "still missed" without new ones elsewhere.
 
 ## Troubleshooting
 

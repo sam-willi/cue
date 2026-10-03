@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
+import type { Correction, SessionFile } from "@/lib/cue/evaluate";
 import { CueSession, type SessionUpdate } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
 import type { BehaviorType, CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
+import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
 
 const LABEL: Record<BehaviorType, string> = {
   filler_um: "“um”",
@@ -20,7 +22,22 @@ const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   cooldown: "too soon after the last cue",
   muted: "muted",
   category_off: "category off",
+  self_caught: "you caught it first",
 };
+
+/** Converts between the speech engine's clock (s) and the page clock (performance.now(), ms). */
+interface Clock {
+  toPage: (t: number) => number | null;
+  toAudio: (ms: number) => number | null;
+}
+
+const wordKey = (start: number) => Math.round(start * 100);
+
+function percentile(xs: number[], p: number) {
+  if (xs.length === 0) return null;
+  const sorted = [...xs].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))];
+}
 
 const EXAMPLES = [
   "I like went to the mall yesterday.",
@@ -40,6 +57,12 @@ export default function CueApp() {
   const [log, setLog] = useState<CueDecision[]>([]);
   const [checks, setChecks] = useState<LikeCheck[]>([]);
   const [recorded, setRecorded] = useState(0);
+  /** Measured delay (ms) from the end of a filler to its buzz, by event id. */
+  const [latency, setLatency] = useState<Record<string, number>>({});
+  const [corrections, setCorrections] = useState<Correction[]>([]);
+  const [selfCaught, setSelfCaught] = useState<{ at: number; context: string }[]>([]);
+  const [caughtFlash, setCaughtFlash] = useState(0);
+  const [speakingSec, setSpeakingSec] = useState(0);
   const [words, setWords] = useState<Word[]>([]);
   const [buzz, setBuzz] = useState<{ n: number; label: string } | null>(null);
   const [showTranscript, setShowTranscript] = useState(true);
@@ -50,7 +73,8 @@ export default function CueApp() {
   const transcriberRef = useRef<LiveTranscriber | null>(null);
   const timersRef = useRef<number[]>([]);
   /** Raw Deepgram messages from the last live session, for "Download session". */
-  const rawRef = useRef<unknown[]>([]);
+  const rawRef = useRef<DgMessage[]>([]);
+  const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -68,10 +92,18 @@ export default function CueApp() {
     (u: SessionUpdate) => {
       if (u.pace !== null) setPace(u.pace);
       const hit = u.decisions.find((d) => d.delivered);
-      if (hit) triggerBuzz(LABEL[hit.event.type]);
+      if (hit) {
+        triggerBuzz(LABEL[hit.event.type]);
+        const endedAt = hit.event.type !== "rushing" ? clockRef.current?.toPage(hit.event.end) : null;
+        if (endedAt != null) {
+          const ms = Math.max(0, performance.now() - endedAt);
+          setLatency((l) => ({ ...l, [hit.event.id]: ms }));
+        }
+      }
       if (u.decisions.length) setLog((l) => [...u.decisions.slice().reverse(), ...l].slice(0, 100));
       if (u.likeChecks.length) setChecks((c) => [...u.likeChecks.slice().reverse(), ...c].slice(0, 100));
       setWords(sessionRef.current.words);
+      setSpeakingSec(sessionRef.current.speakingSeconds());
     },
     [triggerBuzz],
   );
@@ -83,6 +115,10 @@ export default function CueApp() {
     setLog([]);
     setChecks([]);
     setWords([]);
+    setLatency({});
+    setCorrections([]);
+    setSelfCaught([]);
+    setSpeakingSec(0);
     setPace(null);
     setError(null);
   }, [config]);
@@ -101,11 +137,11 @@ export default function CueApp() {
     stopAll();
     reset();
     const t = new LiveTranscriber({
-      onWords: (w, isFinal) => apply(sessionRef.current.ingest(w, isFinal)),
-      onUtteranceEnd: () => apply(sessionRef.current.endUtterance()),
-      onRaw: (msg) => {
+      onMessage: (msg) => {
         rawRef.current.push(msg);
         if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
+        const u = feedMessage(sessionRef.current, msg);
+        if (u) apply(u);
       },
       onStatus: (s, detail) => {
         if (s === "stopped") return;
@@ -115,6 +151,7 @@ export default function CueApp() {
     });
     rawRef.current = [];
     setRecorded(0);
+    clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
     transcriberRef.current = t;
     await t.start();
   };
@@ -123,6 +160,8 @@ export default function CueApp() {
     stopAll();
     reset();
     setStatus("demo");
+    const demoStart = performance.now();
+    clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
     const sim = simulateWords(text, { wpm: demoWpm });
     sim.forEach((w, k) => {
       timersRef.current.push(
@@ -139,21 +178,53 @@ export default function CueApp() {
     );
   };
 
-  const downloadSession = () => {
-    const blob = new Blob(
-      [
-        JSON.stringify(
-          {
-            savedAt: new Date().toISOString(),
-            config,
-            messages: rawRef.current,
-          },
-          null,
-          0,
-        ),
-      ],
-      { type: "application/json" },
+  const busy = status === "listening" || status === "connecting" || status === "demo";
+
+  /** "I caught it": the wearer noticed a slip before (or instead of) Cue. */
+  const catchIt = useCallback(() => {
+    const at = clockRef.current?.toAudio(performance.now());
+    if (at == null) return;
+    sessionRef.current.selfCatch(at);
+    const recent = sessionRef.current.words.filter((w) => w.end <= at + 0.2).slice(-6);
+    setSelfCaught((s) => [...s, { at, context: recent.map((w) => w.text).join(" ") }]);
+    setCaughtFlash((n) => n + 1);
+    window.setTimeout(() => setCaughtFlash(0), 1200);
+  }, []);
+
+  // Spacebar = "I caught it" while listening (not while typing).
+  useEffect(() => {
+    if (!busy) return;
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement;
+      if (e.code !== "Space" || e.repeat || el.closest("input, textarea, button, select")) return;
+      e.preventDefault();
+      catchIt();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, catchIt]);
+
+  /** Mark (or unmark) a word as a false buzz or a missed filler. */
+  const toggleCorrection = (start: number, label: Correction["label"]) => {
+    const word = words.find((w) => wordKey(w.start) === wordKey(start))?.norm ?? "";
+    setCorrections((cs) =>
+      cs.some((c) => wordKey(c.start) === wordKey(start))
+        ? cs.filter((c) => wordKey(c.start) !== wordKey(start))
+        : [...cs, { start, word, label }],
     );
+  };
+
+  const downloadSession = () => {
+    const file: SessionFile = {
+      version: 2,
+      savedAt: new Date().toISOString(),
+      config,
+      messages: rawRef.current,
+      corrections,
+      selfCatches: selfCaught.map((s) => s.at),
+      latenciesMs: Object.values(latency),
+    };
+    const blob = new Blob([JSON.stringify(file)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `cue-session-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
@@ -161,18 +232,25 @@ export default function CueApp() {
     URL.revokeObjectURL(a.href);
   };
 
-  const flagged = new Map(log.map((d) => [Math.round(d.event.start * 100), d]));
-  const checked = new Map(checks.map((c) => [Math.round(c.start * 100), c]));
-  const entries = [
-    ...log.map((d) => ({
-      key: d.event.id,
-      start: d.event.start,
-      d,
-      c: undefined as LikeCheck | undefined,
-    })),
-    ...checks.filter((c) => !c.counted).map((c) => ({ key: c.id, start: c.start, d: undefined, c })),
+  const flagged = new Map(log.filter((d) => d.event.type !== "rushing").map((d) => [wordKey(d.event.start), d]));
+  const checked = new Map(checks.map((c) => [wordKey(c.start), c]));
+  const corrected = new Map(corrections.map((c) => [wordKey(c.start), c]));
+  type Entry = { key: string; start: number; d?: CueDecision; c?: LikeCheck; self?: { at: number; context: string } };
+  const entries: Entry[] = [
+    ...log.map((d) => ({ key: d.event.id, start: d.event.start, d })),
+    ...checks.filter((c) => !c.counted).map((c) => ({ key: c.id, start: c.start, c })),
+    ...selfCaught.map((self, k) => ({ key: `s${k}`, start: self.at, self })),
   ].sort((a, b) => b.start - a.start);
-  const busy = status === "listening" || status === "connecting" || status === "demo";
+
+  // "This session" numbers.
+  const fillerCues = log.filter((d) => d.delivered && d.event.type !== "rushing").length;
+  const paceCues = log.filter((d) => d.delivered && d.event.type === "rushing").length;
+  const lat = Object.values(latency);
+  const p50 = percentile(lat, 0.5);
+  const p90 = percentile(lat, 0.9);
+  const falseBuzzes = corrections.filter((c) => c.label === "false_buzz").length;
+  const misses = corrections.filter((c) => c.label === "missed").length;
+  const speakingMin = speakingSec / 60;
   const sps = pace?.sps ?? 0;
   const paceFrac = Math.min(1, sps / (config.paceThreshold * 1.4));
   const presetLabel = config.paceMode === "custom" ? "Custom" : PACE_PRESETS[config.paceMode].label;
@@ -195,7 +273,9 @@ export default function CueApp() {
           <div className="flex flex-col items-center gap-6">
             <BuzzIndicator buzz={buzz} />
             <p className="h-5 text-center text-sm text-muted" aria-live="polite">
-              {buzz ? (
+              {caughtFlash ? (
+                <span className="font-medium text-ok">You caught it. Nice.</span>
+              ) : buzz ? (
                 <>
                   <span className="font-medium text-cue">Make space</span> · {buzz.label}
                 </>
@@ -218,6 +298,15 @@ export default function CueApp() {
                   disabled={status === "demo"}
                 >
                   Start listening
+                </button>
+              )}
+              {busy && (
+                <button
+                  onClick={catchIt}
+                  className="rounded-full border border-ok px-5 py-3 text-sm text-ok"
+                  title="Noticed a filler or rushing yourself? Tap here or press space."
+                >
+                  I caught it <kbd className="ml-1 rounded border border-ok/40 px-1 font-mono text-[10px]">space</kbd>
                 </button>
               )}
               <button
@@ -307,7 +396,12 @@ export default function CueApp() {
         {/* --- Transcript (dev aid) --- */}
         <section className="rounded-3xl border border-line bg-surface p-6 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-medium">Transcript</h2>
+            <div>
+              <h2 className="font-medium">Transcript</h2>
+              <p className="text-xs text-muted">
+                Click a word to mark a wrong buzz (strikethrough) or a filler Cue missed (outlined).
+              </p>
+            </div>
             <label className="flex items-center gap-2 text-xs text-muted">
               <input type="checkbox" checked={showTranscript} onChange={(e) => setShowTranscript(e.target.checked)} />
               Show (dev only)
@@ -317,26 +411,36 @@ export default function CueApp() {
             <p className="min-h-12 text-[15px] leading-8">
               {words.length === 0 && <span className="text-muted">Nothing yet.</span>}
               {words.map((w, k) => {
-                const d = flagged.get(Math.round(w.start * 100));
-                const isFiller = d && d.event.type !== "rushing";
-                const c = !isFiller && w.norm === "like" ? checked.get(Math.round(w.start * 100)) : undefined;
+                const d = flagged.get(wordKey(w.start));
+                const c = !d && w.norm === "like" ? checked.get(wordKey(w.start)) : undefined;
+                const fix = corrected.get(wordKey(w.start));
+                const base = d
+                  ? d.delivered
+                    ? "rounded bg-cue-soft px-1 text-cue"
+                    : "rounded px-1 text-cue underline decoration-dotted"
+                  : c
+                    ? "underline decoration-muted decoration-dotted underline-offset-4"
+                    : "";
+                const marked = fix
+                  ? fix.label === "false_buzz"
+                    ? " line-through decoration-2"
+                    : " ring-1 ring-ok rounded"
+                  : "";
+                const why = d
+                  ? d.event.reason
+                  : c
+                    ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}`
+                    : "Click to mark as a missed filler";
                 return (
-                  <span
-                    key={k}
-                    title={
-                      isFiller ? d.event.reason : c ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}` : undefined
-                    }
-                    className={
-                      isFiller
-                        ? d.delivered
-                          ? "rounded bg-cue-soft px-1 text-cue"
-                          : "rounded px-1 text-cue underline decoration-dotted"
-                        : c
-                          ? "underline decoration-muted decoration-dotted underline-offset-4"
-                          : undefined
-                    }
-                  >
-                    {w.text}{" "}
+                  <span key={k}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCorrection(w.start, d ? "false_buzz" : "missed")}
+                      title={`${why}${fix ? " · marked (click to undo)" : d ? " · click if this wasn't a filler" : ""}`}
+                      className={`cursor-pointer hover:bg-surface-2 ${base}${marked}`}
+                    >
+                      {w.text}
+                    </button>{" "}
                   </span>
                 );
               })}
@@ -344,11 +448,31 @@ export default function CueApp() {
           )}
         </section>
 
+        {/* --- This session --- */}
+        <section className="rounded-3xl border border-line bg-surface p-6 lg:col-span-2">
+          <h2 className="mb-4 font-medium">This session</h2>
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
+            <Stat
+              label="Speaking"
+              value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingMin * 60)} s`}
+            />
+            <Stat label="Cue caught" value={`${fillerCues}${paceCues ? ` + ${paceCues} pace` : ""}`} />
+            <Stat label="You caught" value={String(selfCaught.length)} tone="ok" />
+            <Stat
+              label="Cue delay"
+              value={p50 == null ? "—" : `${(p50 / 1000).toFixed(2)}s`}
+              hint={p90 == null ? "typical, after the filler" : `typical · slowest ${(p90 / 1000).toFixed(2)}s`}
+            />
+            <Stat label="Marked wrong buzz" value={String(falseBuzzes)} />
+            <Stat label="Marked missed" value={String(misses)} />
+          </dl>
+        </section>
+
         {/* --- Event log --- */}
         <section className="rounded-3xl border border-line bg-surface p-6">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="font-medium">Why Cue acted</h2>
-            {recorded > 0 && (
+            {recorded > 0 && !busy && (
               <button
                 onClick={downloadSession}
                 className="rounded-full border border-line px-3 py-1 text-xs text-muted hover:text-text"
@@ -365,8 +489,16 @@ export default function CueApp() {
             </p>
           ) : (
             <ul className="space-y-3">
-              {entries.map(({ key, d, c }) =>
-                c ? (
+              {entries.map(({ key, d, c, self }) =>
+                self ? (
+                  <li key={key} className="border-b border-line pb-3 text-sm last:border-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-ok">You caught it</span>
+                      <span className="text-xs text-muted">self-caught</span>
+                    </div>
+                    {self.context && <p className="mt-1 font-mono text-xs text-muted">“…{self.context}”</p>}
+                  </li>
+                ) : c ? (
                   <li key={key} className="border-b border-line pb-3 text-sm last:border-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-muted">“like” · {c.verdict.use}</span>
@@ -374,6 +506,12 @@ export default function CueApp() {
                     </div>
                     <p className="mt-1 text-muted">{c.verdict.reason}</p>
                     <p className="mt-1 font-mono text-xs text-muted">“…{c.context}…”</p>
+                    <CorrectionButton
+                      on={corrected.get(wordKey(c.start))?.label === "missed"}
+                      onClick={() => toggleCorrection(c.start, "missed")}
+                    >
+                      It was a filler
+                    </CorrectionButton>
                   </li>
                 ) : d ? (
                   <li key={key} className="border-b border-line pb-3 text-sm last:border-0">
@@ -386,7 +524,16 @@ export default function CueApp() {
                     <p className="mt-1 text-muted">{d.event.reason}</p>
                     <p className="mt-1 font-mono text-xs text-muted">
                       “…{d.event.context}…” · {Math.round(d.event.confidence * 100)}%
+                      {latency[d.event.id] != null && ` · ${(latency[d.event.id] / 1000).toFixed(2)}s after`}
                     </p>
+                    {d.event.type !== "rushing" && (
+                      <CorrectionButton
+                        on={corrected.get(wordKey(d.event.start))?.label === "false_buzz"}
+                        onClick={() => toggleCorrection(d.event.start, "false_buzz")}
+                      >
+                        Not a filler
+                      </CorrectionButton>
+                    )}
                   </li>
                 ) : null,
               )}
@@ -536,6 +683,28 @@ function BuzzIndicator({ buzz }: { buzz: { n: number; label: string } | null }) 
         </svg>
       </div>
     </div>
+  );
+}
+
+function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "ok" }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className={`mt-1 text-xl font-medium tabular-nums ${tone === "ok" ? "text-ok" : ""}`}>{value}</dd>
+      {hint && <dd className="text-xs text-muted">{hint}</dd>}
+    </div>
+  );
+}
+
+function CorrectionButton({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={on}
+      className={`mt-2 rounded-full border px-2.5 py-0.5 text-xs ${on ? "border-text bg-surface-2 text-text" : "border-line text-muted hover:text-text"}`}
+    >
+      {on ? `✓ ${children}` : children}
+    </button>
   );
 }
 

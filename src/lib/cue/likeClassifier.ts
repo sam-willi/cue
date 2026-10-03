@@ -187,7 +187,8 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
   if (n1 && isHesitation(n1)) return verdict("discourse", 0.85, `"like ${n1}" — a filler next to a hesitation`);
   if (n1 === "like") return verdict("discourse", 0.85, `repeated "like like"`);
   if (tn1?.pastVerb && !(pe && COMPARISON_PREV.has(pe) && tn1.adjective)) {
-    if (needN2()) return NEED_MORE;
+    // Only a participle-adjective ("tired", "cooked") could be modifying a following noun.
+    if (tn1.adjective && needN2()) return NEED_MORE;
     const modifiesNoun = tn1.adjective && !!tn2?.noun;
     if (!modifiesNoun) {
       return verdict(
