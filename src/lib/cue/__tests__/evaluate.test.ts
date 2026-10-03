@@ -30,7 +30,7 @@ function fileFor(sentences: string[], corrections: SessionFile["corrections"]): 
       { type: "UtteranceEnd" },
     ];
   });
-  return { version: 2, savedAt: "", config: DEFAULT_CONFIG, messages, corrections, selfCatches: [] };
+  return { version: 2, savedAt: "", config: DEFAULT_CONFIG, messages, corrections };
 }
 
 describe("evaluateSession", () => {

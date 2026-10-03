@@ -19,7 +19,6 @@ export interface SessionFile {
   config: CueConfig;
   messages: DgMessage[];
   corrections: Correction[];
-  selfCatches: number[];
   /** Measured cue delays in this session, ms after the filler ended. */
   latenciesMs?: number[];
 }
@@ -27,7 +26,7 @@ export interface SessionFile {
 const SAME_WORD = 0.25;
 const FILLER_TYPES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like"];
 
-/** A detection that would have buzzed if cooldown, mute, and self-catches didn't apply. */
+/** A detection that would have buzzed if cooldown and mute didn't apply. */
 const wouldCue = (d: CueDecision) =>
   FILLER_TYPES.includes(d.event.type) && d.withheldReason !== "low_confidence" && d.withheldReason !== "category_off";
 

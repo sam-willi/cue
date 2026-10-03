@@ -22,7 +22,6 @@ const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   cooldown: "too soon after the last cue",
   muted: "muted",
   category_off: "category off",
-  self_caught: "you caught it first",
 };
 
 /** Converts between the speech engine's clock (s) and the page clock (performance.now(), ms). */
@@ -60,8 +59,6 @@ export default function CueApp() {
   /** Measured delay (ms) from the end of a filler to its buzz, by event id. */
   const [latency, setLatency] = useState<Record<string, number>>({});
   const [corrections, setCorrections] = useState<Correction[]>([]);
-  const [selfCaught, setSelfCaught] = useState<{ at: number; context: string }[]>([]);
-  const [caughtFlash, setCaughtFlash] = useState(0);
   const [speakingSec, setSpeakingSec] = useState(0);
   const [words, setWords] = useState<Word[]>([]);
   const [buzz, setBuzz] = useState<{ n: number; label: string } | null>(null);
@@ -117,7 +114,6 @@ export default function CueApp() {
     setWords([]);
     setLatency({});
     setCorrections([]);
-    setSelfCaught([]);
     setSpeakingSec(0);
     setPace(null);
     setError(null);
@@ -180,30 +176,6 @@ export default function CueApp() {
 
   const busy = status === "listening" || status === "connecting" || status === "demo";
 
-  /** "I caught it": the wearer noticed a slip before (or instead of) Cue. */
-  const catchIt = useCallback(() => {
-    const at = clockRef.current?.toAudio(performance.now());
-    if (at == null) return;
-    sessionRef.current.selfCatch(at);
-    const recent = sessionRef.current.words.filter((w) => w.end <= at + 0.2).slice(-6);
-    setSelfCaught((s) => [...s, { at, context: recent.map((w) => w.text).join(" ") }]);
-    setCaughtFlash((n) => n + 1);
-    window.setTimeout(() => setCaughtFlash(0), 1200);
-  }, []);
-
-  // Spacebar = "I caught it" while listening (not while typing).
-  useEffect(() => {
-    if (!busy) return;
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement;
-      if (e.code !== "Space" || e.repeat || el.closest("input, textarea, button, select")) return;
-      e.preventDefault();
-      catchIt();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [busy, catchIt]);
-
   /** Mark (or unmark) a word as a false buzz or a missed filler. */
   const toggleCorrection = (start: number, label: Correction["label"]) => {
     const word = words.find((w) => wordKey(w.start) === wordKey(start))?.norm ?? "";
@@ -221,7 +193,6 @@ export default function CueApp() {
       config,
       messages: rawRef.current,
       corrections,
-      selfCatches: selfCaught.map((s) => s.at),
       latenciesMs: Object.values(latency),
     };
     const blob = new Blob([JSON.stringify(file)], { type: "application/json" });
@@ -235,11 +206,10 @@ export default function CueApp() {
   const flagged = new Map(log.filter((d) => d.event.type !== "rushing").map((d) => [wordKey(d.event.start), d]));
   const checked = new Map(checks.map((c) => [wordKey(c.start), c]));
   const corrected = new Map(corrections.map((c) => [wordKey(c.start), c]));
-  type Entry = { key: string; start: number; d?: CueDecision; c?: LikeCheck; self?: { at: number; context: string } };
+  type Entry = { key: string; start: number; d?: CueDecision; c?: LikeCheck };
   const entries: Entry[] = [
     ...log.map((d) => ({ key: d.event.id, start: d.event.start, d })),
     ...checks.filter((c) => !c.counted).map((c) => ({ key: c.id, start: c.start, c })),
-    ...selfCaught.map((self, k) => ({ key: `s${k}`, start: self.at, self })),
   ].sort((a, b) => b.start - a.start);
 
   // "This session" numbers.
@@ -273,9 +243,7 @@ export default function CueApp() {
           <div className="flex flex-col items-center gap-6">
             <BuzzIndicator buzz={buzz} />
             <p className="h-5 text-center text-sm text-muted" aria-live="polite">
-              {caughtFlash ? (
-                <span className="font-medium text-ok">You caught it. Nice.</span>
-              ) : buzz ? (
+              {buzz ? (
                 <>
                   <span className="font-medium text-cue">Make space</span> · {buzz.label}
                 </>
@@ -298,15 +266,6 @@ export default function CueApp() {
                   disabled={status === "demo"}
                 >
                   Start listening
-                </button>
-              )}
-              {busy && (
-                <button
-                  onClick={catchIt}
-                  className="rounded-full border border-ok px-5 py-3 text-sm text-ok"
-                  title="Noticed a filler or rushing yourself? Tap here or press space."
-                >
-                  I caught it <kbd className="ml-1 rounded border border-ok/40 px-1 font-mono text-[10px]">space</kbd>
                 </button>
               )}
               <button
@@ -451,13 +410,12 @@ export default function CueApp() {
         {/* --- This session --- */}
         <section className="rounded-3xl border border-line bg-surface p-6 lg:col-span-2">
           <h2 className="mb-4 font-medium">This session</h2>
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
+          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <Stat
               label="Speaking"
               value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingMin * 60)} s`}
             />
-            <Stat label="Cue caught" value={`${fillerCues}${paceCues ? ` + ${paceCues} pace` : ""}`} />
-            <Stat label="You caught" value={String(selfCaught.length)} tone="ok" />
+            <Stat label="Cues" value={`${fillerCues}${paceCues ? ` + ${paceCues} pace` : ""}`} />
             <Stat
               label="Cue delay"
               value={p50 == null ? "—" : `${(p50 / 1000).toFixed(2)}s`}
@@ -489,16 +447,8 @@ export default function CueApp() {
             </p>
           ) : (
             <ul className="space-y-3">
-              {entries.map(({ key, d, c, self }) =>
-                self ? (
-                  <li key={key} className="border-b border-line pb-3 text-sm last:border-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-ok">You caught it</span>
-                      <span className="text-xs text-muted">self-caught</span>
-                    </div>
-                    {self.context && <p className="mt-1 font-mono text-xs text-muted">“…{self.context}”</p>}
-                  </li>
-                ) : c ? (
+              {entries.map(({ key, d, c }) =>
+                c ? (
                   <li key={key} className="border-b border-line pb-3 text-sm last:border-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium text-muted">“like” · {c.verdict.use}</span>

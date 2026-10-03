@@ -66,27 +66,6 @@ describe("CueSession", () => {
     expect(s.history).toHaveLength(0);
   });
 
-  it("withholds the cue when the wearer caught the filler first", () => {
-    const s = new CueSession();
-    const words = simulateWords("i like went to the mall");
-    s.selfCatch(words[1].end + 0.2); // pressed right after saying "like"
-    s.ingest(words, true);
-    expect(s.history.map((d) => [d.event.type, d.delivered, d.withheldReason])).toEqual([
-      ["filler_like", false, "self_caught"],
-    ]);
-  });
-
-  it("doesn't let a self-catch cover the next filler", () => {
-    const s = new CueSession({ cooldownSec: 0 });
-    const words = simulateWords("so um she was like really tired");
-    s.selfCatch(words[1].end + 0.1); // caught the "um"
-    s.ingest(words, true);
-    expect(s.history.map((d) => [d.event.type, d.withheldReason])).toEqual([
-      ["filler_um", "self_caught"],
-      ["filler_like", undefined],
-    ]);
-  });
-
   it("measures speaking time without long pauses", () => {
     const s = new CueSession();
     s.ingest(simulateWords("one two three. four five six"), true);

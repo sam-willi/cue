@@ -14,10 +14,6 @@ const FAST_HESITATION_CONFIDENCE = 0.8;
 const EARLY_LIKE_CONFIDENCE = 0.85;
 /** …and the recognizer is this sure of the word right after it. */
 const EARLY_NEXT_WORD_CONFIDENCE = 0.8;
-/** A self-catch up to this long (s) before a filler starts (pressed while saying it)… */
-const SELF_CATCH_LEAD = 0.3;
-/** …or after it ends counts as catching that filler, and withholds its cue. */
-const SELF_CATCH_LAG = 3;
 /** Only rescan this many trailing words on each update. */
 const SCAN_WINDOW = 40;
 /** Once rushing starts, pace must drop this far below the limit to reset (syllables/s). */
@@ -64,8 +60,6 @@ export class CueSession {
   /** All decisions so far, newest last. */
   readonly history: CueDecision[] = [];
   readonly likeChecks: LikeCheck[] = [];
-  /** Engine-clock times (s) when the wearer flagged their own slip. */
-  readonly selfCatches: number[] = [];
 
   constructor(config: Partial<CueConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -87,14 +81,6 @@ export class CueSession {
 
   endUtterance(): SessionUpdate {
     return this.process(true);
-  }
-
-  /**
-   * The wearer noticed a slip themselves ("I caught it"). Recorded as a self-caught
-   * moment; a filler cue that would land around the same time is withheld.
-   */
-  selfCatch(at: number) {
-    this.selfCatches.push(at);
   }
 
   /** Seconds of speech so far, excluding pauses longer than 0.6 s. */
@@ -209,7 +195,6 @@ export class CueSession {
     if (!c.categories[cat[event.type]]) withheldReason = "category_off";
     else if (event.confidence < c.minConfidence) withheldReason = "low_confidence";
     else if (c.muted) withheldReason = "muted";
-    else if (event.type !== "rushing" && this.selfCaughtNear(event)) withheldReason = "self_caught";
     else if (event.end - this.lastCueEnd < c.cooldownSec) withheldReason = "cooldown";
     const delivered = !withheldReason;
     if (delivered) this.lastCueEnd = event.end;
@@ -233,10 +218,6 @@ export class CueSession {
       reason,
       context: contextAround(words, i),
     };
-  }
-
-  private selfCaughtNear(event: SpeechEvent) {
-    return this.selfCatches.some((t) => t >= event.start - SELF_CATCH_LEAD && t <= event.end + SELF_CATCH_LAG);
   }
 
   private isDecided(type: BehaviorType | "like_checked", start: number) {

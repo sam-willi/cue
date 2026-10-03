@@ -18,7 +18,7 @@ This repository is the **software MVP**: a web app that listens through the micr
 
 Cues are fast: "um"/"uh" cue on the first confident result, and a clear filler "like" cues as soon as the next word is heard. Ambiguous cases wait for more words. Each cue's measured delay appears in the app.
 
-A cue is withheld when confidence is too low, within the cooldown after the last cue, while muted, when its category is off, or when you caught it yourself first. Withheld detections still show in the app's "Why Cue acted" log.
+A cue is withheld when confidence is too low, within the cooldown after the last cue, while muted, or when its category is off. Withheld detections still show in the app's "Why Cue acted" log.
 
 ## Quick start
 
@@ -34,9 +34,8 @@ Open http://localhost:3000.
 
 - **Try a sentence** plays typed text through the same detector. It doesn't need a key.
 - **Start listening** streams your mic to Deepgram for live detection.
-- **I caught it** (or press space) when you notice a filler yourself. A cue for that filler is withheld, and it counts toward "You caught" in the session summary.
 - **Mark mistakes**: click a word in the transcript, or use the buttons in "Why Cue acted", to flag a wrong buzz or a missed filler.
-- **Download session** (after a live session) saves the words and timings Deepgram heard, your corrections, self-catches and cue delays (no audio). Put the files in `sessions/` and run `npm run eval`.
+- **Download session** (after a live session) saves the words and timings Deepgram heard, your corrections and cue delays (no audio). Put the files in `sessions/` and run `npm run eval`.
 
 ## Scripts
 

@@ -55,7 +55,7 @@ export interface CueDecision {
   event: SpeechEvent;
   delivered: boolean;
   /** Why a cue was withheld, if it was. */
-  withheldReason?: "low_confidence" | "cooldown" | "muted" | "category_off" | "self_caught";
+  withheldReason?: "low_confidence" | "cooldown" | "muted" | "category_off";
 }
 
 /** Every "like" the classifier judged, filler or not — so misses are explainable. */
