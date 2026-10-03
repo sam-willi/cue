@@ -32,6 +32,12 @@ const FILLER: [string, LikeUse][] = [
   ["i was like this is crazy", "quotative"],
   ["there were like twenty people", "approximator"],
   ["it cost like 40 bucks", "approximator"],
+  // Real informal sentences (r/TheGirlSurvivalGuide thread, 2026)
+  ["I'll be like thank you when they hold the door", "quotative"],
+  ["Like there's this greater theme that just, nothing matters", "discourse"],
+  ["he loves asking questions in like a curious dad kind of way", "discourse"],
+  ["I worked so much, like 50 hour weeks", "approximator"],
+  ["it took for like an hour", "approximator"],
 ];
 
 const SEMANTIC: [string, LikeUse][] = [
@@ -57,6 +63,15 @@ const SEMANTIC: [string, LikeUse][] = [
   ["things like that", "example"],
   ["like i said it's fine", "conjunction"],
   ["kind of like a hug", "hedge"],
+  ["It feels like going bowling.", "comparison"],
+  ["I felt like an ass afterwards", "comparison"],
+  ["my trainees is like a teacher and primary school students", "comparison"],
+  ["she says something like oh wow", "comparison"],
+  ["people with like interests get along", "unknown"], // "like" = "similar"; no buzz
+  // Not decidable from words alone, so deliberately not cued:
+  ["people look at me like I'm a predator", "unknown"],
+  ["some people are way too informal, like they don't take anything seriously", "unknown"],
+  ["physical actions of politeness, like holding a door", "unknown"],
 ];
 
 describe("classifyLike — fillers", () => {

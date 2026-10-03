@@ -64,6 +64,7 @@ const SCALE_WORDS = new Set([
   "day",
   "half",
 ]);
+const PREPOSITIONS = new Set(["in", "on", "at", "for", "with", "about", "from", "after", "before", "within", "around"]);
 const TO_VERB_PREV = new Set([
   "want",
   "wanna",
@@ -203,7 +204,15 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
   }
 
   // --- Comparison ("looks like rain", "feel like") -----------------------
-  if (pe && COMPARISON_PREV.has(pe)) return verdict("comparison", 0.85, `"${pe} like" — a comparison`);
+  // Only when nothing separates them: in "I worked so much, like 50 hours" the comma breaks "much like".
+  if (pe && COMPARISON_PREV.has(pe) && !breakBefore) return verdict("comparison", 0.85, `"${pe} like" — a comparison`);
+
+  // --- After a preposition: "in like a minute", "on like the third day" ------
+  if (pe && PREPOSITIONS.has(pe)) {
+    if (isNumber(n1, tn1) || ((n1 === "a" || n1 === "an") && n2 && SCALE_WORDS.has(n2)))
+      return verdict("approximator", 0.8, `"${pe} like ${n1}…" — approximation`);
+    if (n1 && DETERMINERS.has(n1)) return verdict("discourse", 0.8, `"${pe} like ${n1}" — filler inside a phrase`);
+  }
 
   // "it was um like whatever": a hesitation right before "like" (outside subject + verb).
   if (prevRaw && isHesitation(prevRaw.norm) && !peIsSubject) {
@@ -232,6 +241,8 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
     if (n1 && (INTENSIFIERS.has(n1) || tn1?.adverb || (tn1?.adjective && !tn1.noun)))
       return verdict("discourse", 0.85, `"${pe} like ${n1}" — filler before a description`);
     if (tn1?.gerund) return verdict("discourse", 0.8, `"${pe} like ${n1}" — filler inside "${pe} ${n1}"`);
+    if (tn1?.infinitive && !tn1.noun)
+      return verdict("quotative", 0.8, `"${pe} like ${n1}…" — introducing a quote ("I was like go away")`);
     if (n1 === "you") return verdict("quotative", 0.8, `"${pe} like you…" — introducing a quote or reaction`);
     if (tn1?.noun) return verdict("comparison", 0.7, `"${pe} like ${n1}" — probably a comparison`);
     return verdict("unknown", 0.5, `after "${pe}", but the next word is ambiguous`);
@@ -274,6 +285,9 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
   if ((pe && DISCOURSE_PREV.has(pe)) || startOfUtterance) {
     const where = startOfUtterance ? "at the start of a phrase" : `after "${pe}"`;
     if (n1 && (SUBJECT_PRONOUNS.has(n1) || DETERMINERS.has(n1) || INTENSIFIERS.has(n1) || tn1?.adverb))
+      return verdict("discourse", 0.85, `"like ${n1}" ${where} — a discourse filler`);
+    // "Like there's…", "Like it's…": a contracted subject + "be" starts a new clause.
+    if (n1 && BE_FORMS.has(n1) && n1.includes("'"))
       return verdict("discourse", 0.85, `"like ${n1}" ${where} — a discourse filler`);
     if (breakAfter) return verdict("discourse", 0.85, `"like," ${where} — a discourse filler`);
     if (tn1?.noun) return verdict("example", 0.55, `"like ${n1}" ${where} — could be an example`);
