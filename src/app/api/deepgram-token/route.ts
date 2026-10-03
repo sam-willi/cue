@@ -14,8 +14,7 @@ export async function POST() {
   });
   if (!res.ok) {
     const detail = await res.text();
-    const hint =
-      res.status === 403 ? " The API key needs the Member role or higher to create browser tokens." : "";
+    const hint = res.status === 403 ? " The API key needs the Member role or higher to create browser tokens." : "";
     return Response.json({ error: `Deepgram token request failed (${res.status}).${hint}`, detail }, { status: 502 });
   }
   const { access_token, expires_in } = (await res.json()) as { access_token: string; expires_in: number };

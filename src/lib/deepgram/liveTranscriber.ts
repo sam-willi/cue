@@ -74,7 +74,8 @@ export class LiveTranscriber {
       };
       ws.onerror = () => this.h.onStatus("error", "Connection to Deepgram failed");
       ws.onclose = (e) => {
-        if (!this.stopped) this.h.onStatus("error", `Deepgram closed the connection (${e.code}${e.reason ? `: ${e.reason}` : ""})`);
+        if (!this.stopped)
+          this.h.onStatus("error", `Deepgram closed the connection (${e.code}${e.reason ? `: ${e.reason}` : ""})`);
         this.teardownAudio();
       };
     } catch (err) {
@@ -91,11 +92,7 @@ export class LiveTranscriber {
     this.h.onStatus("stopped");
   }
 
-  private handleMessage(msg: {
-    type: string;
-    is_final?: boolean;
-    channel?: { alternatives: { words: DgWord[] }[] };
-  }) {
+  private handleMessage(msg: { type: string; is_final?: boolean; channel?: { alternatives: { words: DgWord[] }[] } }) {
     if (msg.type === "UtteranceEnd") return this.h.onUtteranceEnd();
     if (msg.type !== "Results") return;
     const dgWords = msg.channel?.alternatives[0]?.words ?? [];

@@ -1,21 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  DEFAULT_CONFIG,
-  PACE_PRESETS,
-  toApproxWpm,
-  type CueConfig,
-} from "@/lib/cue/config";
+import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
 import { CueSession, type SessionUpdate } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
-import type {
-  BehaviorType,
-  CueDecision,
-  LikeCheck,
-  Word,
-} from "@/lib/cue/types";
+import type { BehaviorType, CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 
 const LABEL: Record<BehaviorType, string> = {
@@ -79,12 +69,8 @@ export default function CueApp() {
       if (u.pace !== null) setPace(u.pace);
       const hit = u.decisions.find((d) => d.delivered);
       if (hit) triggerBuzz(LABEL[hit.event.type]);
-      if (u.decisions.length)
-        setLog((l) => [...u.decisions.slice().reverse(), ...l].slice(0, 100));
-      if (u.likeChecks.length)
-        setChecks((c) =>
-          [...u.likeChecks.slice().reverse(), ...c].slice(0, 100),
-        );
+      if (u.decisions.length) setLog((l) => [...u.decisions.slice().reverse(), ...l].slice(0, 100));
+      if (u.likeChecks.length) setChecks((c) => [...u.likeChecks.slice().reverse(), ...c].slice(0, 100));
       setWords(sessionRef.current.words);
     },
     [triggerBuzz],
@@ -119,8 +105,7 @@ export default function CueApp() {
       onUtteranceEnd: () => apply(sessionRef.current.endUtterance()),
       onRaw: (msg) => {
         rawRef.current.push(msg);
-        if (rawRef.current.length % 10 === 1)
-          setRecorded(rawRef.current.length);
+        if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
       },
       onStatus: (s, detail) => {
         if (s === "stopped") return;
@@ -141,10 +126,7 @@ export default function CueApp() {
     const sim = simulateWords(text, { wpm: demoWpm });
     sim.forEach((w, k) => {
       timersRef.current.push(
-        window.setTimeout(
-          () => apply(sessionRef.current.ingest(sim.slice(0, k + 1), false)),
-          w.end * 1000,
-        ),
+        window.setTimeout(() => apply(sessionRef.current.ingest(sim.slice(0, k + 1), false)), w.end * 1000),
       );
     });
     const endAt = (sim.at(-1)?.end ?? 0) * 1000 + 400;
@@ -188,18 +170,12 @@ export default function CueApp() {
       d,
       c: undefined as LikeCheck | undefined,
     })),
-    ...checks
-      .filter((c) => !c.counted)
-      .map((c) => ({ key: c.id, start: c.start, d: undefined, c })),
+    ...checks.filter((c) => !c.counted).map((c) => ({ key: c.id, start: c.start, d: undefined, c })),
   ].sort((a, b) => b.start - a.start);
-  const busy =
-    status === "listening" || status === "connecting" || status === "demo";
+  const busy = status === "listening" || status === "connecting" || status === "demo";
   const sps = pace?.sps ?? 0;
   const paceFrac = Math.min(1, sps / (config.paceThreshold * 1.4));
-  const presetLabel =
-    config.paceMode === "custom"
-      ? "Custom"
-      : PACE_PRESETS[config.paceMode].label;
+  const presetLabel = config.paceMode === "custom" ? "Custom" : PACE_PRESETS[config.paceMode].label;
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
@@ -218,14 +194,10 @@ export default function CueApp() {
         <section className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
           <div className="flex flex-col items-center gap-6">
             <BuzzIndicator buzz={buzz} />
-            <p
-              className="h-5 text-center text-sm text-muted"
-              aria-live="polite"
-            >
+            <p className="h-5 text-center text-sm text-muted" aria-live="polite">
               {buzz ? (
                 <>
-                  <span className="font-medium text-cue">Make space</span> ·{" "}
-                  {buzz.label}
+                  <span className="font-medium text-cue">Make space</span> · {buzz.label}
                 </>
               ) : busy ? (
                 "Listening for fillers and pace…"
@@ -236,10 +208,7 @@ export default function CueApp() {
 
             <div className="flex flex-wrap justify-center gap-3">
               {status === "listening" || status === "connecting" ? (
-                <button
-                  onClick={stopAll}
-                  className="rounded-full bg-text px-6 py-3 text-sm font-medium text-bg"
-                >
+                <button onClick={stopAll} className="rounded-full bg-text px-6 py-3 text-sm font-medium text-bg">
                   Stop
                 </button>
               ) : (
@@ -259,21 +228,15 @@ export default function CueApp() {
                 {config.muted ? "Unmute cues" : "Mute cues"}
               </button>
             </div>
-            {error && (
-              <p className="max-w-md text-center text-sm text-red-500">
-                {error}
-              </p>
-            )}
+            {error && <p className="max-w-md text-center text-sm text-red-500">{error}</p>}
 
             {/* Pace meter */}
             <div className="w-full max-w-sm">
               <div className="mb-1 flex justify-between text-xs text-muted">
                 <span>Pace · {presetLabel}</span>
                 <span className="font-mono">
-                  {pace
-                    ? `${pace.sps.toFixed(1)} syl/s ≈${Math.round(pace.wpm)} wpm`
-                    : "—"}{" "}
-                  / limit {config.paceThreshold.toFixed(1)}
+                  {pace ? `${pace.sps.toFixed(1)} syl/s ≈${Math.round(pace.wpm)} wpm` : "—"} / limit{" "}
+                  {config.paceThreshold.toFixed(1)}
                 </span>
               </div>
               <div className="relative h-2 overflow-hidden rounded-full bg-surface-2">
@@ -281,10 +244,7 @@ export default function CueApp() {
                   className="h-full rounded-full transition-all duration-500"
                   style={{
                     width: `${paceFrac * 100}%`,
-                    background:
-                      sps > config.paceThreshold
-                        ? "var(--cue)"
-                        : "var(--accent)",
+                    background: sps > config.paceThreshold ? "var(--cue)" : "var(--accent)",
                   }}
                 />
                 <div
@@ -300,9 +260,7 @@ export default function CueApp() {
         {/* --- Try it without a mic --- */}
         <section className="rounded-3xl border border-line bg-surface p-6">
           <h2 className="mb-1 font-medium">Try a sentence</h2>
-          <p className="mb-4 text-sm text-muted">
-            Plays typed text through the same detector, word by word.
-          </p>
+          <p className="mb-4 text-sm text-muted">Plays typed text through the same detector, word by word.</p>
           <textarea
             value={demoText}
             onChange={(e) => setDemoText(e.target.value)}
@@ -351,35 +309,22 @@ export default function CueApp() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-medium">Transcript</h2>
             <label className="flex items-center gap-2 text-xs text-muted">
-              <input
-                type="checkbox"
-                checked={showTranscript}
-                onChange={(e) => setShowTranscript(e.target.checked)}
-              />
+              <input type="checkbox" checked={showTranscript} onChange={(e) => setShowTranscript(e.target.checked)} />
               Show (dev only)
             </label>
           </div>
           {showTranscript && (
             <p className="min-h-12 text-[15px] leading-8">
-              {words.length === 0 && (
-                <span className="text-muted">Nothing yet.</span>
-              )}
+              {words.length === 0 && <span className="text-muted">Nothing yet.</span>}
               {words.map((w, k) => {
                 const d = flagged.get(Math.round(w.start * 100));
                 const isFiller = d && d.event.type !== "rushing";
-                const c =
-                  !isFiller && w.norm === "like"
-                    ? checked.get(Math.round(w.start * 100))
-                    : undefined;
+                const c = !isFiller && w.norm === "like" ? checked.get(Math.round(w.start * 100)) : undefined;
                 return (
                   <span
                     key={k}
                     title={
-                      isFiller
-                        ? d.event.reason
-                        : c
-                          ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}`
-                          : undefined
+                      isFiller ? d.event.reason : c ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}` : undefined
                     }
                     className={
                       isFiller
@@ -415,47 +360,32 @@ export default function CueApp() {
           </div>
           {entries.length === 0 ? (
             <p className="text-sm text-muted">
-              Detections appear here with the reason, including ones Cue chose
-              not to cue and every “like” it judged to be meaningful.
+              Detections appear here with the reason, including ones Cue chose not to cue and every “like” it judged to
+              be meaningful.
             </p>
           ) : (
             <ul className="space-y-3">
               {entries.map(({ key, d, c }) =>
                 c ? (
-                  <li
-                    key={key}
-                    className="border-b border-line pb-3 text-sm last:border-0"
-                  >
+                  <li key={key} className="border-b border-line pb-3 text-sm last:border-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-muted">
-                        “like” · {c.verdict.use}
-                      </span>
+                      <span className="font-medium text-muted">“like” · {c.verdict.use}</span>
                       <span className="text-xs text-muted">not a filler</span>
                     </div>
                     <p className="mt-1 text-muted">{c.verdict.reason}</p>
-                    <p className="mt-1 font-mono text-xs text-muted">
-                      “…{c.context}…”
-                    </p>
+                    <p className="mt-1 font-mono text-xs text-muted">“…{c.context}…”</p>
                   </li>
                 ) : d ? (
-                  <li
-                    key={key}
-                    className="border-b border-line pb-3 text-sm last:border-0"
-                  >
+                  <li key={key} className="border-b border-line pb-3 text-sm last:border-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-medium">{LABEL[d.event.type]}</span>
-                      <span
-                        className={`text-xs ${d.delivered ? "text-cue" : "text-muted"}`}
-                      >
-                        {d.delivered
-                          ? "cued"
-                          : `held · ${WITHHELD[d.withheldReason!]}`}
+                      <span className={`text-xs ${d.delivered ? "text-cue" : "text-muted"}`}>
+                        {d.delivered ? "cued" : `held · ${WITHHELD[d.withheldReason!]}`}
                       </span>
                     </div>
                     <p className="mt-1 text-muted">{d.event.reason}</p>
                     <p className="mt-1 font-mono text-xs text-muted">
-                      “…{d.event.context}…” ·{" "}
-                      {Math.round(d.event.confidence * 100)}%
+                      “…{d.event.context}…” · {Math.round(d.event.confidence * 100)}%
                     </p>
                   </li>
                 ) : null,
@@ -469,9 +399,7 @@ export default function CueApp() {
           <h2 className="mb-4 font-medium">Settings</h2>
           <div className="space-y-4 text-sm">
             <fieldset>
-              <legend className="mb-2 text-xs uppercase tracking-wide text-muted">
-                Cue me for
-              </legend>
+              <legend className="mb-2 text-xs uppercase tracking-wide text-muted">Cue me for</legend>
               <div className="flex flex-wrap gap-2">
                 {(["um", "uh", "like", "rushing"] as const).map((k) => (
                   <Chip
@@ -512,13 +440,9 @@ export default function CueApp() {
               }
             />
             <fieldset>
-              <legend className="mb-2 text-xs uppercase tracking-wide text-muted">
-                Pace preset
-              </legend>
+              <legend className="mb-2 text-xs uppercase tracking-wide text-muted">Pace preset</legend>
               <div className="flex flex-wrap gap-2">
-                {(
-                  Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]
-                ).map((k) => (
+                {(Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]).map((k) => (
                   <Chip
                     key={k}
                     on={config.paceMode === k}
@@ -548,9 +472,9 @@ export default function CueApp() {
               step={0.1}
               format={(v) => `${v.toFixed(1)} syl/s ≈${toApproxWpm(v)} wpm`}
               onChange={(v) => {
-                const preset = (
-                  Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]
-                ).find((k) => Math.abs(PACE_PRESETS[k].threshold - v) < 0.01);
+                const preset = (Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]).find(
+                  (k) => Math.abs(PACE_PRESETS[k].threshold - v) < 0.01,
+                );
                 setConfig((c) => ({
                   ...c,
                   paceThreshold: v,
@@ -564,12 +488,8 @@ export default function CueApp() {
               min={5}
               max={35}
               step={5}
-              format={(v) =>
-                v <= 10 ? "cautious" : v <= 25 ? "balanced" : "eager"
-              }
-              onChange={(v) =>
-                setConfig((c) => ({ ...c, minConfidence: 1 - v / 100 }))
-              }
+              format={(v) => (v <= 10 ? "cautious" : v <= 25 ? "balanced" : "eager")}
+              onChange={(v) => setConfig((c) => ({ ...c, minConfidence: 1 - v / 100 }))}
             />
             <Slider
               label="Quiet time between cues"
@@ -585,18 +505,13 @@ export default function CueApp() {
       </div>
 
       <p className="mt-8 text-center text-xs text-muted">
-        Prototype. Live mode streams mic audio to Deepgram for transcription;
-        nothing is stored by Cue.
+        Prototype. Live mode streams mic audio to Deepgram for transcription; nothing is stored by Cue.
       </p>
     </main>
   );
 }
 
-function BuzzIndicator({
-  buzz,
-}: {
-  buzz: { n: number; label: string } | null;
-}) {
+function BuzzIndicator({ buzz }: { buzz: { n: number; label: string } | null }) {
   return (
     <div
       key={buzz?.n ?? 0}
@@ -606,36 +521,18 @@ function BuzzIndicator({
     >
       <div className="pointer-events-none absolute inset-0">
         {[0, 1, 2].map((k) => (
-          <span
-            key={k}
-            className="cue-ring absolute inset-0 rounded-full border-2 border-cue opacity-0"
-          />
+          <span key={k} className="cue-ring absolute inset-0 rounded-full border-2 border-cue opacity-0" />
         ))}
       </div>
       <div
         className={`cue-core grid h-28 w-28 place-items-center rounded-full border transition-colors duration-300 ${
-          buzz
-            ? "border-cue bg-cue-soft text-cue"
-            : "border-line bg-surface-2 text-muted"
+          buzz ? "border-cue bg-cue-soft text-cue" : "border-line bg-surface-2 text-muted"
         }`}
       >
         {/* Vibration glyph: a device with motion lines */}
         <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden>
-          <rect
-            x="20"
-            y="12"
-            width="16"
-            height="32"
-            rx="4"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          />
-          <path
-            d="M13 20v16M8 24v8M43 20v16M48 24v8"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
+          <rect x="20" y="12" width="16" height="32" rx="4" stroke="currentColor" strokeWidth="2.5" />
+          <path d="M13 20v16M8 24v8M43 20v16M48 24v8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
       </div>
     </div>
@@ -661,15 +558,7 @@ function StatusPill({ status }: { status: Status }) {
   );
 }
 
-function Chip({
-  on,
-  onClick,
-  children,
-}: {
-  on: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
@@ -721,9 +610,7 @@ function Slider(props: {
     <label className="block">
       <span className="flex justify-between">
         {props.label}
-        <span className="font-mono text-xs text-muted">
-          {props.format(props.value)}
-        </span>
+        <span className="font-mono text-xs text-muted">{props.format(props.value)}</span>
       </span>
       <input
         type="range"

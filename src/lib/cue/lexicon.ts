@@ -4,7 +4,9 @@
 const set = (s: string) => new Set(s.split(/\s+/).filter(Boolean));
 
 export const SUBJECT_PRONOUNS = set("i you we they he she it y'all yall people everyone everybody someone somebody");
-export const OBJECT_PRONOUNS = set("me him her us them it you this that these those everything something anything nothing everyone someone anyone");
+export const OBJECT_PRONOUNS = set(
+  "me him her us them it you this that these those everything something anything nothing everyone someone anyone",
+);
 export const NOMINATIVE_ONLY = set("i we they he she");
 
 export const BE_FORMS = set(
@@ -22,7 +24,9 @@ export const VERB_PREV = set(
 );
 
 /** Adverbs that may sit between a subject and verb-"like" ("I really like it"). */
-export const PRE_VERB_ADVERBS = set("really also still totally actually honestly kinda genuinely truly always never sometimes definitely all both");
+export const PRE_VERB_ADVERBS = set(
+  "really also still totally actually honestly kinda genuinely truly always never sometimes definitely all both",
+);
 
 /** Discourse connectors after which "like" usually starts a filler run. */
 export const DISCOURSE_PREV = set(

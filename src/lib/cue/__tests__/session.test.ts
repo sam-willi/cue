@@ -56,10 +56,15 @@ describe("CueSession", () => {
     expect(delivered(run(quote))).toEqual(["filler_like"]);
     expect(delivered(run(quote, { config: { likeCounts: { quotative: false, approximator: false } } }))).toEqual([]);
     expect(delivered(run(approx))).toEqual([]);
-    expect(delivered(run(approx, { config: { likeCounts: { quotative: true, approximator: true } } }))).toEqual(["filler_like"]);
+    expect(delivered(run(approx, { config: { likeCounts: { quotative: true, approximator: true } } }))).toEqual([
+      "filler_like",
+    ]);
   });
 
-  const longText = Array.from({ length: 8 }, () => "we should probably get the whole team together and plan the launch").join(" ");
+  const longText = Array.from(
+    { length: 8 },
+    () => "we should probably get the whole team together and plan the launch",
+  ).join(" ");
 
   it("flags sustained fast speech", () => {
     const h = run(longText, { wpm: 240 });
@@ -106,7 +111,9 @@ describe("CueSession", () => {
 
   it("keeps the rushing clock running through brief dips", () => {
     // Fast speech with commas (short pauses) that briefly lower the measured rate.
-    const text = Array.from({ length: 6 }, () => "we should get the team together, plan the launch, and ship it").join(" ");
+    const text = Array.from({ length: 6 }, () => "we should get the team together, plan the launch, and ship it").join(
+      " ",
+    );
     const h = run(text, { wpm: 330 }); // ≈4.9 syllables/s including the comma pauses
     expect(delivered(h)).toContain("rushing");
   });

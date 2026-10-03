@@ -93,9 +93,7 @@ export class CueSession {
         const type: BehaviorType = UM_FORMS.has(w.norm) ? "filler_um" : "filler_uh";
         if (this.isDecided(type, w.start)) continue;
         this.markDecided(type, w.start);
-        decisions.push(
-          this.decide(this.event(type, w, w.confidence, `"${w.norm}" is a hesitation filler`, words, i)),
-        );
+        decisions.push(this.decide(this.event(type, w, w.confidence, `"${w.norm}" is a hesitation filler`, words, i)));
         continue;
       }
 
@@ -106,7 +104,13 @@ export class CueSession {
         this.markDecided("like_checked", w.start);
         const counts = FILLER_LIKE_USES[v.use];
         const isFiller = counts === true || (typeof counts === "string" && this.config.likeCounts[counts]);
-        likeChecks.push({ id: `l${this.nextId++}`, start: w.start, context: contextAround(words, i), verdict: v, counted: isFiller });
+        likeChecks.push({
+          id: `l${this.nextId++}`,
+          start: w.start,
+          context: contextAround(words, i),
+          verdict: v,
+          counted: isFiller,
+        });
         if (!isFiller) continue;
         // A detection's probability is capped by how sure the recognizer was of the word.
         const confidence = Math.min(v.confidence, Math.max(w.confidence, 0.5) + 0.1);
@@ -166,8 +170,23 @@ export class CueSession {
     return { event, delivered, withheldReason };
   }
 
-  private event(type: BehaviorType, w: Word, confidence: number, reason: string, words: Word[], i: number): SpeechEvent {
-    return { id: `e${this.nextId++}`, type, start: w.start, end: w.end, confidence, reason, context: contextAround(words, i) };
+  private event(
+    type: BehaviorType,
+    w: Word,
+    confidence: number,
+    reason: string,
+    words: Word[],
+    i: number,
+  ): SpeechEvent {
+    return {
+      id: `e${this.nextId++}`,
+      type,
+      start: w.start,
+      end: w.end,
+      confidence,
+      reason,
+      context: contextAround(words, i),
+    };
   }
 
   private isDecided(type: BehaviorType | "like_checked", start: number) {

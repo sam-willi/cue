@@ -25,9 +25,71 @@ const BREAK_GAP = 0.3;
 /** Pause (s) before a word that starts a new utterance. */
 const UTTERANCE_GAP = 0.7;
 
-const QUOTE_OPENERS = new Set(["oh", "what", "no", "yeah", "yes", "okay", "ok", "wow", "omg", "dude", "bro", "hey", "wait", "um", "uh", "hmm", "nah", "girl", "bruh"]);
-const SCALE_WORDS = new Set(["hundred", "thousand", "million", "billion", "few", "couple", "dozen", "bunch", "lot", "minute", "second", "week", "month", "year", "day", "half"]);
-const TO_VERB_PREV = new Set(["want", "wanna", "wants", "wanted", "try", "trying", "tried", "hard", "easy", "learn", "learning", "need", "needs", "used", "start", "started", "begin", "going", "gonna", "have", "has", "had", "got", "able"]);
+const QUOTE_OPENERS = new Set([
+  "oh",
+  "what",
+  "no",
+  "yeah",
+  "yes",
+  "okay",
+  "ok",
+  "wow",
+  "omg",
+  "dude",
+  "bro",
+  "hey",
+  "wait",
+  "um",
+  "uh",
+  "hmm",
+  "nah",
+  "girl",
+  "bruh",
+]);
+const SCALE_WORDS = new Set([
+  "hundred",
+  "thousand",
+  "million",
+  "billion",
+  "few",
+  "couple",
+  "dozen",
+  "bunch",
+  "lot",
+  "minute",
+  "second",
+  "week",
+  "month",
+  "year",
+  "day",
+  "half",
+]);
+const TO_VERB_PREV = new Set([
+  "want",
+  "wanna",
+  "wants",
+  "wanted",
+  "try",
+  "trying",
+  "tried",
+  "hard",
+  "easy",
+  "learn",
+  "learning",
+  "need",
+  "needs",
+  "used",
+  "start",
+  "started",
+  "begin",
+  "going",
+  "gonna",
+  "have",
+  "has",
+  "had",
+  "got",
+  "able",
+]);
 
 const isHesitation = (n: string) => UM_FORMS.has(n) || UH_FORMS.has(n);
 const isNumber = (n: string | undefined, tags?: WordTags) =>
@@ -44,11 +106,7 @@ function verdict(use: LikeUse, confidence: number, reason: string): LikeVerdict 
  * Returns NEED_MORE when the decision depends on words not yet heard and the
  * utterance hasn't ended (`rightClosed` false).
  */
-export function classifyLike(
-  words: Word[],
-  i: number,
-  opts: { rightClosed: boolean },
-): LikeVerdict | typeof NEED_MORE {
+export function classifyLike(words: Word[], i: number, opts: { rightClosed: boolean }): LikeVerdict | typeof NEED_MORE {
   const w = words[i];
   // The word before "like", skipping hesitations ("I um like tofu").
   let pi = i - 1;
@@ -88,7 +146,8 @@ export function classifyLike(
   // Nothing heard after "like" yet.
   if (!n1w) {
     if (!opts.rightClosed) return NEED_MORE;
-    if (pe && (VERB_PREV.has(pe) || SUBJECT_PRONOUNS.has(pe))) return verdict("verb", 0.8, `"${pe} like" ends the phrase — a verb ("what do you like?")`);
+    if (pe && (VERB_PREV.has(pe) || SUBJECT_PRONOUNS.has(pe)))
+      return verdict("verb", 0.8, `"${pe} like" ends the phrase — a verb ("what do you like?")`);
     // "and I was like…" trailing off: a filler when it's marked as a break.
     if (commaAfter || /\.\.\.$|…$/.test(w.text)) return verdict("discourse", 0.8, `"like…" trailing off`);
     if (pe && COMPARISON_PREV.has(pe)) return verdict("comparison", 0.7, `"${pe} like" — a comparison, cut off`);
@@ -104,7 +163,7 @@ export function classifyLike(
     if (needN2()) return NEED_MORE;
     if (n2 && SPEECH_VERBS.has(n2)) return verdict("conjunction", 0.9, `"like ${n1} ${n2}" means "as ${n1} ${n2}"`);
   }
-  if (pe && (pe === "kinda" || pe === "sorta" || ((pe === "of") && (p2 === "kind" || p2 === "sort")))) {
+  if (pe && (pe === "kinda" || pe === "sorta" || (pe === "of" && (p2 === "kind" || p2 === "sort")))) {
     return verdict("hedge", 0.8, `"kind of like" is a hedge, not a filler`);
   }
   if (pe && VERB_PREV.has(pe) && pe !== "to") {
@@ -120,7 +179,8 @@ export function classifyLike(
   }
   if (pe === "like") {
     const p2s = words[pi - 1]?.norm;
-    if (p2s && (SUBJECT_PRONOUNS.has(p2s) || VERB_PREV.has(p2s))) return verdict("verb", 0.8, `second "like" in "${p2s} like like"`);
+    if (p2s && (SUBJECT_PRONOUNS.has(p2s) || VERB_PREV.has(p2s)))
+      return verdict("verb", 0.8, `second "like" in "${p2s} like like"`);
   }
 
   // --- Strong filler signals from the next word --------------------------
@@ -130,7 +190,11 @@ export function classifyLike(
     if (needN2()) return NEED_MORE;
     const modifiesNoun = tn1.adjective && !!tn2?.noun;
     if (!modifiesNoun) {
-      return verdict("discourse", 0.9, `"like ${n1}" — a past-tense verb can't follow verb "like", so it's a filler (deleting it leaves "…${pe ?? ""} ${n1}")`);
+      return verdict(
+        "discourse",
+        0.9,
+        `"like ${n1}" — a past-tense verb can't follow verb "like", so it's a filler (deleting it leaves "…${pe ?? ""} ${n1}")`,
+      );
     }
   }
   if (n1 && (INTENSIFIERS.has(n1) || tn1?.adverb) && tn2?.pastVerb && !tn2.adjective) {
@@ -148,7 +212,8 @@ export function classifyLike(
   // --- After a form of "be": quotative, approximator, hedge, or comparison
   if (peIsBe) {
     if (isNumber(n1, tn1)) return verdict("approximator", 0.85, `"${pe} like ${n1}" — approximation ("about ${n1}")`);
-    if ((n1 === "a" || n1 === "an") && n2 && SCALE_WORDS.has(n2)) return verdict("approximator", 0.8, `"like a ${n2}" — approximation`);
+    if ((n1 === "a" || n1 === "an") && n2 && SCALE_WORDS.has(n2))
+      return verdict("approximator", 0.8, `"like a ${n2}" — approximation`);
     if (n1 && (n1 === "this" || n1 === "that")) {
       if (needN2()) return NEED_MORE;
       if (n2 && (BE_FORMS.has(n2) || tn2?.presentVerb || tn2?.pastVerb || SUBJECT_PRONOUNS.has(n2)))
@@ -156,8 +221,13 @@ export function classifyLike(
       return verdict("comparison", 0.8, `"${pe} like ${n1}" — a comparison`);
     }
     if (breakAfter || (n1 && (QUOTE_OPENERS.has(n1) || NOMINATIVE_ONLY.has(n1))))
-      return verdict("quotative", 0.85, `"${pe} like${breakAfter ? "," : ""} ${n1}…" — introducing a quote or reaction`);
-    if (n1 && DETERMINERS.has(n1)) return verdict("comparison", 0.8, `"${pe} like ${n1} …" — a comparison ("it was like a dream")`);
+      return verdict(
+        "quotative",
+        0.85,
+        `"${pe} like${breakAfter ? "," : ""} ${n1}…" — introducing a quote or reaction`,
+      );
+    if (n1 && DETERMINERS.has(n1))
+      return verdict("comparison", 0.8, `"${pe} like ${n1} …" — a comparison ("it was like a dream")`);
     if (n1 && (INTENSIFIERS.has(n1) || tn1?.adverb || (tn1?.adjective && !tn1.noun)))
       return verdict("discourse", 0.85, `"${pe} like ${n1}" — filler before a description`);
     if (tn1?.gerund) return verdict("discourse", 0.8, `"${pe} like ${n1}" — filler inside "${pe} ${n1}"`);
@@ -167,7 +237,8 @@ export function classifyLike(
   }
 
   // --- "it cost like 40 bucks" ---------------------------------------------
-  if (isNumber(n1, tn1) && !peIsSubject) return verdict("approximator", 0.75, `"like ${n1}" — approximation ("about ${n1}")`);
+  if (isNumber(n1, tn1) && !peIsSubject)
+    return verdict("approximator", 0.75, `"like ${n1}" — approximation ("about ${n1}")`);
 
   // --- "things like that" -------------------------------------------------
   if (tpe?.noun && pe && !SUBJECT_PRONOUNS.has(pe) && n1 && ["this", "that", "these", "those"].includes(n1)) {
@@ -189,7 +260,8 @@ export function classifyLike(
     }
     if (n1 && (INTENSIFIERS.has(n1) || tn1?.adverb)) {
       if (needN2()) return NEED_MORE;
-      if (tn2?.adjective || tn2?.noun) return verdict("verb", 0.7, `"${pe} like ${n1} ${n2}" — likely the verb ("I like really spicy food")`);
+      if (tn2?.adjective || tn2?.noun)
+        return verdict("verb", 0.7, `"${pe} like ${n1} ${n2}" — likely the verb ("I like really spicy food")`);
       return verdict("unknown", 0.55, `"${pe} like ${n1}" — ambiguous`);
     }
     if (tn1?.adjective) return verdict("verb", 0.75, `"${pe} like ${n1}…" — likely the verb with an adjective object`);
