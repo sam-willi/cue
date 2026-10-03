@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-2: #eeebe4;
+  --line: #ddd8cd;
+  --text: #1b1a17;
+  --muted: #6d685d;
+  --accent: #a07a3c; /* champagne */
+  --accent-soft: #e9dcc3;
+  --cue: #7b5cff; /* the buzz */
+  --cue-soft: rgba(123, 92, 255, 0.18);
+  --ok: #2f7d5b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface-2: #1f1f23;
+    --line: #2c2c31;
+    --text: #ecebe8;
+    --muted: #9a978f;
+    --accent: #d8bd8a;
+    --accent-soft: #3a3227;
+    --cue: #a08bff;
+    --cue-soft: rgba(160, 139, 255, 0.2);
+    --ok: #6fcf9f;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-cue: var(--cue);
+  --color-cue-soft: var(--cue-soft);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Haptic buzz: the core shakes, rings ripple outward. */
+@keyframes cue-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-3px) rotate(-2deg); }
+  30% { transform: translateX(3px) rotate(2deg); }
+  45% { transform: translateX(-2px) rotate(-1deg); }
+  60% { transform: translateX(2px) rotate(1deg); }
+  75% { transform: translateX(-1px); }
+}
+@keyframes cue-ring {
+  from { transform: scale(0.9); opacity: 0.7; }
+  to { transform: scale(1.9); opacity: 0; }
+}
+.cue-buzzing .cue-core { animation: cue-shake 0.45s ease-in-out 2; }
+.cue-buzzing .cue-ring { animation: cue-ring 0.9s ease-out forwards; }
+.cue-buzzing .cue-ring:nth-child(2) { animation-delay: 0.15s; }
+.cue-buzzing .cue-ring:nth-child(3) { animation-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cue-buzzing .cue-core, .cue-buzzing .cue-ring { animation: none; }
+  .cue-buzzing .cue-ring { opacity: 0.5; transform: scale(1.3); }
+}
