@@ -44,3 +44,4 @@ next-env.d.ts
 # saved sessions contain transcripts — never commit
 /sessions/
 cue-session-*.json
+scripts/out/

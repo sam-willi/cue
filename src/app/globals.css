@@ -44,8 +44,33 @@
   --color-neutral-soft: var(--neutral-soft);
   --color-cue: var(--cue);
   --color-cue-soft: var(--cue-soft);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-inter-tight);
+  /* DESIGN.md §8: Geist with the documented fallback stacks. One family for UI and display. */
+  --font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), "SFMono-Regular", Consolas, monospace;
+
+  /* DESIGN.md §8 type scale (size / line height). Mobile sizes apply below the sm breakpoint
+     via responsive classes, e.g. text-display-xl-m sm:text-display-xl. */
+  --text-display-xl: 72px;
+  --text-display-xl--line-height: 72px;
+  --text-display-xl-m: 48px;
+  --text-display-xl-m--line-height: 50px;
+  --text-heading-3: 24px;
+  --text-heading-3--line-height: 30px;
+  --text-heading-3-m: 22px;
+  --text-heading-3-m--line-height: 28px;
+  --text-title: 20px;
+  --text-title--line-height: 26px;
+  --text-title-m: 18px;
+  --text-title-m--line-height: 24px;
+  --text-body: 16px;
+  --text-body--line-height: 24px;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+  --text-label: 13px;
+  --text-label--line-height: 16px;
+  --text-caption: 12px;
+  --text-caption--line-height: 16px;
 }
 
 body {

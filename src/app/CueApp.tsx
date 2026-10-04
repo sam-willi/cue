@@ -331,7 +331,7 @@ export default function CueApp() {
       : status === "connecting"
         ? "Connecting…"
         : status === "error"
-          ? "Couldn't start."
+          ? "Couldn’t start."
           : config.muted
             ? "Cue is off."
             : status === "demo"
@@ -352,7 +352,7 @@ export default function CueApp() {
           : calibrating
             ? "Talk on your own for a few seconds so Cue knows which voice is yours."
             : live
-              ? "Talk naturally. You don't need to watch this screen."
+              ? "Talk naturally. You don’t need to watch this screen."
               : status === "demo"
                 ? "Playing your practice sentence."
                 : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
@@ -364,16 +364,23 @@ export default function CueApp() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-24 pt-8 sm:px-8">
-      <header className="flex items-start justify-between gap-4">
-        {/* Stacked lockup at the 72 px minimum width (DESIGN.md §5). Interim rasters derived from
-            the approved concept; swap for the vector masters when they exist (DESIGN.md §3). */}
+      <header className="flex items-center justify-between gap-4">
+        {/* Horizontal lockup (Tier 2, navigation) at ≥96 px wide (DESIGN.md §3, §5). Interim rasters
+            derived from the approved concept; swap for the vector masters when they exist. */}
         <h1>
-          <Image src="/brand/cue-lockup-light.png" alt="Cue" width={72} height={75} priority className="dark:hidden" />
           <Image
-            src="/brand/cue-lockup-dark.png"
+            src="/brand/cue-logo-horizontal-fullcolor-light.png"
             alt="Cue"
-            width={72}
-            height={75}
+            width={112}
+            height={25}
+            priority
+            className="dark:hidden"
+          />
+          <Image
+            src="/brand/cue-logo-horizontal-fullcolor-dark.png"
+            alt="Cue"
+            width={112}
+            height={25}
             priority
             className="hidden dark:block"
           />
@@ -385,31 +392,31 @@ export default function CueApp() {
       <section aria-label="Live coaching" className="flex flex-col items-center pt-14 text-center sm:pt-20">
         <CueRings buzz={buzz} confirm={confirm} />
         <p
-          className="mt-10 font-display text-[clamp(2.25rem,7vw,3.75rem)] font-semibold leading-[1.05] tracking-tight"
+          className="mt-10 font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl"
           aria-live="polite"
         >
           {heroWord}
         </p>
-        <p className="mt-4 min-h-12 max-w-md text-[15px] leading-6 text-muted">{heroLine}</p>
+        <p className="mt-4 min-h-12 max-w-md text-body text-muted">{heroLine}</p>
 
         <div className="mt-8 flex flex-col items-center gap-3">
           {live ? (
-            <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-[15px] font-medium text-bg">
+            <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
               Stop
             </button>
           ) : status === "demo" ? (
-            <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-[15px] font-medium text-bg">
+            <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
               Stop practice
             </button>
           ) : (
-            <button onClick={startLive} className="min-h-12 rounded-lg bg-text px-8 text-[15px] font-medium text-bg">
+            <button onClick={startLive} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
               Start listening
             </button>
           )}
-          <p className="max-w-md text-[13px] text-muted">
+          <p className="max-w-md text-body-sm text-muted">
             {status === "demo"
-              ? "Practice doesn't use the microphone."
-              : "Your audio goes to Deepgram to be transcribed. Cue doesn't store it."}
+              ? "Practice doesn’t use the microphone."
+              : "Your audio goes to Deepgram to be transcribed. Cue doesn’t store it."}
           </p>
         </div>
 
@@ -435,7 +442,7 @@ export default function CueApp() {
 
         {/* What each tap means */}
         <div className="mt-12 w-full">
-          <p className="text-[13px] text-muted">What each tap means. Select one to feel it.</p>
+          <p className="text-body-sm text-muted">What each tap means. Select one to feel it.</p>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {LEGEND.map(({ kind, label }) => {
               const p = patternFor(kind, config.distinctCues);
@@ -443,7 +450,7 @@ export default function CueApp() {
                 <button
                   key={kind}
                   onClick={() => triggerBuzz(kind)}
-                  className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-[13px] transition-colors duration-200 hover:border-cue ${
+                  className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-label transition-colors duration-200 hover:border-cue ${
                     buzz?.pattern === p && buzz.label === LABEL[kind] ? "cue-playing border-cue" : "border-line"
                   }`}
                 >
@@ -502,8 +509,8 @@ export default function CueApp() {
 
         {showTranscript && (
           <div className="mt-10 w-full rounded-lg border border-dashed border-line p-4 text-left">
-            <p className="text-[13px] text-muted">Live transcript, for testing the detector</p>
-            <p className="mt-2 text-[15px] leading-7">
+            <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
+            <p className="mt-2 text-body">
               {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
               {words.map((w, k) => {
                 const d = flagged.get(wordKey(w.start));
@@ -516,7 +523,7 @@ export default function CueApp() {
                         : d
                           ? d.delivered
                             ? "rounded bg-cue-soft px-1 text-cue"
-                            : "text-cue underline decoration-dotted"
+                            : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
                           : undefined
                     }
                   >
@@ -538,7 +545,7 @@ export default function CueApp() {
           onToggle={() => toggle("review")}
         >
           {words.length === 0 ? (
-            <p className="text-[15px] text-muted">
+            <p className="text-body text-muted">
               After you stop, this shows what Cue noticed, why it acted, and a transcript you can correct.
             </p>
           ) : (
@@ -566,19 +573,19 @@ export default function CueApp() {
               </dl>
 
               <div>
-                <h3 className="font-display text-base font-semibold">Transcript</h3>
-                <p className="mt-1 text-[13px] text-muted">
+                <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Transcript</h3>
+                <p className="mt-1 text-body-sm text-muted">
                   Select a word to mark a wrong cue or a filler Cue missed. Hover a marked word for the reason.
                 </p>
                 <TranscriptKey />
-                <p className="mt-4 text-[15px] leading-8">
+                <p className="mt-4 text-body leading-8">
                   {words.map((w, k) => {
                     if (!w.wearer)
                       return (
                         <span
                           key={k}
                           className="italic text-muted/70"
-                          title="Someone else talking. Cue doesn't coach other people."
+                          title="Someone else talking. Cue doesn’t coach other people."
                         >
                           {w.text}{" "}
                         </span>
@@ -589,9 +596,9 @@ export default function CueApp() {
                     const base = d
                       ? d.delivered
                         ? "rounded bg-cue-soft px-1 text-cue"
-                        : "rounded px-1 text-cue underline decoration-dotted"
+                        : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
                       : c
-                        ? "underline decoration-muted decoration-dotted underline-offset-4"
+                        ? "rounded bg-surface-2 px-1"
                         : "";
                     const marked = fix
                       ? fix.label === "false_buzz"
@@ -608,7 +615,7 @@ export default function CueApp() {
                         <button
                           type="button"
                           onClick={() => toggleCorrection(w.start, d ? "false_buzz" : "missed")}
-                          title={`${why}${fix ? ". Marked, select to undo" : d ? ". Select if this wasn't a filler" : ""}`}
+                          title={`${why}${fix ? ". Marked, select to undo" : d ? ". Select if this wasn’t a filler" : ""}`}
                           className={`cursor-pointer rounded hover:bg-surface-2 ${base}${marked}`}
                         >
                           {w.text}
@@ -620,16 +627,18 @@ export default function CueApp() {
               </div>
 
               <div>
-                <h3 className="font-display text-base font-semibold">Why Cue acted</h3>
+                <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  Why Cue acted
+                </h3>
                 <ul className="mt-4 divide-y divide-line">
                   {entries.map(({ key, d, c }) =>
                     c ? (
-                      <li key={key} className="py-4 text-[15px]">
+                      <li key={key} className="py-4 text-body">
                         <p className="font-medium">
-                          “like” wasn&apos;t a filler <span className="font-normal text-muted">({c.verdict.use})</span>
+                          “like” wasn’t a filler <span className="font-normal text-muted">({c.verdict.use})</span>
                         </p>
                         <p className="mt-1 text-muted">{c.verdict.reason}</p>
-                        <p className="mt-1 text-[13px] text-muted">“…{c.context}…”</p>
+                        <p className="mt-1 text-body-sm text-muted">“…{c.context}…”</p>
                         <CorrectionButton
                           on={corrected.get(wordKey(c.start))?.label === "missed"}
                           onClick={() => toggleCorrection(c.start, "missed")}
@@ -638,7 +647,7 @@ export default function CueApp() {
                         </CorrectionButton>
                       </li>
                     ) : d ? (
-                      <li key={key} className="py-4 text-[15px]">
+                      <li key={key} className="py-4 text-body">
                         <p className="font-medium">
                           {capitalize(LABEL[d.event.type])}{" "}
                           <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
@@ -646,7 +655,7 @@ export default function CueApp() {
                           </span>
                         </p>
                         <p className="mt-1 text-muted">{d.event.reason}</p>
-                        <p className="mt-1 text-[13px] text-muted">
+                        <p className="mt-1 text-body-sm text-muted">
                           “…{d.event.context}…” {Math.round(d.event.confidence * 100)}% sure
                           {latency[d.event.id] != null && `, cued ${(latency[d.event.id] / 1000).toFixed(2)} s after`}
                         </p>
@@ -668,11 +677,11 @@ export default function CueApp() {
                 <div>
                   <button
                     onClick={downloadSession}
-                    className="min-h-11 rounded-lg border border-line px-4 text-[15px] hover:border-text"
+                    className="min-h-11 rounded-lg border border-line px-4 text-body hover:border-text"
                   >
                     Download session
                   </button>
-                  <p className="mt-2 text-[13px] text-muted">
+                  <p className="mt-2 text-body-sm text-muted">
                     Saves what Deepgram heard, your marks, and cue timing. No audio. Keep it out of the repo.
                   </p>
                 </div>
@@ -683,20 +692,22 @@ export default function CueApp() {
 
         <Disclosure
           title="Practice"
-          summary="Try a sentence without a mic, or try the cuff's touch controls"
+          summary="Try a sentence without a mic, or try the cuff’s touch controls"
           open={open.practice}
           onToggle={() => toggle("practice")}
         >
           <div className="space-y-12">
             <div>
-              <h3 className="font-display text-base font-semibold">Try a sentence</h3>
-              <p className="mt-1 text-[13px] text-muted">Cue reads it word by word, as if you were saying it.</p>
+              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                Try a sentence
+              </h3>
+              <p className="mt-1 text-body-sm text-muted">Cue reads it word by word, as if you were saying it.</p>
               <textarea
                 value={demoText}
                 onChange={(e) => setDemoText(e.target.value)}
                 rows={3}
                 aria-label="Practice sentence"
-                className="mt-4 w-full resize-none rounded-lg border border-line bg-surface p-3 text-[15px] leading-6 outline-none focus:border-cue"
+                className="mt-4 w-full resize-none rounded-lg border border-line bg-surface p-3 text-body outline-none focus:border-cue"
               />
               <div className="mt-3 flex flex-wrap gap-2">
                 {EXAMPLES.map((ex) => (
@@ -707,7 +718,7 @@ export default function CueApp() {
                       setOpen((o) => ({ ...o, practice: true }));
                       runDemo(ex);
                     }}
-                    className="min-h-9 max-w-full truncate rounded-lg border border-line px-3 text-left text-[13px] text-muted hover:border-text hover:text-text"
+                    className="min-h-9 max-w-full truncate rounded-lg border border-line px-3 text-left text-body-sm text-muted hover:border-text hover:text-text"
                   >
                     {ex}
                   </button>
@@ -729,17 +740,19 @@ export default function CueApp() {
               <button
                 onClick={() => runDemo()}
                 disabled={live}
-                className="mt-6 min-h-11 rounded-lg bg-text px-6 text-[15px] font-medium text-bg disabled:opacity-40"
+                className="mt-6 min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
               >
                 Play sentence
               </button>
             </div>
 
             <div>
-              <h3 className="font-display text-base font-semibold">Try the cuff&apos;s touch controls</h3>
-              <p className="mt-1 text-[13px] text-muted">
-                On the cuff, touch is only for controls. A single tap does nothing, so fixing your hair won&apos;t
-                trigger it.
+              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                Try the cuff’s touch controls
+              </h3>
+              <p className="mt-1 text-body-sm text-muted">
+                On the cuff, touch is only for controls. A single tap does nothing, so fixing your hair won’t trigger
+                it.
               </p>
               <div className="mt-4">
                 <CuffTouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
@@ -750,13 +763,15 @@ export default function CueApp() {
 
         <Disclosure
           title="Settings"
-          summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.onlyWearer ? "your voice only" : "everyone's voice"}`}
+          summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.onlyWearer ? "your voice only" : "everyone’s voice"}`}
           open={open.settings}
           onToggle={() => toggle("settings")}
         >
-          <div className="space-y-10 text-[15px]">
+          <div className="space-y-10 text-body">
             <fieldset>
-              <legend className="font-display text-base font-semibold">What Cue coaches</legend>
+              <legend className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                What Cue coaches
+              </legend>
               <div className="mt-3 flex flex-wrap gap-2">
                 {(["um", "uh", "like", "rushing", "quiet"] as const).map((k) => (
                   <Chip
@@ -771,7 +786,7 @@ export default function CueApp() {
             </fieldset>
 
             <div className="space-y-4">
-              <h3 className="font-display text-base font-semibold">How Cue taps</h3>
+              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">How Cue taps</h3>
               <Switch
                 label="A different tap for each kind of cue"
                 hint="Off: one tap for everything, meaning make space."
@@ -789,10 +804,10 @@ export default function CueApp() {
                   ]}
                   onChange={(v) => setConfig((c) => ({ ...c, engine: v }))}
                 />
-                <p className="mt-2 text-[13px] text-muted">
+                <p className="mt-2 text-body-sm text-muted">
                   {config.engine === "flux"
                     ? "Cues arrive about twice as fast. Your voice is told apart from others by loudness only."
-                    : "Cues are slower, but other people's voices are told apart more reliably."}{" "}
+                    : "Cues are slower, but other people’s voices are told apart more reliably."}{" "}
                   Applies the next time you start listening.
                 </p>
               </div>
@@ -805,7 +820,9 @@ export default function CueApp() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-display text-base font-semibold">Filler “like”</h3>
+              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                Filler “like”
+              </h3>
               <Switch
                 label="Count quoting “like”"
                 hint="“She was like, no way”"
@@ -821,7 +838,7 @@ export default function CueApp() {
             </div>
 
             <div className="space-y-5">
-              <h3 className="font-display text-base font-semibold">Thresholds</h3>
+              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Thresholds</h3>
               <Slider
                 label="Too fast above"
                 value={config.paceThreshold}
@@ -857,7 +874,7 @@ export default function CueApp() {
             </div>
 
             <div>
-              <h3 className="font-display text-base font-semibold">Privacy</h3>
+              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Privacy</h3>
               <p className="mt-2 max-w-prose text-muted">
                 While you listen, audio streams to Deepgram to be transcribed. Cue keeps nothing on its own. A session
                 is only saved if you choose Download session, and that file has words and timing, never audio. Speaker
@@ -941,7 +958,7 @@ function MicState({ status }: { status: Status }) {
   }[status];
   return (
     <span
-      className={`flex min-h-8 items-center gap-2 rounded-full border px-3 text-[13px] ${on ? "border-cue text-text" : "border-line text-muted"}`}
+      className={`flex min-h-8 items-center gap-2 rounded-full border px-3 text-label ${on ? "border-cue text-text" : "border-line text-muted"}`}
       role="status"
     >
       <span className={`h-2 w-2 rounded-full ${on ? "animate-pulse bg-cue" : "bg-line"}`} aria-hidden />
@@ -976,8 +993,10 @@ function Disclosure({
           className="flex w-full items-center gap-4 py-6 text-left"
         >
           <span className="flex-1">
-            <span className="block font-display text-xl font-semibold tracking-tight">{title}</span>
-            <span className="mt-1 block text-[13px] text-muted">{summary}</span>
+            <span className="block font-display text-heading-3-m font-semibold tracking-[-0.015em] sm:text-heading-3">
+              {title}
+            </span>
+            <span className="mt-1 block text-body-sm text-muted">{summary}</span>
           </span>
           <svg
             width="20"
@@ -1017,7 +1036,7 @@ function Meter({
 }) {
   return (
     <div>
-      <div className="flex items-baseline justify-between gap-3 text-[13px]">
+      <div className="flex items-baseline justify-between gap-3 text-label">
         <span className="font-medium">{label}</span>
         <span className="text-right tabular-nums text-muted">{value}</span>
       </div>
@@ -1053,7 +1072,7 @@ function Segmented<T extends string>({
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`min-h-9 rounded-md px-3 text-[13px] transition-colors duration-200 ${
+          className={`min-h-9 rounded-md px-3 text-label transition-colors duration-200 ${
             value === o.value ? "bg-text text-bg" : "text-muted hover:text-text"
           }`}
         >
@@ -1091,9 +1110,9 @@ function Switch({
           className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface shadow-sm transition-transform duration-200 ${on ? "translate-x-4" : "translate-x-0.5"}`}
         />
       </span>
-      <span className="text-[13px] sm:text-[15px]">
+      <span className="text-label sm:text-body">
         {label}
-        {hint && <span className="block text-[13px] text-muted">{hint}</span>}
+        {hint && <span className="block text-body-sm text-muted">{hint}</span>}
       </span>
     </button>
   );
@@ -1110,9 +1129,9 @@ function Slider(props: {
 }) {
   return (
     <label className="block">
-      <span className="flex items-baseline justify-between gap-3 text-[15px]">
+      <span className="flex items-baseline justify-between gap-3 text-body">
         {props.label}
-        <span className="text-right text-[13px] tabular-nums text-muted">{props.format(props.value)}</span>
+        <span className="text-right text-body-sm tabular-nums text-muted">{props.format(props.value)}</span>
       </span>
       <input
         type="range"
@@ -1132,7 +1151,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
     <button
       onClick={onClick}
       aria-pressed={on}
-      className={`min-h-9 rounded-lg border px-3 text-[13px] transition-colors duration-200 ${on ? "border-cue bg-cue-soft text-text" : "border-line text-muted hover:text-text"}`}
+      className={`min-h-9 rounded-lg border px-3 text-label transition-colors duration-200 ${on ? "border-cue bg-cue-soft text-text" : "border-line text-muted hover:text-text"}`}
     >
       {children}
     </button>
@@ -1142,9 +1161,11 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div>
-      <dt className="text-[13px] text-muted">{label}</dt>
-      <dd className="mt-1 font-display text-2xl font-semibold tabular-nums tracking-tight">{value}</dd>
-      {hint && <dd className="mt-0.5 text-[13px] text-muted">{hint}</dd>}
+      <dt className="text-label text-muted">{label}</dt>
+      <dd className="mt-1 font-display text-heading-3-m font-semibold tabular-nums tracking-[-0.015em] sm:text-heading-3">
+        {value}
+      </dd>
+      {hint && <dd className="mt-0.5 text-caption text-muted">{hint}</dd>}
     </div>
   );
 }
@@ -1154,7 +1175,7 @@ function CorrectionButton({ on, onClick, children }: { on: boolean; onClick: () 
     <button
       onClick={onClick}
       aria-pressed={on}
-      className={`mt-3 min-h-8 rounded-lg border px-3 text-[13px] ${on ? "border-text bg-surface-2 text-text" : "border-line text-muted hover:text-text"}`}
+      className={`mt-3 min-h-8 rounded-lg border px-3 text-label ${on ? "border-text bg-surface-2 text-text" : "border-line text-muted hover:text-text"}`}
     >
       {on ? `Marked: ${children.toLowerCase()}` : children}
     </button>
@@ -1164,18 +1185,17 @@ function CorrectionButton({ on, onClick, children }: { on: boolean; onClick: () 
 function TranscriptKey() {
   return (
     <ul
-      className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-muted"
+      className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-body-sm text-muted"
       aria-label="What the transcript markings mean"
     >
       <li>
         <span className="rounded bg-cue-soft px-1 text-cue">like</span> cued
       </li>
       <li>
-        <span className="text-cue underline decoration-dotted">like</span> noticed, held back
+        <span className="rounded px-1 text-cue outline-1 outline-dashed outline-cue">like</span> noticed, held back
       </li>
       <li>
-        <span className="text-text underline decoration-muted decoration-dotted underline-offset-4">like</span> not a
-        filler
+        <span className="rounded bg-surface-2 px-1 text-text">like</span> not a filler
       </li>
       <li>
         <span className="text-text line-through decoration-2">like</span> you marked wrong
@@ -1232,7 +1252,7 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
       <button
         type="button"
         aria-label="Simulated cuff touch surface: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
-        className={`cuff-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-[13px] font-medium ${pressing ? "pressing" : ""}`}
+        className={`cuff-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-body-sm font-medium ${pressing ? "pressing" : ""}`}
         onPointerDown={(e) => {
           try {
             e.currentTarget.setPointerCapture(e.pointerId); // keep the press if the finger drifts
@@ -1276,10 +1296,10 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
         </svg>
         Cuff
       </button>
-      <div className="text-[15px]">
+      <div className="text-body">
         <p>Hold for 1.5 seconds to turn Cue {on ? "off" : "on"}.</p>
         <p>Double-tap to switch mode. Now: {mode}.</p>
-        <p className="mt-1 min-h-5 text-[13px] text-muted" aria-live="polite">
+        <p className="mt-1 min-h-5 text-body-sm text-muted" aria-live="polite">
           {hint}
         </p>
       </div>
