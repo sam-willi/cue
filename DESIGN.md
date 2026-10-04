@@ -5,6 +5,19 @@
 > **Status:** Direction approved; production artwork remains to be drawn and validated.  
 > **Last updated:** 2026-10-03 (haptic vocabulary, touch controls, and app tokens synced with `CUE_CONTEXT.md` §26; see §24)
 
+## Contents
+
+1. Design idea and decision status
+2. Primary logo anatomy and construction
+3. Responsive logo variants and applications
+4. Clear space, sizing, and misuse
+5. Color system
+6. Typography and type scale
+7. Layout, iconography, motion, and UI
+8. Hardware, photography, and illustration
+9. Brand voice and accessibility
+10. Asset generation, review, and production handoff
+
 ## 1. Design idea
 
 Cue helps people create space in conversation. The identity should communicate:
@@ -42,6 +55,54 @@ Cue should feel:
 - **[APPROVED DIRECTION]** The wordmark is lowercase, soft-geometric, and confident.
 - **[APPROVED DIRECTION]** The core logo does not need radio waves, a microphone, an ear, a face, quotation marks, or an explicit pause-button glyph.
 
+### Logo anatomy and meaning
+
+The mark has four intentional parts. Use these names consistently in design reviews and production files:
+
+1. **The first voice** — the warm-gray upper-left form. It represents the surrounding conversation, another speaker, and the social context in which Cue is used.
+2. **The wearer voice** — the near-black lower-right form. It represents the Cue wearer and receives greater visual weight.
+3. **The space** — the warm-white channel between the forms. It is the most important conceptual element: a pause, a breath, and the hidden `C`.
+4. **The wordmark** — the custom lowercase `cue`. It gives the abstract symbol a clear name and keeps the brand approachable.
+
+The forms are not literal speech bubbles. Their tails should be reduced enough that the silhouette feels proprietary, but retained enough that a viewer can still infer conversation without reading an explanation.
+
+### Geometric principles
+
+The final vector construction should follow these principles rather than tracing the generated pixels:
+
+- Build both voices from related curves so they feel like parts of one system.
+- The first voice is slightly larger and lighter; the wearer voice is slightly smaller and optically heavier.
+- Neither form should appear to sit entirely in front of the other. The relationship is exchange, not dominance.
+- The space must remain open at small sizes and should read as a `C` through silhouette rather than an outlined letter.
+- Tails should point into the shared conversational field, not away from the composition.
+- Avoid perfect mirrored symmetry. Controlled asymmetry makes the exchange feel human and prevents a generic yin-yang reading.
+- Avoid perfect circles. Slightly flattened, speech-like volumes create a more ownable silhouette.
+- The combined symbol should fit within an approximately square bounding box for app-icon and product-marking use.
+- No curve should create a sharp cusp that fills in during laser marking or low-resolution rendering.
+
+### Symbol-to-wordmark relationship
+
+**[PROVISIONAL]** Until final vectors are drawn, use these proportional targets:
+
+- In the stacked lockup, symbol width is approximately **1.15–1.3×** wordmark width.
+- The gap between symbol and wordmark is approximately **0.6x**, where `x` is the wordmark’s lowercase height.
+- Center the symbol optically over the wordmark, not mechanically. The darker wearer voice may require a slight leftward optical correction.
+- In the horizontal lockup, symbol height is approximately **1.15×** wordmark cap/lowercase height.
+- The horizontal gap is approximately **0.5x**.
+- The symbol and wordmark must never overlap.
+
+### Wordmark letterforms
+
+The wordmark is custom artwork, not typed text. Its intended forms are:
+
+- **`c`** — open and nearly circular, with terminals that echo the opening in the symbol without copying it exactly.
+- **`u`** — stable and generous, with vertical sides and a smooth lower bowl. It acts as the visual anchor.
+- **`e`** — open counter and horizontal crossbar, tuned to remain legible at tiny sizes.
+- Stroke weight should be visually even across all three letters.
+- Corners may be subtly softened, but must not become inflated or toy-like.
+- Kerning should make `cu` and `ue` feel equally calm; the wordmark must not look mechanically tracked.
+- Do not append a period to the formal wordmark. `Cue.` may appear as campaign typography, but it is not the logo.
+
 ### Production-artwork warning
 
 The included PNG is the **approved concept direction**, not production master artwork. Before commercial use, a designer must redraw it as precise vector geometry and complete:
@@ -68,6 +129,101 @@ The eventual production package should contain:
 - `cue-logo-one-color-light` — warm white on a dark background.
 
 No variant should introduce new decorative elements.
+
+### Responsive logo system
+
+Use the simplest form that remains clear at the available size:
+
+| Tier | Asset | Typical use | Rule |
+|---|---|---|---|
+| 1 | Full stacked lockup | Launch screens, packaging front, campaign end cards | Default when vertical space is available |
+| 2 | Full horizontal lockup | Navigation, documents, retail strips | Default for wide, shallow spaces |
+| 3 | Wordmark only | Small navigation, product UI already carrying the symbol | Use only when brand context is established |
+| 4 | Symbol only | App icon, avatar, favicon, cuff, case | Use where `cue` would be illegible or redundant |
+| 5 | Micro symbol | 16–23 px interfaces, very small marking | Use a separately optically simplified master |
+
+Do not merely scale the full stacked lockup down into Tier 4 or Tier 5 contexts.
+
+### Logo forms by background
+
+#### Full-color light
+
+- Near-black wearer voice.
+- Warm-gray first voice.
+- Near-black wordmark.
+- Bone or white background.
+- This is the default brand signature.
+
+#### Full-color dark
+
+- Warm-white wearer voice.
+- Light warm-gray first voice.
+- Warm-white wordmark.
+- Ink background.
+- Redraw/recolor intentionally; do not apply an automatic photographic negative filter.
+
+#### One-color dark
+
+- Entire mark in near-black on white, bone, or a sufficiently light neutral.
+- Preserve the separation through negative space.
+- Preferred for documents, embossing masters, and economical printing.
+
+#### One-color light
+
+- Entire mark in warm white on ink or a sufficiently dark solid field.
+- Preferred for dark hardware, dark packaging, and reverse applications.
+
+#### Material mark
+
+- Deboss, emboss, laser etch, or polish the symbol as one material treatment.
+- Do not attempt to reproduce the two-tone concept when the process cannot hold reliable contrast.
+- Test the negative-space channel before finalizing tool paths.
+
+### App icon
+
+- Use the symbol only; never fit the wordmark inside the icon.
+- Center optically with at least 14% clear space on every side.
+- Use a bone field with near-black/warm-gray forms for the default light icon.
+- Use an ink field with warm-white/light-gray forms for dark mode.
+- Do not add a rounded-square container inside the operating system’s icon mask.
+- Avoid accent dots, notification-like badges, and signal waves in the master app icon.
+- Provide separate assets for iOS, Android adaptive foreground/background, web app manifest, and social avatar use.
+
+### Favicon and micro mark
+
+- Use the optically simplified symbol.
+- Increase the negative-space channel slightly at 16 px.
+- Remove any tail detail that collapses below one device pixel.
+- Test at 16, 20, 24, and 32 px on both light and dark browser chrome.
+
+### Social avatar
+
+- Use the symbol only on a solid bone or ink field.
+- Keep important geometry within the central 70% safe region to survive circular cropping.
+- Do not use photographs behind the avatar logo.
+
+### Product marking
+
+- Use the standalone symbol on the cuff whenever physically possible.
+- Use the wordmark or horizontal lockup on the charging case.
+- Minimum physical dimensions depend on process testing; never shrink because a render “looks fine.”
+- Use engraving or surface contrast that remains discreet. The product should not become a billboard.
+
+### Co-branding
+
+- Separate Cue from a partner logo with a thin neutral rule or at least `2x` clear space.
+- Match optical height, not raw bounding-box height.
+- Never combine marks into a new shared symbol.
+- Cue’s logo should remain in its approved colors unless a one-color sponsorship environment requires otherwise.
+- Do not let a partner tagline appear closer to Cue than Cue’s own clear-space requirement.
+
+### Placement
+
+- Preferred placement is top-left for functional documents and centered for brand moments.
+- Bottom-left is acceptable on photography when contrast is controlled.
+- Avoid top-right placement near account or navigation controls, where the mark can look like a button.
+- Do not place the mark on the wearer’s face or directly over the ear cuff in lifestyle photography.
+- When placed over imagery, use a calm solid-color holding field or choose an area with verified contrast.
 
 ## 5. Clear space and minimum size
 
@@ -155,16 +311,110 @@ Default recommendation: start with **cobalt** for product UI. Keep oxblood and c
 - The `c`, `u`, and `e` should share a clear stroke logic and rhythm.
 - The wordmark should look calm and stable, not fast, italic, or kinetic.
 
-### Product and marketing type
+### Font families
 
-**[PROVISIONAL]** Use **Inter** as the initial UI and product typeface because it is highly legible, open source, and technically convenient. A more distinctive brand typeface can be evaluated later.
+The current product already ships with **Geist Sans** and **Geist Mono**. The brand system should build from that implementation instead of introducing Inter by default.
 
-Recommended hierarchy:
+#### Primary family — Geist Sans
 
-- Display: Inter Tight, 500–600 weight, restrained tracking.
-- UI/body: Inter, 400–500 weight.
-- Data: Inter, tabular numerals where values align.
-- Editorial emphasis: use scale and whitespace before using italics or decorative type.
+Use for:
+
+- Product UI.
+- Marketing headlines and body copy.
+- Packaging information.
+- Presentations and internal documents.
+- Data labels and metric summaries.
+
+Recommended weights:
+
+| Weight | Name | Use |
+|---:|---|---|
+| 400 | Regular | Body copy, descriptions, secondary UI |
+| 500 | Medium | Buttons, labels, navigation, emphasized body copy |
+| 600 | Semibold | Headlines, key metrics, short campaign statements |
+| 700 | Bold | Rare, high-impact display use only |
+
+Avoid 100–300 weights in functional UI; they lose clarity at small sizes and conflict with the confident brand tone.
+
+#### Technical family — Geist Mono
+
+Use only for:
+
+- Developer-facing diagnostics.
+- Model/version identifiers.
+- Timecodes and transcription timestamps.
+- Tabular technical readouts where monospace alignment is useful.
+
+Do not use Geist Mono as a decorative “tech” signal in consumer marketing.
+
+#### Wordmark family — custom artwork
+
+The `cue` wordmark is not Geist Sans and should never be reconstructed by typing the name in Geist. Use an approved vector wordmark file.
+
+#### Fallback stacks
+
+```css
+--font-brand-sans: "Geist", "Helvetica Neue", Arial, sans-serif;
+--font-brand-mono: "Geist Mono", "SFMono-Regular", Consolas, monospace;
+```
+
+Applications that cannot load Geist should use the complete fallback stack rather than substituting an arbitrary rounded typeface.
+
+### Type scale
+
+Use this as the default responsive product scale. Marketing surfaces may extend beyond it while preserving the same ratios and line-height discipline.
+
+| Token | Desktop size/line | Mobile size/line | Weight | Typical use |
+|---|---:|---:|---:|---|
+| `display-xl` | 72/72 px | 48/50 px | 600 | Hero statement |
+| `display-lg` | 56/58 px | 40/42 px | 600 | Campaign or landing-page headline |
+| `heading-1` | 40/44 px | 32/36 px | 600 | Page title |
+| `heading-2` | 32/38 px | 26/32 px | 600 | Major section |
+| `heading-3` | 24/30 px | 22/28 px | 600 | Card group or subsection |
+| `title` | 20/26 px | 18/24 px | 500 | Card title, modal title |
+| `body-lg` | 18/28 px | 17/27 px | 400 | Lead copy |
+| `body` | 16/24 px | 16/24 px | 400 | Default reading text |
+| `body-sm` | 14/20 px | 14/20 px | 400 | Secondary information |
+| `label` | 13/16 px | 13/16 px | 500 | Controls and compact labels |
+| `caption` | 12/16 px | 12/16 px | 400 | Metadata and qualifiers |
+
+Do not set essential consumer text below 12 px.
+
+### Tracking
+
+- Display headlines: `-0.03em` to `-0.015em`, adjusted optically.
+- Headings: `-0.02em` to `-0.01em`.
+- Body: `-0.005em` to `0`.
+- Buttons and labels: `0` to `0.01em`.
+- Short all-caps labels: `0.06em` to `0.1em`.
+- Never apply wide tracking to paragraph text.
+
+### Line length and paragraph rhythm
+
+- Product body copy: target 45–70 characters per line.
+- Editorial/marketing copy: target 45–65 characters per line.
+- Use one full line of whitespace between distinct thoughts rather than dense paragraph blocks.
+- Paragraph spacing should be approximately `0.75–1×` the body line height.
+- Do not center-align paragraphs longer than three short lines.
+
+### Numerals and data
+
+- Use tabular numerals for aligned tables, timers, rates, and comparison cards.
+- Use proportional numerals in ordinary prose.
+- Use the true multiplication sign `×`, en dash for ranges, and proper curly apostrophes in polished marketing copy.
+- Keep units attached to values where possible: `3.2 fillers/min`, `620 ms`, `14 min`.
+- Never imply false precision. Round metrics to the resolution the system can actually support.
+
+### Headline forms
+
+Cue headlines should be short and leave conceptual space. Recommended structures:
+
+- Imperative: “Make space.”
+- Contrast: “Fewer fillers. More you.”
+- Outcome: “Speak with intention.”
+- Observation: “Your pauses felt steadier today.”
+
+Avoid multi-line word art, arbitrary line breaks inside phrases, and excessive punctuation.
 
 ### Typography rules
 
@@ -175,6 +425,11 @@ Recommended hierarchy:
 - Avoid childish rounded fonts, tech-mono clichés, and high-fashion serifs in core UI.
 - Keep line length near 45–75 characters for reading surfaces.
 - Use no more than three type sizes in a compact interface region.
+- Use bold sparingly; hierarchy should come primarily from size, placement, and whitespace.
+- Use italics only for natural editorial emphasis, never for whole interface labels.
+- Underline only links.
+- Do not mimic the logo by setting all brand copy in rounded lowercase.
+- Keep `Cue` capitalized in prose and `cue` lowercase only when displaying the formal wordmark or a deliberately styled campaign lockup.
 
 ## 9. Spacing and layout
 
@@ -376,7 +631,99 @@ Before approving an asset, ask:
 - Does it meet accessibility and contrast requirements?
 - Are assumptions clearly distinguished from validated decisions?
 
-## 22. Open design work
+## 22. Production asset package
+
+When the vector logo is finalized, the brand handoff must include all of the following. A screenshot or single SVG is not a complete logo package.
+
+### Master formats
+
+- **SVG:** primary digital master; outlined and live-text versions where licensing permits.
+- **PDF:** print-safe vector master.
+- **EPS:** only if a vendor specifically requires it.
+- **PNG:** transparent export at 1×, 2×, and 4× for non-vector workflows.
+- **WebP:** optimized raster preview where useful; never the only master.
+
+### Required logo set
+
+For each stacked, horizontal, symbol-only, and wordmark-only form, export:
+
+- Full-color light-background.
+- Full-color dark-background.
+- One-color near-black.
+- One-color warm-white/reversed.
+- Small-size optical version where applicable.
+
+### File naming
+
+Use lowercase kebab-case with a predictable order:
+
+```text
+cue-logo-[form]-[color]-[background]-[size].[ext]
+```
+
+Examples:
+
+```text
+cue-logo-stacked-fullcolor-light.svg
+cue-logo-horizontal-onecolor-dark.svg
+cue-logo-symbol-reversed-dark.svg
+cue-logo-symbol-fullcolor-light-24.png
+cue-wordmark-onecolor-dark.pdf
+```
+
+Do not use filenames such as `logo-final-final2.png`, `new-logo.svg`, or `black-logo` when the asset is actually warm white.
+
+### Source organization
+
+```text
+assets/brand/
+├── source/              # editable design source, if licensing permits
+├── logo/
+│   ├── stacked/
+│   ├── horizontal/
+│   ├── symbol/
+│   └── wordmark/
+├── app-icons/
+├── social/
+├── product-marking/
+├── templates/
+└── archive/             # retired assets, clearly dated
+```
+
+Only approved, current exports belong outside `archive/`.
+
+### Metadata and color management
+
+- Digital exports use sRGB.
+- Print vendors receive CMYK conversions made for their actual print profile; do not invent universal CMYK values.
+- Include the source color tokens in a machine-readable format such as CSS variables or design tokens.
+- Strip unnecessary editing metadata from public web assets.
+- Preserve accessible text alternatives in implementation, not baked into logo images.
+
+### Font licensing and delivery
+
+- Record font family, version, source, and license in the handoff.
+- Do not commit restricted commercial font binaries to a public repository.
+- Geist is currently supplied through the product’s approved framework/font workflow; keep implementation consistent with its license and repository conventions.
+- Convert the custom wordmark to vector outlines for logo delivery while retaining a protected editable master.
+- Never substitute the wordmark with a system font because the original font file is unavailable.
+
+### Quality-control tests
+
+Every final logo asset must pass:
+
+1. Pixel preview at 16, 20, 24, 32, 64, and 128 px.
+2. Light and dark background review.
+3. One-color photocopy/laser-printer test.
+4. Low-quality compression preview.
+5. Embroidery or engraving simulation if used physically.
+6. Color-blindness and grayscale review.
+7. SVG bounds and unwanted clipping check.
+8. Transparent PNG edge/fringing check.
+9. Filename and variant verification.
+10. Trademark and similarity review before commercial launch.
+
+## 23. Open design work
 
 - Redraw and approve the production vector logo.
 - Perform trademark and similarity screening.
@@ -387,7 +734,7 @@ Before approving an asset, ask:
 - Validate industrial-design materials, finishes, dimensions, and colorways.
 - Conduct usability and accessibility testing with real users.
 
-## 23. Agent handoff
+## 24. Agent handoff
 
 Cue’s identity is built around **two interlocking voices creating space**. Use the approved two-form symbol and lowercase wordmark direction, but treat the included PNG as concept art pending a professional vector redraw. Keep the system warm-neutral, restrained, calm, and highly legible. Gen Z relevance should come from taste and confidence—not trend clichés. Always depict a single, elegant outer-ear cuff; prioritize one clear idea, supportive language, accessible contrast, consistent geometry, and honest technical representation.
 
