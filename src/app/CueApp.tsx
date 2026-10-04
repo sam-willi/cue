@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
@@ -360,8 +361,20 @@ export default function CueApp() {
 
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-24 pt-8 sm:px-8">
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-lg font-semibold tracking-tight">Cue</h1>
+      <header className="flex items-start justify-between gap-4">
+        {/* Stacked lockup at the 72 px minimum width (DESIGN.md §5). Interim rasters derived from
+            the approved concept; swap for the vector masters when they exist (DESIGN.md §3). */}
+        <h1>
+          <Image src="/brand/cue-lockup-light.png" alt="Cue" width={72} height={75} priority className="dark:hidden" />
+          <Image
+            src="/brand/cue-lockup-dark.png"
+            alt="Cue"
+            width={72}
+            height={75}
+            priority
+            className="hidden dark:block"
+          />
+        </h1>
         <MicState status={status} />
       </header>
 
