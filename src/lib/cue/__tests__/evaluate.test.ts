@@ -34,10 +34,10 @@ function fileFor(sentences: string[], corrections: SessionFile["corrections"]): 
 }
 
 describe("evaluateSession", () => {
-  const sentences = ["i like went to the mall", "we were just like sitting there", "i like tofu"];
+  const sentences = ["i like went to the mall", "honestly she's like my best friend", "i like tofu"];
   // Word starts at 150 wpm: sentence 2 begins after sentence 1 (6 words) + 1.5 s gap.
   const s2 = 6 * 0.4 - 0.08 + 1.5;
-  const justLikeStart = s2 + 3 * 0.4;
+  const justLikeStart = s2 + 2 * 0.4; // "like" is the 3rd word; ambiguous, so not detected
 
   it("reports a labeled miss the current rules still miss", () => {
     const score = evaluateSession(fileFor(sentences, [{ start: justLikeStart, word: "like", label: "missed" }]));

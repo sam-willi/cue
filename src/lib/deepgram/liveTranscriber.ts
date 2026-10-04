@@ -1,3 +1,4 @@
+import { pcmDbfs } from "@/lib/cue/loudness";
 import type { DgMessage } from "./parse";
 
 export interface TranscriberHandlers {
@@ -6,6 +7,8 @@ export interface TranscriberHandlers {
    * keeping the raw stream also lets a session be saved and replayed exactly.
    */
   onMessage: (msg: DgMessage) => void;
+  /** Mic level of each 50 ms chunk: Deepgram audio time (s, chunk midpoint) and dBFS. */
+  onLevel?: (t: number, db: number) => void;
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string) => void;
 }
 
@@ -13,6 +16,7 @@ const LISTEN_PARAMS = new URLSearchParams({
   model: "nova-3",
   language: "en",
   filler_words: "true", // keep "um"/"uh" — stripped by default
+  diarize: "true", // speaker labels per word, used to coach only the wearer
   interim_results: "true",
   punctuate: "true",
   endpointing: "300",
@@ -48,7 +52,9 @@ export class LiveTranscriber {
       if (!res.ok) throw new Error(body.error ?? "Could not get a Deepgram token");
 
       this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        // Gain control and noise suppression are off: they would boost quiet speech and erase the
+        // room noise Cue measures for "too quiet". Deepgram copes with unprocessed audio.
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: false },
       });
       this.ctx = new AudioContext();
       await this.ctx.audioWorklet.addModule("/pcm-worklet.js");
@@ -67,8 +73,10 @@ export class LiveTranscriber {
           // Deepgram timestamps count from the first audio sample sent. Each chunk is sent
           // right after it's captured, so the earliest (now − audio sent so far) estimates
           // when audio time 0 happened on this page's clock.
-          this.sentSec += e.data.byteLength / 2 / 16000;
+          const chunkSec = e.data.byteLength / 2 / 16000;
+          this.sentSec += chunkSec;
           this.clockZero = Math.min(this.clockZero, performance.now() - this.sentSec * 1000);
+          this.h.onLevel?.(this.sentSec - chunkSec / 2, pcmDbfs(new Int16Array(e.data)));
         };
       };
       ws.onmessage = (e) => this.h.onMessage(JSON.parse(e.data));

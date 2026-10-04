@@ -17,7 +17,7 @@ export const SYLLABLES_PER_WORD = 1.4;
 export const toApproxWpm = (sps: number) => Math.round((sps * 60) / SYLLABLES_PER_WORD);
 
 export interface CueConfig {
-  categories: { um: boolean; uh: boolean; like: boolean; rushing: boolean };
+  categories: { um: boolean; uh: boolean; like: boolean; rushing: boolean; quiet: boolean };
   /** Which non-discourse "like" uses also count as fillers. */
   likeCounts: { quotative: boolean; approximator: boolean };
   /** Minimum detection confidence that may produce a buzz. */
@@ -34,13 +34,23 @@ export interface CueConfig {
   cooldownSec: number;
   /** Minimum gap between two pace buzzes, seconds. */
   paceCooldownSec: number;
+  /** Seconds of speech used to learn the wearer's normal speaking level. */
+  calibrationSec: number;
+  /** "Too quiet" = this many dB below the wearer's normal level… */
+  quietDropDb: number;
+  /** …for at least this long, seconds. */
+  quietSustainSec: number;
+  /** Minimum gap between two too-quiet cues, seconds. */
+  quietCooldownSec: number;
+  /** Coach only the wearer's voice; ignore other people talking nearby. */
+  onlyWearer: boolean;
   muted: boolean;
   /** Different haptic rhythms per alert (filler / pace / volume) instead of one tap for all. */
   distinctCues: boolean;
 }
 
 export const DEFAULT_CONFIG: CueConfig = {
-  categories: { um: true, uh: true, like: true, rushing: true },
+  categories: { um: true, uh: true, like: true, rushing: true, quiet: true },
   likeCounts: { quotative: true, approximator: false },
   minConfidence: 0.75,
   paceMode: "conversation",
@@ -49,6 +59,11 @@ export const DEFAULT_CONFIG: CueConfig = {
   paceSustainSec: 3,
   cooldownSec: 2.5,
   paceCooldownSec: 12,
+  calibrationSec: 15,
+  quietDropDb: 6,
+  quietSustainSec: 3,
+  quietCooldownSec: 20,
+  onlyWearer: true,
   muted: false,
   distinctCues: true,
 };
