@@ -8,13 +8,18 @@ This repository is the **software MVP**: a web app that listens through the micr
 
 ## What it detects
 
-| Behavior                              | How                                                                                                                                                                                                     |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "um", "uh"                            | Deepgram streaming ASR with `filler_words=true` (most engines silently drop these)                                                                                                                      |
-| Filler "like"                         | Rules over neighbouring words, part-of-speech tags, punctuation and pauses. "I like went to the mall" cues; "I like tofu" doesn't. Ambiguous cases never cue, and every decision has a readable reason. |
-| Quote "like" ("she was like, no way") | On by default, toggle in Settings                                                                                                                                                                       |
-| "About" "like" ("like twenty people") | Off by default, toggle in Settings                                                                                                                                                                      |
-| Speaking too fast                     | Syllables per second over a rolling 8 s window, long pauses excluded, sustained for 3 s. Presets: Conversation 4.5 syl/s (≈190 wpm), Presentation / interview 4.0 syl/s (≈170 wpm).                     |
+| Behavior                              | How                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "um", "uh"                            | Deepgram streaming ASR with `filler_words=true` (most engines silently drop these)                                                                                                                                                                                                                                                              |
+| Filler "like"                         | Rules over neighbouring words, part-of-speech tags, punctuation and pauses. "I like went to the mall" cues; "I like tofu" doesn't. Ambiguous cases never cue, and every decision has a readable reason.                                                                                                                                         |
+| Quote "like" ("she was like, no way") | On by default, toggle in Settings                                                                                                                                                                                                                                                                                                               |
+| "About" "like" ("like twenty people") | Off by default, toggle in Settings                                                                                                                                                                                                                                                                                                              |
+| Speaking too fast                     | Syllables per second over a rolling 8 s window, long pauses excluded, sustained for 3 s. Presets: Conversation 4.5 syl/s (≈190 wpm), Presentation / interview 4.0 syl/s (≈170 wpm).                                                                                                                                                             |
+| Speaking too quietly                  | Mic level measured only while you're saying words, compared with your own normal level (learned from your first 15 s of speech) and adjusted for room noise (people naturally speak ~0.6 dB louder per dB of noise). Cues after ~3 s at 6 dB or more below that. Gain control and noise suppression are off so the measurement isn't distorted. |
+
+Each alert has its own haptic rhythm: **one tap** = filler (pause), **two taps** = too fast (slow down), **long pulse** = too quiet (speak up). A setting switches to one tap for everything. Cues are fast: "um"/"uh" cue on the first confident result, and a clear filler "like" cues as soon as the next word is heard. Ambiguous cases wait for more words. Each cue's measured delay appears in the app.
+
+**Only your voice is coached.** Deepgram's speaker labels plus loudness (you're nearest the mic) separate you from people nearby; your label is learned in the first 15 s, so talk on your own then. Other people's words are greyed out in the transcript and never cued. No voiceprint is stored.
 
 A cue is withheld when confidence is too low, within the cooldown after the last cue, while muted, or when its category is off. Withheld detections still show in the app's "Why Cue acted" log.
 
@@ -32,17 +37,19 @@ Open http://localhost:3000.
 
 - **Try a sentence** plays typed text through the same detector. It doesn't need a key.
 - **Start listening** streams your mic to Deepgram for live detection.
-- **Download session** (after a live session) saves the words and timings Deepgram heard, with no audio, for replaying misses.
+- **Mark mistakes**: click a word in the transcript, or use the buttons in "Why Cue acted", to flag a wrong buzz or a missed filler.
+- **Download session** (after a live session) saves the words and timings Deepgram heard, your corrections and cue delays (no audio). Put the files in `sessions/` and run `npm run eval`.
 
 ## Scripts
 
-| Command          | What it does                                            |
-| ---------------- | ------------------------------------------------------- |
-| `npm run dev`    | Dev server                                              |
-| `npm test`       | Unit tests (Vitest)                                     |
-| `npm run check`  | Lint, typecheck, format check and tests, the same as CI |
-| `npm run format` | Format with Prettier                                    |
-| `npm run build`  | Production build                                        |
+| Command          | What it does                                                                 |
+| ---------------- | ---------------------------------------------------------------------------- |
+| `npm run dev`    | Dev server                                                                   |
+| `npm test`       | Unit tests (Vitest)                                                          |
+| `npm run eval`   | Replay saved sessions in `sessions/` and score them against your corrections |
+| `npm run check`  | Lint, typecheck, format check and tests, the same as CI                      |
+| `npm run format` | Format with Prettier                                                         |
+| `npm run build`  | Production build                                                             |
 
 ## How it works
 

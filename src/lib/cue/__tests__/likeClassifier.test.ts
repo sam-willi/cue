@@ -32,6 +32,25 @@ const FILLER: [string, LikeUse][] = [
   ["i was like this is crazy", "quotative"],
   ["there were like twenty people", "approximator"],
   ["it cost like 40 bucks", "approximator"],
+  // Common spoken patterns that were missed
+  ["we were just like sitting there", "discourse"],
+  ["i just like don't care anymore", "discourse"],
+  ["and then like he said no", "discourse"],
+  ["it's like you know whatever", "discourse"],
+  ["you know like it was weird", "discourse"],
+  ["i mean like it's fine", "discourse"],
+  ["they like always do that", "discourse"],
+  ["we like literally just got here", "discourse"],
+  ["i like literally can't", "discourse"],
+  ["like okay that's fine", "discourse"],
+  ["there's like nothing to do", "discourse"],
+  ["it was like the best day ever", "discourse"],
+  // Real informal sentences (r/TheGirlSurvivalGuide thread, 2026)
+  ["I'll be like thank you when they hold the door", "quotative"],
+  ["Like there's this greater theme that just, nothing matters", "discourse"],
+  ["he loves asking questions in like a curious dad kind of way", "discourse"],
+  ["I worked so much, like 50 hour weeks", "approximator"],
+  ["it took for like an hour", "approximator"],
 ];
 
 const SEMANTIC: [string, LikeUse][] = [
@@ -57,6 +76,21 @@ const SEMANTIC: [string, LikeUse][] = [
   ["things like that", "example"],
   ["like i said it's fine", "conjunction"],
   ["kind of like a hug", "hedge"],
+  ["It feels like going bowling.", "comparison"],
+  ["I felt like an ass afterwards", "comparison"],
+  ["my trainees is like a teacher and primary school students", "comparison"],
+  ["she says something like oh wow", "comparison"],
+  ["people with like interests get along", "unknown"], // "like" = "similar"; no buzz
+  ["like he said, it's fine", "conjunction"],
+  ["like you said we should go", "conjunction"],
+  ["i like really spicy food", "verb"],
+  ["i feel like going out", "comparison"],
+  ["it's just like a thing", "comparison"], // ambiguous; stays quiet
+  ["she's like my best friend", "comparison"], // ambiguous; stays quiet
+  // Not decidable from words alone, so deliberately not cued:
+  ["people look at me like I'm a predator", "unknown"],
+  ["some people are way too informal, like they don't take anything seriously", "unknown"],
+  ["physical actions of politeness, like holding a door", "unknown"],
 ];
 
 describe("classifyLike — fillers", () => {

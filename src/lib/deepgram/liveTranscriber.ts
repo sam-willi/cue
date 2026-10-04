@@ -1,29 +1,27 @@
-import { normalize } from "@/lib/cue/lexicon";
-import type { Word } from "@/lib/cue/types";
+import { pcmDbfs } from "@/lib/cue/loudness";
+import type { DgMessage } from "./parse";
 
 export interface TranscriberHandlers {
-  onWords: (words: Word[], isFinal: boolean) => void;
-  onUtteranceEnd: () => void;
-  /** Every raw Deepgram message, for saving a session to debug later. */
-  onRaw?: (msg: unknown) => void;
+  /**
+   * Every Deepgram message, in order. Pass each to `feedMessage` to drive a CueSession;
+   * keeping the raw stream also lets a session be saved and replayed exactly.
+   */
+  onMessage: (msg: DgMessage) => void;
+  /** Mic level of each 50 ms chunk: Deepgram audio time (s, chunk midpoint) and dBFS. */
+  onLevel?: (t: number, db: number) => void;
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string) => void;
-}
-
-interface DgWord {
-  word: string;
-  punctuated_word?: string;
-  start: number;
-  end: number;
-  confidence: number;
 }
 
 const LISTEN_PARAMS = new URLSearchParams({
   model: "nova-3",
   language: "en",
   filler_words: "true", // keep "um"/"uh" — stripped by default
+  diarize: "true", // speaker labels per word, used to coach only the wearer
   interim_results: "true",
   punctuate: "true",
   endpointing: "300",
+  // Utterance ends come from UtteranceEnd, not speech_final: a ~300 ms endpointing pause
+  // after "like" is evidence of a filler, so we keep listening for what follows.
   utterance_end_ms: "1000",
   vad_events: "true",
   encoding: "linear16",
@@ -31,18 +29,22 @@ const LISTEN_PARAMS = new URLSearchParams({
   channels: "1",
 });
 
-/** Streams the microphone to Deepgram and reports timed words. */
+/** Streams the microphone to Deepgram and reports its messages. */
 export class LiveTranscriber {
   private ws?: WebSocket;
   private ctx?: AudioContext;
   private stream?: MediaStream;
   private node?: AudioWorkletNode;
   private stopped = false;
+  private sentSec = 0;
+  private clockZero = Infinity;
 
   constructor(private h: TranscriberHandlers) {}
 
   async start() {
     this.stopped = false;
+    this.sentSec = 0;
+    this.clockZero = Infinity;
     this.h.onStatus("connecting");
     try {
       const res = await fetch("/api/deepgram-token", { method: "POST" });
@@ -50,7 +52,9 @@ export class LiveTranscriber {
       if (!res.ok) throw new Error(body.error ?? "Could not get a Deepgram token");
 
       this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        // Gain control and noise suppression are off: they would boost quiet speech and erase the
+        // room noise Cue measures for "too quiet". Deepgram copes with unprocessed audio.
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: false },
       });
       this.ctx = new AudioContext();
       await this.ctx.audioWorklet.addModule("/pcm-worklet.js");
@@ -63,15 +67,19 @@ export class LiveTranscriber {
       this.ws = ws;
       ws.onopen = () => {
         this.h.onStatus("listening");
-        this.node!.port.onmessage = (e) => {
-          if (ws.readyState === WebSocket.OPEN) ws.send(e.data);
+        this.node!.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+          ws.send(e.data);
+          // Deepgram timestamps count from the first audio sample sent. Each chunk is sent
+          // right after it's captured, so the earliest (now − audio sent so far) estimates
+          // when audio time 0 happened on this page's clock.
+          const chunkSec = e.data.byteLength / 2 / 16000;
+          this.sentSec += chunkSec;
+          this.clockZero = Math.min(this.clockZero, performance.now() - this.sentSec * 1000);
+          this.h.onLevel?.(this.sentSec - chunkSec / 2, pcmDbfs(new Int16Array(e.data)));
         };
       };
-      ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        this.h.onRaw?.(msg);
-        this.handleMessage(msg);
-      };
+      ws.onmessage = (e) => this.h.onMessage(JSON.parse(e.data));
       ws.onerror = () => this.h.onStatus("error", "Connection to Deepgram failed");
       ws.onclose = (e) => {
         if (!this.stopped)
@@ -92,22 +100,14 @@ export class LiveTranscriber {
     this.h.onStatus("stopped");
   }
 
-  private handleMessage(msg: { type: string; is_final?: boolean; channel?: { alternatives: { words: DgWord[] }[] } }) {
-    if (msg.type === "UtteranceEnd") return this.h.onUtteranceEnd();
-    if (msg.type !== "Results") return;
-    const dgWords = msg.channel?.alternatives[0]?.words ?? [];
-    const words: Word[] = dgWords
-      .map((w) => ({
-        text: w.punctuated_word ?? w.word,
-        norm: normalize(w.word),
-        start: w.start,
-        end: w.end,
-        confidence: w.confidence,
-      }))
-      .filter((w) => w.norm);
-    // speech_final only means a ~300 ms endpointing pause; utterance ends come from
-    // UtteranceEnd (utterance_end_ms) so a "like" + pause can still see what follows.
-    this.h.onWords(words, !!msg.is_final);
+  /** Page time (performance.now()) of a Deepgram audio timestamp, or null before audio flows. */
+  audioToPageTime(t: number): number | null {
+    return Number.isFinite(this.clockZero) ? this.clockZero + t * 1000 : null;
+  }
+
+  /** Deepgram audio time (s) of a page time, or null before audio flows. */
+  pageToAudioTime(ms: number): number | null {
+    return Number.isFinite(this.clockZero) ? (ms - this.clockZero) / 1000 : null;
   }
 
   private teardownAudio() {
