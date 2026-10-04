@@ -42,6 +42,8 @@ export interface CueConfig {
   quietSustainSec: number;
   /** Minimum gap between two too-quiet cues, seconds. */
   quietCooldownSec: number;
+  /** Coach only the wearer's voice; ignore other people talking nearby. */
+  onlyWearer: boolean;
   muted: boolean;
   /** Different haptic rhythms per alert (filler / pace / volume) instead of one tap for all. */
   distinctCues: boolean;
@@ -61,6 +63,7 @@ export const DEFAULT_CONFIG: CueConfig = {
   quietDropDb: 6,
   quietSustainSec: 3,
   quietCooldownSec: 20,
+  onlyWearer: true,
   muted: false,
   distinctCues: true,
 };
