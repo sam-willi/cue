@@ -12,25 +12,36 @@ export interface TranscriberHandlers {
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string) => void;
 }
 
-const LISTEN_PARAMS = new URLSearchParams({
-  // nova-2, not nova-3: in live streaming nova-3 drops most "um"/"uh" (especially at the
-  // start or end of an utterance, a known Deepgram issue). Measured on the same audio:
-  // nova-3 kept 0–1 of 5 fillers, nova-2 kept 5 of 5.
-  model: "nova-2",
-  language: "en",
-  filler_words: "true", // keep "um"/"uh" — stripped by default
-  diarize: "true", // speaker labels per word, used to coach only the wearer
-  interim_results: "true",
-  punctuate: "true",
-  endpointing: "300",
-  // Utterance ends come from UtteranceEnd, not speech_final: a ~300 ms endpointing pause
-  // after "like" is evidence of a filler, so we keep listening for what follows.
-  utterance_end_ms: "1000",
-  vad_events: "true",
-  encoding: "linear16",
-  sample_rate: "16000",
-  channels: "1",
-});
+export type Engine = "flux" | "nova-2";
+
+const AUDIO = { encoding: "linear16", sample_rate: "16000" };
+
+/**
+ * Deepgram endpoints. Measured on the same clip (22 s, 5 fillers):
+ *  - flux:   updates every ~0.2 s; fillers arrived 0.5–0.9 s after they ended; no speaker labels.
+ *  - nova-2: updates every ~1 s; fillers arrived 0.9–2.0 s after; speaker labels (diarize).
+ *  - nova-3 isn't offered: in live streaming it dropped 4–5 of the 5 fillers.
+ */
+function listenUrl(engine: Engine): string {
+  if (engine === "flux")
+    return `wss://api.deepgram.com/v2/listen?${new URLSearchParams({ model: "flux-general-en", ...AUDIO })}`;
+  const params = new URLSearchParams({
+    model: "nova-2",
+    language: "en",
+    filler_words: "true", // keep "um"/"uh" — stripped by default
+    diarize: "true", // speaker labels per word, used to coach only the wearer
+    interim_results: "true",
+    punctuate: "true",
+    endpointing: "300",
+    // Utterance ends come from UtteranceEnd, not speech_final: a ~300 ms endpointing pause
+    // after "like" is evidence of a filler, so we keep listening for what follows.
+    utterance_end_ms: "1000",
+    vad_events: "true",
+    channels: "1",
+    ...AUDIO,
+  });
+  return `wss://api.deepgram.com/v1/listen?${params}`;
+}
 
 /** Streams the microphone to Deepgram and reports its messages. */
 export class LiveTranscriber {
@@ -42,7 +53,10 @@ export class LiveTranscriber {
   private sentSec = 0;
   private clockZero = Infinity;
 
-  constructor(private h: TranscriberHandlers) {}
+  constructor(
+    private h: TranscriberHandlers,
+    private engine: Engine = "flux",
+  ) {}
 
   async start() {
     this.stopped = false;
@@ -65,7 +79,7 @@ export class LiveTranscriber {
       this.node = new AudioWorkletNode(this.ctx, "pcm-worklet");
       src.connect(this.node);
 
-      const ws = new WebSocket(`wss://api.deepgram.com/v1/listen?${LISTEN_PARAMS}`, ["bearer", body.token]);
+      const ws = new WebSocket(listenUrl(this.engine), ["bearer", body.token]);
       ws.binaryType = "arraybuffer";
       this.ws = ws;
       ws.onopen = () => {
