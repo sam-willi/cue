@@ -312,9 +312,7 @@ export default function CueApp() {
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
       <header className="mb-8 flex items-baseline justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Cue<span className="text-accent">.</span>
-          </h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Cue</h1>
           <p className="text-sm text-muted">Speak with intention.</p>
         </div>
         <StatusPill status={status} />
@@ -322,12 +320,12 @@ export default function CueApp() {
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
         {/* --- The cue --- */}
-        <section className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
+        <section className="rounded-2xl border border-line bg-surface p-6 sm:p-8">
           <div className="flex flex-col items-center gap-6">
             <BuzzIndicator buzz={buzz} confirm={confirm} />
             <p className="relative z-10 h-5 text-center text-sm text-muted" aria-live="polite">
               {confirm ? (
-                <span className="font-medium text-accent">{CONFIRMS[confirm.pattern].label}</span>
+                <span className="font-medium text-text">{CONFIRMS[confirm.pattern].label}</span>
               ) : buzz ? (
                 <>
                   <span className="font-medium text-cue">
@@ -348,13 +346,13 @@ export default function CueApp() {
 
             <div className="flex flex-wrap justify-center gap-3">
               {status === "listening" || status === "connecting" ? (
-                <button onClick={stopAll} className="rounded-full bg-text px-6 py-3 text-sm font-medium text-bg">
+                <button onClick={stopAll} className="min-h-11 rounded-lg bg-text px-6 py-3 text-sm font-medium text-bg">
                   Stop
                 </button>
               ) : (
                 <button
                   onClick={startLive}
-                  className="rounded-full bg-text px-6 py-3 text-sm font-medium text-bg disabled:opacity-50"
+                  className="min-h-11 rounded-lg bg-text px-6 py-3 text-sm font-medium text-bg disabled:opacity-50"
                   disabled={status === "demo"}
                 >
                   Start listening
@@ -362,13 +360,20 @@ export default function CueApp() {
               )}
               <button
                 onClick={() => setConfig((c) => ({ ...c, muted: !c.muted }))}
-                className="rounded-full border border-line px-5 py-3 text-sm"
+                className="min-h-11 rounded-lg border border-line px-5 py-3 text-sm"
                 aria-pressed={config.muted}
               >
                 {config.muted ? "Turn Cue on" : "Turn Cue off"}
               </button>
             </div>
-            {error && <p className="max-w-md text-center text-sm text-red-500">{error}</p>}
+            {error && (
+              <p
+                className="max-w-md rounded-lg border border-line bg-surface-2 px-3 py-2 text-center text-sm"
+                role="status"
+              >
+                {error}
+              </p>
+            )}
 
             {/* Simulated cuff touch surface (controls only) */}
             <CuffTouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
@@ -383,7 +388,7 @@ export default function CueApp() {
                     <button
                       key={kind}
                       onClick={() => triggerBuzz(kind)}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl border border-line px-2 py-2.5 text-xs hover:border-cue ${
+                      className={`flex flex-col items-center gap-1.5 rounded-lg border border-line px-2 py-2.5 text-xs hover:border-cue ${
                         buzz?.pattern === p && buzz.label === LABEL[kind] ? "cue-playing border-cue" : ""
                       }`}
                     >
@@ -419,17 +424,18 @@ export default function CueApp() {
               <div className="relative h-2 overflow-hidden rounded-full bg-surface-2">
                 {volume?.expectedDb == null ? (
                   <div
-                    className="h-full rounded-full bg-muted/40 transition-all duration-500"
+                    className="h-full rounded-full bg-neutral-soft transition-all duration-300"
                     style={{ width: `${(volume?.calibration ?? 0) * 100}%` }}
                   />
                 ) : (
                   volume.db !== null && (
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full rounded-full transition-all duration-300"
                       style={{
                         // Scale: 20 dB below expected (empty) … expected (75%) … 7 dB above (full).
                         width: `${Math.max(0, Math.min(1, (volume.db - volume.expectedDb + 20) / 27)) * 100}%`,
-                        background: volume.db < volume.expectedDb - config.quietDropDb ? "var(--cue)" : "var(--accent)",
+                        background:
+                          volume.db < volume.expectedDb - config.quietDropDb ? "var(--cue)" : "var(--neutral)",
                       }}
                     />
                   )
@@ -455,10 +461,10 @@ export default function CueApp() {
               </div>
               <div className="relative h-2 overflow-hidden rounded-full bg-surface-2">
                 <div
-                  className="h-full rounded-full transition-all duration-500"
+                  className="h-full rounded-full transition-all duration-300"
                   style={{
                     width: `${paceFrac * 100}%`,
-                    background: sps > config.paceThreshold ? "var(--cue)" : "var(--accent)",
+                    background: sps > config.paceThreshold ? "var(--cue)" : "var(--neutral)",
                   }}
                 />
                 <div
@@ -472,14 +478,14 @@ export default function CueApp() {
         </section>
 
         {/* --- Try it without a mic --- */}
-        <section className="rounded-3xl border border-line bg-surface p-6">
-          <h2 className="mb-1 font-medium">Try a sentence</h2>
+        <section className="rounded-2xl border border-line bg-surface p-6">
+          <h2 className="font-display mb-1 font-medium">Try a sentence</h2>
           <p className="mb-4 text-sm text-muted">Plays typed text through the same detector, word by word.</p>
           <textarea
             value={demoText}
             onChange={(e) => setDemoText(e.target.value)}
             rows={3}
-            className="w-full resize-none rounded-xl border border-line bg-bg p-3 text-sm outline-none focus:border-accent"
+            className="w-full resize-none rounded-lg border border-line bg-bg p-3 text-sm outline-none focus:border-cue"
           />
           <div className="mt-2 flex flex-wrap gap-2">
             {EXAMPLES.map((ex) => (
@@ -489,7 +495,7 @@ export default function CueApp() {
                   setDemoText(ex);
                   runDemo(ex);
                 }}
-                className="rounded-full bg-surface-2 px-3 py-1 text-xs text-muted hover:text-text"
+                className="min-h-9 rounded-lg bg-surface-2 px-3 py-1 text-xs text-muted hover:text-text"
               >
                 {ex}
               </button>
@@ -505,13 +511,13 @@ export default function CueApp() {
                 step={10}
                 value={demoWpm}
                 onChange={(e) => setDemoWpm(+e.target.value)}
-                className="flex-1 accent-[var(--accent)]"
+                className="flex-1 accent-[var(--cue)]"
               />
             </label>
             <button
               onClick={() => runDemo()}
               disabled={status === "listening" || status === "connecting"}
-              className="rounded-full border border-line px-4 py-2 text-sm disabled:opacity-50"
+              className="min-h-11 rounded-lg border border-line px-4 py-2 text-sm disabled:opacity-50"
             >
               Play
             </button>
@@ -527,10 +533,10 @@ export default function CueApp() {
         </section>
 
         {/* --- Transcript (dev aid) --- */}
-        <section className="rounded-3xl border border-line bg-surface p-6 lg:col-span-2">
+        <section className="rounded-2xl border border-line bg-surface p-6 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <h2 className="font-medium">Transcript</h2>
+              <h2 className="font-display font-medium">Transcript</h2>
               <p className="text-xs text-muted">
                 Click a word to mark a wrong buzz or a filler Cue missed. Hover any marked word for the reason.
               </p>
@@ -551,7 +557,7 @@ export default function CueApp() {
                   <span className="text-text line-through decoration-2">like</span> you marked wrong
                 </li>
                 <li>
-                  <span className="rounded px-0.5 text-text ring-1 ring-ok">like</span> you marked missed
+                  <span className="rounded px-0.5 text-text ring-1 ring-text">like</span> you marked missed
                 </li>
                 <li>
                   <span className="italic text-muted/60">um</span> someone else
@@ -590,7 +596,7 @@ export default function CueApp() {
                 const marked = fix
                   ? fix.label === "false_buzz"
                     ? " line-through decoration-2"
-                    : " ring-1 ring-ok rounded"
+                    : " ring-1 ring-text rounded"
                   : "";
                 const why = d
                   ? d.event.reason
@@ -615,8 +621,8 @@ export default function CueApp() {
         </section>
 
         {/* --- This session --- */}
-        <section className="rounded-3xl border border-line bg-surface p-6 lg:col-span-2">
-          <h2 className="mb-4 font-medium">This session</h2>
+        <section className="rounded-2xl border border-line bg-surface p-6 lg:col-span-2">
+          <h2 className="font-display mb-4 font-medium">This session</h2>
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <Stat
               label="Speaking"
@@ -638,13 +644,13 @@ export default function CueApp() {
         </section>
 
         {/* --- Event log --- */}
-        <section className="rounded-3xl border border-line bg-surface p-6">
+        <section className="rounded-2xl border border-line bg-surface p-6">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="font-medium">Why Cue acted</h2>
+            <h2 className="font-display font-medium">Why Cue acted</h2>
             {recorded > 0 && !busy && (
               <button
                 onClick={downloadSession}
-                className="rounded-full border border-line px-3 py-1 text-xs text-muted hover:text-text"
+                className="min-h-9 rounded-lg border border-line px-3 py-1 text-xs text-muted hover:text-text"
                 title="Saves what Deepgram heard (words and timings, no audio) so misses can be replayed and fixed"
               >
                 Download session
@@ -703,8 +709,8 @@ export default function CueApp() {
         </section>
 
         {/* --- Settings --- */}
-        <section className="rounded-3xl border border-line bg-surface p-6">
-          <h2 className="mb-4 font-medium">Settings</h2>
+        <section className="rounded-2xl border border-line bg-surface p-6">
+          <h2 className="font-display mb-4 font-medium">Settings</h2>
           <div className="space-y-4 text-sm">
             <fieldset>
               <legend className="mb-2 text-xs uppercase tracking-wide text-muted">Cue me for</legend>
@@ -862,7 +868,7 @@ function BuzzIndicator({
       <div
         className={`cue-core grid h-28 w-28 place-items-center rounded-full border transition-colors duration-300 ${
           confirm
-            ? "border-accent bg-accent-soft text-accent"
+            ? "border-neutral bg-neutral-soft text-text"
             : buzz
               ? "border-cue bg-cue-soft text-cue"
               : "border-line bg-surface-2 text-muted"
@@ -870,8 +876,8 @@ function BuzzIndicator({
       >
         {/* Vibration glyph: a device with motion lines */}
         <svg width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden>
-          <rect x="20" y="12" width="16" height="32" rx="4" stroke="currentColor" strokeWidth="2.5" />
-          <path d="M13 20v16M8 24v8M43 20v16M48 24v8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+          <rect x="20" y="12" width="16" height="32" rx="4" stroke="currentColor" strokeWidth="2" />
+          <path d="M13 20v16M8 24v8M43 20v16M48 24v8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>
     </div>
@@ -920,7 +926,7 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
       <button
         type="button"
         aria-label="Simulated cuff touch surface: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
-        className={`cuff-pad relative grid h-16 w-16 shrink-0 touch-none select-none place-items-center rounded-full border border-accent/60 bg-accent-soft text-[10px] font-medium text-accent ${pressing ? "pressing" : ""}`}
+        className={`cuff-pad relative grid h-16 w-16 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-[10px] font-medium text-accent ${pressing ? "pressing" : ""}`}
         onPointerDown={(e) => {
           try {
             e.currentTarget.setPointerCapture(e.pointerId); // keep the press if the finger drifts
@@ -970,7 +976,7 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
         </p>
         <p>Hold 1.5 s: Cue {on ? "off" : "on"}</p>
         <p>Double-tap: switch mode · now {mode}</p>
-        <p className="h-4 text-accent">{hint}</p>
+        <p className="h-4 text-text">{hint}</p>
       </div>
     </div>
   );
@@ -988,11 +994,11 @@ function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
   );
 }
 
-function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "ok" }) {
+function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div>
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className={`mt-1 text-xl font-medium tabular-nums ${tone === "ok" ? "text-ok" : ""}`}>{value}</dd>
+      <dd className="mt-1 font-display text-xl font-medium tabular-nums">{value}</dd>
       {hint && <dd className="text-xs text-muted">{hint}</dd>}
     </div>
   );
@@ -1003,7 +1009,7 @@ function CorrectionButton({ on, onClick, children }: { on: boolean; onClick: () 
     <button
       onClick={onClick}
       aria-pressed={on}
-      className={`mt-2 rounded-full border px-2.5 py-0.5 text-xs ${on ? "border-text bg-surface-2 text-text" : "border-line text-muted hover:text-text"}`}
+      className={`mt-2 min-h-8 rounded-lg border px-2.5 py-0.5 text-xs ${on ? "border-text bg-surface-2 text-text" : "border-line text-muted hover:text-text"}`}
     >
       {on ? `✓ ${children}` : children}
     </button>
@@ -1022,7 +1028,7 @@ function StatusPill({ status }: { status: Status }) {
   return (
     <span className="flex items-center gap-2 rounded-full border border-line px-3 py-1 text-xs text-muted">
       <span
-        className={`h-2 w-2 rounded-full ${live ? "animate-pulse bg-ok" : status === "error" ? "bg-red-500" : "bg-line"}`}
+        className={`h-2 w-2 rounded-full ${live ? "animate-pulse bg-cue" : status === "error" ? "bg-text" : "bg-line"}`}
       />
       {text}
     </span>
@@ -1034,7 +1040,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
     <button
       onClick={onClick}
       aria-pressed={on}
-      className={`rounded-full border px-3 py-1 text-xs ${on ? "border-accent bg-accent-soft text-text" : "border-line text-muted"}`}
+      className={`min-h-9 rounded-lg border px-3 py-1 text-xs ${on ? "border-cue bg-cue-soft text-text" : "border-line text-muted"}`}
     >
       {children}
     </button>
@@ -1062,7 +1068,7 @@ function Toggle({
         type="checkbox"
         checked={on}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 accent-[var(--accent)]"
+        className="h-4 w-4 accent-[var(--cue)]"
       />
     </label>
   );
@@ -1090,7 +1096,7 @@ function Slider(props: {
         step={props.step}
         value={props.value}
         onChange={(e) => props.onChange(+e.target.value)}
-        className="mt-1 w-full accent-[var(--accent)]"
+        className="mt-1 w-full accent-[var(--cue)]"
       />
     </label>
   );
