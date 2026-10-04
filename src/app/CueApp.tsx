@@ -495,8 +495,31 @@ export default function CueApp() {
             <div>
               <h2 className="font-medium">Transcript</h2>
               <p className="text-xs text-muted">
-                Click a word to mark a wrong buzz (strikethrough) or a filler Cue missed (outlined).
+                Click a word to mark a wrong buzz or a filler Cue missed. Hover any marked word for the reason.
               </p>
+              <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Transcript key">
+                <li>
+                  <span className="rounded bg-cue-soft px-1 text-cue">like</span> buzzed
+                </li>
+                <li>
+                  <span className="text-cue underline decoration-dotted">like</span> filler, held back
+                </li>
+                <li>
+                  <span className="text-text underline decoration-muted decoration-dotted underline-offset-4">
+                    like
+                  </span>{" "}
+                  not a filler
+                </li>
+                <li>
+                  <span className="text-text line-through decoration-2">like</span> you marked wrong
+                </li>
+                <li>
+                  <span className="rounded px-0.5 text-text ring-1 ring-ok">like</span> you marked missed
+                </li>
+                <li>
+                  <span className="italic text-muted/60">um</span> someone else
+                </li>
+              </ul>
             </div>
             <label className="flex items-center gap-2 text-xs text-muted">
               <input type="checkbox" checked={showTranscript} onChange={(e) => setShowTranscript(e.target.checked)} />
