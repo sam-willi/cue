@@ -334,7 +334,7 @@ def write_bom(path):
         p = P[ref]
         groups[(p["value"], p["mpn"], p["footprint"], p["status"])].append(ref)
     with open(path, "w", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(["Refs", "Qty", "Value", "Manufacturer part", "Footprint", "Status", "Notes"])
         for (val, mpn, fp, st), refs in sorted(groups.items(), key=lambda kv: sortkey(kv[1][0])):
             note = " | ".join(sorted({P[r]["note"] for r in refs if P[r]["note"]}))
@@ -346,7 +346,7 @@ def write_connections(path):
         for n in nodes:
             pin_net[n] = name
     with open(path, "w", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(["Ref", "Part", "Pin", "Net", "Status"])
         for ref in sorted(P, key=sortkey):
             for pin in P[ref]["pins"]:
