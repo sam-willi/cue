@@ -68,6 +68,7 @@ export default function CueApp() {
   const [pace, setPace] = useState<Pace | null>(null);
   const [volume, setVolume] = useState<VolumeStatus | null>(null);
   const [demoQuiet, setDemoQuiet] = useState(false);
+  const [demoOther, setDemoOther] = useState(false);
   const [log, setLog] = useState<CueDecision[]>([]);
   const [checks, setChecks] = useState<LikeCheck[]>([]);
   const [recorded, setRecorded] = useState(0);
@@ -75,7 +76,7 @@ export default function CueApp() {
   const [latency, setLatency] = useState<Record<string, number>>({});
   const [corrections, setCorrections] = useState<Correction[]>([]);
   const [speakingSec, setSpeakingSec] = useState(0);
-  const [words, setWords] = useState<Word[]>([]);
+  const [words, setWords] = useState<(Word & { wearer: boolean })[]>([]);
   const [buzz, setBuzz] = useState<{ n: number; label: string; pattern: CuePattern } | null>(null);
   const [showTranscript, setShowTranscript] = useState(true);
   const [demoText, setDemoText] = useState(EXAMPLES[0]);
@@ -118,7 +119,7 @@ export default function CueApp() {
       }
       if (u.decisions.length) setLog((l) => [...u.decisions.slice().reverse(), ...l].slice(0, 100));
       if (u.likeChecks.length) setChecks((c) => [...u.likeChecks.slice().reverse(), ...c].slice(0, 100));
-      setWords(sessionRef.current.words);
+      setWords(sessionRef.current.annotatedWords());
       setSpeakingSec(sessionRef.current.speakingSeconds());
     },
     [triggerBuzz],
@@ -183,14 +184,31 @@ export default function CueApp() {
     setStatus("demo");
     const demoStart = performance.now();
     clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
-    const sim = simulateWords(text, { wpm: demoWpm });
-    // Simulated mic level: steady speech at −20 dBFS, optionally trailing off to −32 for
-    // the last 45%. The demo learns "normal" from its first third instead of 15 s.
+    // The wearer is speaker 0. With "another speaker", a friend (speaker 1, further from
+    // the mic, so quieter) cuts in about halfway with fillers Cue should ignore.
+    let sim: Word[] = simulateWords(text, { wpm: demoWpm }).map((w) => ({ ...w, speaker: 0 }));
+    if (demoOther && sim.length > 6) {
+      const cut = sim[Math.floor(sim.length * 0.7)].start;
+      const friend = simulateWords("Um, yeah, I like went there too.", { wpm: 170, startAt: cut + 0.5 }).map((w) => ({
+        ...w,
+        speaker: 1,
+      }));
+      const resume = friend.at(-1)!.end + 0.8 - cut;
+      sim = [
+        ...sim.filter((w) => w.start < cut),
+        ...friend,
+        ...sim.filter((w) => w.start >= cut).map((w) => ({ ...w, start: w.start + resume, end: w.end + resume })),
+      ];
+    }
+    // Simulated mic level: the wearer at −20 dBFS (optionally trailing off to −32 for the
+    // last 45%), the friend at −32, a quiet room at −60. The demo learns "normal" from its
+    // first ~30% instead of 15 s.
     const total = sim.at(-1)?.end ?? 0;
-    sessionRef.current.config = { ...config, calibrationSec: Math.min(config.calibrationSec, total * 0.35) };
+    sessionRef.current.config = { ...config, calibrationSec: Math.min(config.calibrationSec, total * 0.3) };
     for (let t = 0; t <= total; t += 0.05) {
-      const speaking = sim.some((w) => t >= w.start && t <= w.end);
-      sessionRef.current.ingestLevel(t, speaking ? (demoQuiet && t > total * 0.55 ? -32 : -20) : -60);
+      const w = sim.find((x) => t >= x.start && t <= x.end);
+      const db = !w ? -60 : w.speaker === 1 ? -32 : demoQuiet && t > total * 0.55 ? -32 : -20;
+      sessionRef.current.ingestLevel(t, db);
     }
     sim.forEach((w, k) => {
       timersRef.current.push(
@@ -285,6 +303,8 @@ export default function CueApp() {
                   </span>{" "}
                   · {buzz.label}
                 </>
+              ) : busy && config.onlyWearer && volume?.expectedDb == null ? (
+                "Talk on your own for a few seconds so Cue can learn your voice…"
               ) : busy ? (
                 "Listening for fillers and pace…"
               ) : (
@@ -346,15 +366,21 @@ export default function CueApp() {
                 <span className="font-mono">
                   {!volume
                     ? "—"
-                    : volume.baselineDb === null
-                      ? `learning your normal… ${Math.round(volume.calibration * 100)}%`
+                    : volume.baselineDb === null || volume.expectedDb === null
+                      ? `learning your voice… ${Math.round(volume.calibration * 100)}%`
                       : volume.db === null
-                        ? "normal set"
-                        : `${volume.db - volume.baselineDb >= 0 ? "+" : "−"}${Math.abs(Math.round(volume.db - volume.baselineDb))} dB vs normal`}
+                        ? "voice learned"
+                        : `${volume.db - volume.expectedDb >= 0 ? "+" : "−"}${Math.abs(Math.round(volume.db - volume.expectedDb))} dB vs normal${
+                            Math.abs(volume.expectedDb - volume.baselineDb) >= 3
+                              ? volume.expectedDb > volume.baselineDb
+                                ? " (noisy room)"
+                                : " (quiet room)"
+                              : ""
+                          }`}
                 </span>
               </div>
               <div className="relative h-2 overflow-hidden rounded-full bg-surface-2">
-                {volume?.baselineDb == null ? (
+                {volume?.expectedDb == null ? (
                   <div
                     className="h-full rounded-full bg-muted/40 transition-all duration-500"
                     style={{ width: `${(volume?.calibration ?? 0) * 100}%` }}
@@ -364,14 +390,14 @@ export default function CueApp() {
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
-                        // Scale: 20 dB below normal (empty) … normal (75%) … 7 dB above (full).
-                        width: `${Math.max(0, Math.min(1, (volume.db - volume.baselineDb + 20) / 27)) * 100}%`,
-                        background: volume.db < volume.baselineDb - config.quietDropDb ? "var(--cue)" : "var(--accent)",
+                        // Scale: 20 dB below expected (empty) … expected (75%) … 7 dB above (full).
+                        width: `${Math.max(0, Math.min(1, (volume.db - volume.expectedDb + 20) / 27)) * 100}%`,
+                        background: volume.db < volume.expectedDb - config.quietDropDb ? "var(--cue)" : "var(--accent)",
                       }}
                     />
                   )
                 )}
-                {volume?.baselineDb != null && (
+                {volume?.expectedDb != null && (
                   <div
                     className="absolute top-0 h-full w-0.5 bg-text/60"
                     style={{ left: `${((20 - config.quietDropDb) / 27) * 100}%` }}
@@ -457,6 +483,10 @@ export default function CueApp() {
             <input type="checkbox" checked={demoQuiet} onChange={(e) => setDemoQuiet(e.target.checked)} />
             Trail off quietly (tests the “speak up” cue; works best with the long passage)
           </label>
+          <label className="mt-1 flex items-center gap-2 text-xs text-muted">
+            <input type="checkbox" checked={demoOther} onChange={(e) => setDemoOther(e.target.checked)} />
+            Add another speaker (a friend cuts in with “um… like went”, which Cue should ignore)
+          </label>
         </section>
 
         {/* --- Transcript (dev aid) --- */}
@@ -465,8 +495,31 @@ export default function CueApp() {
             <div>
               <h2 className="font-medium">Transcript</h2>
               <p className="text-xs text-muted">
-                Click a word to mark a wrong buzz (strikethrough) or a filler Cue missed (outlined).
+                Click a word to mark a wrong buzz or a filler Cue missed. Hover any marked word for the reason.
               </p>
+              <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted" aria-label="Transcript key">
+                <li>
+                  <span className="rounded bg-cue-soft px-1 text-cue">like</span> buzzed
+                </li>
+                <li>
+                  <span className="text-cue underline decoration-dotted">like</span> filler, held back
+                </li>
+                <li>
+                  <span className="text-text underline decoration-muted decoration-dotted underline-offset-4">
+                    like
+                  </span>{" "}
+                  not a filler
+                </li>
+                <li>
+                  <span className="text-text line-through decoration-2">like</span> you marked wrong
+                </li>
+                <li>
+                  <span className="rounded px-0.5 text-text ring-1 ring-ok">like</span> you marked missed
+                </li>
+                <li>
+                  <span className="italic text-muted/60">um</span> someone else
+                </li>
+              </ul>
             </div>
             <label className="flex items-center gap-2 text-xs text-muted">
               <input type="checkbox" checked={showTranscript} onChange={(e) => setShowTranscript(e.target.checked)} />
@@ -477,6 +530,16 @@ export default function CueApp() {
             <p className="min-h-12 text-[15px] leading-8">
               {words.length === 0 && <span className="text-muted">Nothing yet.</span>}
               {words.map((w, k) => {
+                if (!w.wearer)
+                  return (
+                    <span
+                      key={k}
+                      className="text-muted/60 italic"
+                      title="Someone else talking: Cue doesn't coach other people"
+                    >
+                      {w.text}{" "}
+                    </span>
+                  );
                 const d = flagged.get(wordKey(w.start));
                 const c = !d && w.norm === "like" ? checked.get(wordKey(w.start)) : undefined;
                 const fix = corrected.get(wordKey(w.start));
@@ -625,6 +688,12 @@ export default function CueApp() {
                 ))}
               </div>
             </fieldset>
+            <Toggle
+              label="Only coach my voice"
+              hint="Ignore other people talking nearby (learned in your first 15 s; talk on your own then)"
+              on={config.onlyWearer}
+              onChange={(v) => setConfig((c) => ({ ...c, onlyWearer: v }))}
+            />
             <Toggle
               label="Different cue for each alert"
               hint="Off: one tap for everything (“make space”)"

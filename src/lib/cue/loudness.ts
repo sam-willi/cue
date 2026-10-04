@@ -28,6 +28,18 @@ export function median(xs: number[]): number {
  * Levels measured while the wearer was actually saying a word in [from, to].
  * Gating on recognized words keeps pauses and room noise out of the measurement.
  */
+/**
+ * Background noise floor over [from, to]: the 10th percentile of all frames. The
+ * quietest moments (between words, breaths) are the room; this works without needing
+ * long silences, which normal speech rarely has. Null if under 1 s of audio.
+ */
+export function noiseFloor(frames: LevelFrame[], from: number, to: number): number | null {
+  const xs = frames.filter((f) => f.t >= from && f.t <= to).map((f) => f.db);
+  if (xs.length * FRAME_SEC < 1) return null;
+  xs.sort((a, b) => a - b);
+  return xs[Math.floor(xs.length * 0.1)];
+}
+
 export function speechLevels(frames: LevelFrame[], words: Word[], from: number, to: number): number[] {
   const spans = words.filter((w) => w.end >= from && w.start <= to);
   const out: number[] = [];

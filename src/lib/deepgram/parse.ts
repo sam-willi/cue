@@ -8,6 +8,7 @@ interface DgWord {
   start: number;
   end: number;
   confidence: number;
+  speaker?: number;
 }
 
 export interface DgMessage {
@@ -26,6 +27,7 @@ export function parseResults(msg: DgMessage): { words: Word[]; isFinal: boolean 
       start: w.start,
       end: w.end,
       confidence: w.confidence,
+      ...(w.speaker !== undefined && { speaker: w.speaker }),
     }))
     .filter((w) => w.norm);
   return { words, isFinal: !!msg.is_final };

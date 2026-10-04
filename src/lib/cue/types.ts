@@ -8,6 +8,8 @@ export interface Word {
   end: number;
   /** ASR confidence 0..1. */
   confidence: number;
+  /** Diarization label from the speech engine, when available (session-only, not an identity). */
+  speaker?: number;
 }
 
 export type BehaviorType = "filler_um" | "filler_uh" | "filler_like" | "rushing" | "too_quiet";
@@ -50,7 +52,7 @@ export interface SpeechEvent {
   like?: LikeVerdict;
   pace?: { sps: number; wpm: number };
   /** For too_quiet: recent speech level and the wearer's normal, in dBFS. */
-  level?: { db: number; baselineDb: number };
+  level?: { db: number; baselineDb: number; expectedDb: number; noiseDb: number | null };
 }
 
 export interface CueDecision {

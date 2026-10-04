@@ -1,7 +1,8 @@
 import { DEFAULT_CONFIG, type CueConfig } from "./config";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
-import { FRAME_SEC, median, speechLevels, type LevelFrame } from "./loudness";
+import { FRAME_SEC, median, noiseFloor, speechLevels, type LevelFrame } from "./loudness";
+import { WearerModel, wordLevel } from "./wearer";
 import { measurePace, type Pace } from "./pace";
 import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word } from "./types";
 
@@ -27,12 +28,22 @@ const VOLUME_MIN_SPEECH = 1;
 const VOLUME_HYSTERESIS = 2;
 /** Keep this many seconds of level frames. */
 const LEVEL_HISTORY = 60;
+/** Window for measuring the room's background noise, seconds. */
+const NOISE_WINDOW = 10;
+/** Speakers raise their voice ~0.6 dB per dB of background noise (Lombard effect). */
+const LOMBARD_SLOPE = 0.6;
+/** Cap on how far room noise can move the expected level, dB. */
+const LOMBARD_MAX = 10;
 
 export interface VolumeStatus {
   /** Recent speaking level, dBFS, or null when not enough recent speech. */
   db: number | null;
   /** The wearer's normal speaking level once learned, dBFS. */
   baselineDb: number | null;
+  /** What the wearer's level should be in the current room (normal adjusted for noise), dBFS. */
+  expectedDb: number | null;
+  /** Current background noise, dBFS. */
+  noiseDb: number | null;
   /** 0..1 progress toward learning the normal level. */
   calibration: number;
 }
@@ -79,6 +90,10 @@ export class CueSession {
   private calibrationLevels: number[] = [];
   private calibratedUpTo = -Infinity;
   private baselineDb: number | null = null;
+  private baselineNoiseDb: number | null = null;
+  private wearer = new WearerModel();
+  /** Settled wearer/other decisions by word start, so a word never flips. */
+  private attribution = new Map<number, boolean>();
   private quietSince: number | null = null;
   private lastQuietCueEnd = -Infinity;
   private nextId = 1;
@@ -92,6 +107,25 @@ export class CueSession {
 
   get words(): Word[] {
     return [...this.finalWords, ...this.interimWords];
+  }
+
+  /** All words, each marked with whether Cue attributes it to the wearer. */
+  annotatedWords(): (Word & { wearer: boolean })[] {
+    return this.words.map((w) => ({ ...w, wearer: this.isWearerWord(w) }));
+  }
+
+  /** Whether a word is the wearer's (always true with `onlyWearer` off). */
+  isWearerWord(w: Word): boolean {
+    if (!this.config.onlyWearer) return true;
+    const key = Math.round(w.start * 100);
+    const settled = this.attribution.get(key);
+    if (settled !== undefined) return settled;
+    const level = wordLevel(this.levels, w);
+    const mine = this.wearer.isWearer(w, level, this.baselineDb);
+    // Settle once calibrated and the word's audio has been measured.
+    const measured = this.levels.length === 0 || this.levels[this.levels.length - 1].t >= w.end;
+    if (this.baselineDb !== null && measured) this.attribution.set(key, mine);
+    return mine;
   }
 
   ingest(words: Word[], isFinal: boolean): SessionUpdate {
@@ -128,15 +162,19 @@ export class CueSession {
   }
 
   private process(rightClosed: boolean): SessionUpdate {
-    const words = this.words;
-    const finalCount = this.finalWords.length;
+    const all = this.words;
+    // Coach only the wearer: other people's words are dropped before detection. The gap
+    // they leave reads as a pause, which is how a turn change should look to the rules.
+    const finalStarts = new Set(this.finalWords.map((w) => w.start));
+    const words = all.filter((w) => this.isWearerWord(w));
+    const interim = words.map((w) => !finalStarts.has(w.start));
     const decisions: CueDecision[] = [];
     const likeChecks: LikeCheck[] = [];
     const from = Math.max(0, words.length - SCAN_WINDOW);
 
     for (let i = from; i < words.length; i++) {
       const w = words[i];
-      const isInterim = i >= finalCount;
+      const isInterim = interim[i];
       const stable = !isInterim || rightClosed || words.length - 1 - i >= INTERIM_STABILITY;
 
       if (UM_FORMS.has(w.norm) || UH_FORMS.has(w.norm)) {
@@ -186,7 +224,7 @@ export class CueSession {
     const pace = measurePace(words, this.config.paceWindowSec);
     const paceDecision = this.checkPace(words, pace);
     if (paceDecision) decisions.push(paceDecision);
-    const { status: volume, decision: volumeDecision } = this.checkVolume(words);
+    const { status: volume, decision: volumeDecision } = this.checkVolume(all, words);
     if (volumeDecision) decisions.push(volumeDecision);
 
     this.history.push(...decisions);
@@ -225,42 +263,60 @@ export class CueSession {
    * Too quiet = recent speech well below the wearer's own normal level, sustained.
    * The normal level is learned from the first `calibrationSec` of speech.
    */
-  private checkVolume(words: Word[]): { status: VolumeStatus | null; decision?: CueDecision } {
-    if (this.levels.length === 0 || words.length === 0) return { status: null };
+  private checkVolume(all: Word[], mine: Word[]): { status: VolumeStatus | null; decision?: CueDecision } {
+    if (this.levels.length === 0 || all.length === 0) return { status: null };
     const c = this.config;
-    const now = words[words.length - 1].end;
+    const now = all[all.length - 1].end;
+    const none = { db: null, baselineDb: null, expectedDb: null, noiseDb: null };
 
+    // Calibration: the wearer talks alone, so every word heard is theirs; learn their
+    // normal level, their speaker label, and the room's noise at the time.
     if (this.baselineDb === null) {
-      this.calibrationLevels.push(...speechLevels(this.levels, words, this.calibratedUpTo, now));
+      this.calibrationLevels.push(...speechLevels(this.levels, all, this.calibratedUpTo, now));
+      for (const w of all) if (w.end > this.calibratedUpTo && w.end <= now) this.wearer.observeCalibration(w);
       this.calibratedUpTo = now + 1e-6;
       const learned = this.calibrationLevels.length * FRAME_SEC;
-      if (learned >= c.calibrationSec) this.baselineDb = median(this.calibrationLevels);
-      else return { status: { db: null, baselineDb: null, calibration: learned / c.calibrationSec } };
+      if (learned < c.calibrationSec) return { status: { ...none, calibration: learned / c.calibrationSec } };
+      this.baselineDb = median(this.calibrationLevels);
+      this.baselineNoiseDb = noiseFloor(this.levels, -Infinity, now);
+      this.wearer.finishCalibration();
     }
     const baselineDb = this.baselineDb!;
 
-    const recent = speechLevels(this.levels, words, now - VOLUME_WINDOW, now);
-    if (recent.length * FRAME_SEC < VOLUME_MIN_SPEECH) return { status: { db: null, baselineDb, calibration: 1 } };
-    const db = median(recent);
-    const status: VolumeStatus = { db, baselineDb, calibration: 1 };
+    // Room noise now vs. during calibration: people naturally speak up in noise (Lombard
+    // effect), so the expected level moves with it. Without this, calibrating in a café
+    // and then talking in a quiet room would falsely read as "too quiet".
+    const noiseDb = noiseFloor(this.levels, now - NOISE_WINDOW, now);
+    const shift =
+      noiseDb !== null && this.baselineNoiseDb !== null
+        ? Math.max(-LOMBARD_MAX, Math.min(LOMBARD_MAX, LOMBARD_SLOPE * (noiseDb - this.baselineNoiseDb)))
+        : 0;
+    const expectedDb = baselineDb + shift;
 
-    const quietLine = baselineDb - c.quietDropDb;
+    const recent = mine.length ? speechLevels(this.levels, mine, now - VOLUME_WINDOW, now) : [];
+    if (recent.length * FRAME_SEC < VOLUME_MIN_SPEECH)
+      return { status: { db: null, baselineDb, expectedDb, noiseDb, calibration: 1 } };
+    const db = median(recent);
+    const status: VolumeStatus = { db, baselineDb, expectedDb, noiseDb, calibration: 1 };
+
+    const quietLine = expectedDb - c.quietDropDb;
     if (db > quietLine + VOLUME_HYSTERESIS) this.quietSince = null;
     if (db >= quietLine) return { status };
     this.quietSince ??= now;
     if (now - this.quietSince < c.quietSustainSec || now - this.lastQuietCueEnd < c.quietCooldownSec) return { status };
 
     this.lastQuietCueEnd = now;
-    const last = words[words.length - 1];
+    const last = mine[mine.length - 1];
+    const roomNote = shift >= 3 ? " for this noisy room" : "";
     const ev = this.event(
       "too_quiet",
       { ...last, start: this.quietSince },
       0.9,
-      `~${Math.round(baselineDb - db)} dB below your normal speaking level for ${Math.round(now - this.quietSince)}s`,
-      words,
-      words.length - 1,
+      `~${Math.round(expectedDb - db)} dB below your normal speaking level${roomNote} for ${Math.round(now - this.quietSince)}s`,
+      mine,
+      mine.length - 1,
     );
-    ev.level = { db, baselineDb };
+    ev.level = { db, baselineDb, expectedDb, noiseDb };
     this.quietSince = null;
     return { status, decision: this.decide(ev) };
   }
