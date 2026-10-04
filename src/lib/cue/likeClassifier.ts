@@ -3,6 +3,7 @@ import {
   COMPARISON_PREV,
   DETERMINERS,
   DISCOURSE_PREV,
+  FINITE_AUX,
   INTENSIFIERS,
   NOMINATIVE_ONLY,
   NUMBER_WORDS,
@@ -162,7 +163,12 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
   // --- Idioms that are never fillers -------------------------------------
   if (n1 && SUBJECT_PRONOUNS.has(n1) && !peIsSubject) {
     if (needN2()) return NEED_MORE;
-    if (n2 && SPEECH_VERBS.has(n2)) return verdict("conjunction", 0.9, `"like ${n1} ${n2}" means "as ${n1} ${n2}"`);
+    // "like I said" / "like you mentioned" refers back to earlier talk. "like he said no" is
+    // usually narration, so for other pronouns require the phrase to end there ("like he said,").
+    const n3w = words[i + 3];
+    const refersBack = ["i", "you", "we"].includes(n1) || !n3w || /[,.;!?]$/.test(n2w!.text);
+    if (n2 && SPEECH_VERBS.has(n2) && refersBack)
+      return verdict("conjunction", 0.9, `"like ${n1} ${n2}" means "as ${n1} ${n2}"`);
   }
   if (pe && (pe === "kinda" || pe === "sorta" || (pe === "of" && (p2 === "kind" || p2 === "sort")))) {
     return verdict("hedge", 0.8, `"kind of like" is a hedge, not a filler`);
@@ -199,9 +205,22 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
       );
     }
   }
-  if (n1 && (INTENSIFIERS.has(n1) || tn1?.adverb) && tn2?.pastVerb && !tn2.adjective) {
-    return verdict("discourse", 0.9, `"like ${n1} ${n2}" — filler before an adverb + verb`);
+  // Like + (up to two adverbs) + a verb phrase: "they like always do that", "I like literally can't",
+  // "we like literally just got here". Verb-"like" takes an object, not a verb.
+  {
+    let k = i + 1;
+    while (k <= i + 2 && words[k] && (INTENSIFIERS.has(words[k].norm) || tagAt(k)?.adverb)) k++;
+    const v = words[k];
+    const tv = tagAt(k);
+    if (k > i + 1 && v && tv) {
+      const finite =
+        FINITE_AUX.has(v.norm) || (tv.pastVerb && !tv.adjective) || (tv.presentVerb && !tv.noun && !tv.adjective);
+      if (finite) return verdict("discourse", 0.85, `"like ${n1} … ${v.norm}" — filler before an adverb + verb`);
+    }
+    if (n1 && FINITE_AUX.has(n1)) return verdict("discourse", 0.85, `"like ${n1}" — filler before a verb`);
   }
+  // "we were just like sitting there": "just like" + a verb isn't a comparison.
+  if (pe === "just" && tn1?.gerund) return verdict("discourse", 0.85, `"just like ${n1}" — filler before a verb`);
 
   // --- Comparison ("looks like rain", "feel like") -----------------------
   // Only when nothing separates them: in "I worked so much, like 50 hours" the comma breaks "much like".
@@ -224,6 +243,16 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
     if (isNumber(n1, tn1)) return verdict("approximator", 0.85, `"${pe} like ${n1}" — approximation ("about ${n1}")`);
     if ((n1 === "a" || n1 === "an") && n2 && SCALE_WORDS.has(n2))
       return verdict("approximator", 0.8, `"like a ${n2}" — approximation`);
+    // "there's like nothing to do": after existential "there", like is a filler.
+    if (pe === "there's" || p2 === "there")
+      return verdict("discourse", 0.8, `"there ${pe === "there's" ? "is" : pe} like…" — a filler`);
+    // "it was like the best day ever": an exaggeration, not a comparison.
+    if (
+      n1 === "the" &&
+      n2 &&
+      (["best", "worst", "most", "least", "only"].includes(n2) || (/est$/.test(n2) && tn2?.adjective))
+    )
+      return verdict("discourse", 0.8, `"${pe} like the ${n2}…" — filler before a superlative`);
     if (n1 && (n1 === "this" || n1 === "that")) {
       if (needN2()) return NEED_MORE;
       if (n2 && (BE_FORMS.has(n2) || tn2?.presentVerb || tn2?.pastVerb || SUBJECT_PRONOUNS.has(n2)))
@@ -243,6 +272,8 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
     if (tn1?.gerund) return verdict("discourse", 0.8, `"${pe} like ${n1}" — filler inside "${pe} ${n1}"`);
     if (tn1?.infinitive && !tn1.noun)
       return verdict("quotative", 0.8, `"${pe} like ${n1}…" — introducing a quote ("I was like go away")`);
+    if (n1 === "you" && needN2()) return NEED_MORE;
+    if (n1 === "you" && n2 === "know") return verdict("discourse", 0.85, `"like you know" — a filler phrase`);
     if (n1 === "you") return verdict("quotative", 0.8, `"${pe} like you…" — introducing a quote or reaction`);
     if (tn1?.noun) return verdict("comparison", 0.7, `"${pe} like ${n1}" — probably a comparison`);
     return verdict("unknown", 0.5, `after "${pe}", but the next word is ambiguous`);
@@ -282,9 +313,13 @@ export function classifyLike(words: Word[], i: number, opts: { rightClosed: bool
   }
 
   // --- After "and/so/but", or starting an utterance ------------------------
-  if ((pe && DISCOURSE_PREV.has(pe)) || startOfUtterance) {
-    const where = startOfUtterance ? "at the start of a phrase" : `after "${pe}"`;
-    if (n1 && (SUBJECT_PRONOUNS.has(n1) || DETERMINERS.has(n1) || INTENSIFIERS.has(n1) || tn1?.adverb))
+  const fillerLead = (pe === "know" && p2 === "you") || (pe === "mean" && p2 === "i");
+  if ((pe && DISCOURSE_PREV.has(pe)) || fillerLead || startOfUtterance) {
+    const where = startOfUtterance ? "at the start of a phrase" : fillerLead ? `after "${p2} ${pe}"` : `after "${pe}"`;
+    if (
+      n1 &&
+      (SUBJECT_PRONOUNS.has(n1) || DETERMINERS.has(n1) || INTENSIFIERS.has(n1) || QUOTE_OPENERS.has(n1) || tn1?.adverb)
+    )
       return verdict("discourse", 0.85, `"like ${n1}" ${where} — a discourse filler`);
     // "Like there's…", "Like it's…": a contracted subject + "be" starts a new clause.
     if (n1 && BE_FORMS.has(n1) && n1.includes("'"))

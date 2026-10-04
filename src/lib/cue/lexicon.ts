@@ -46,7 +46,13 @@ export const UM_FORMS = set("um umm ummm uhm hmm erm");
 export const UH_FORMS = set("uh uhh uhhh er ah");
 
 /** Verbs that introduce speech: "like I said", "like you mentioned". */
-export const SPEECH_VERBS = set("said say told mentioned thought think know knew explained asked put");
+// "know" is excluded on purpose: "like you know" is itself a filler phrase.
+export const SPEECH_VERBS = set("said say told mentioned thought think explained asked put");
+
+/** Auxiliaries/modals that start a verb phrase: "I just like don't care", "I like literally can't". */
+export const FINITE_AUX = set(
+  "can't cannot don't didn't doesn't won't wouldn't couldn't shouldn't isn't wasn't aren't weren't haven't hasn't can could will would should do does did have has had",
+);
 
 export const NUMBER_WORDS = set(
   "one two three four five six seven eight nine ten eleven twelve fifteen twenty thirty forty fifty sixty seventy eighty ninety hundred thousand million billion half couple few dozen",
