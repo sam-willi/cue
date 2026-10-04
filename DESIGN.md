@@ -3,7 +3,7 @@
 > **Purpose:** Canonical visual and interaction design guidance for Cue. Product, brand, UI, marketing, industrial-design, and image-generation work should follow this file together with [`CUE_CONTEXT.md`](./CUE_CONTEXT.md).
 >
 > **Status:** Direction approved; production artwork remains to be drawn and validated.  
-> **Last updated:** 2026-10-03 (haptic vocabulary, touch controls, and app tokens synced with `CUE_CONTEXT.md` §26; see §24)
+> **Last updated:** 2026-10-03 (haptic vocabulary, touch controls, and app tokens synced with `CUE_CONTEXT.md` §26; see §25)
 
 ## Contents
 
@@ -738,7 +738,11 @@ Every final logo asset must pass:
 
 Cue’s identity is built around **two interlocking voices creating space**. Use the approved two-form symbol and lowercase wordmark direction, but treat the included PNG as concept art pending a professional vector redraw. Keep the system warm-neutral, restrained, calm, and highly legible. Gen Z relevance should come from taste and confidence—not trend clichés. Always depict a single, elegant outer-ear cuff; prioritize one clear idea, supportive language, accessible contrast, consistent geometry, and honest technical representation.
 
-## 24. Change log
+## 25. Change log
+
+### 2026-10-03 (after the expanded brand standards)
+
+- **Superseded:** the app's switch to Inter / Inter Tight (below) conflicts with the expanded §8, which specifies **Geist Sans** (and Geist Mono for diagnostics). The app is being moved back to Geist with the §8 type scale, the header to a horizontal lockup (§3 responsive tiers), and logo exports to the `cue-logo-[form]-[color]-[background]` naming (§22).
 
 ### 2026-10-03
 
