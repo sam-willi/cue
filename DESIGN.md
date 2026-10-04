@@ -3,7 +3,7 @@
 > **Purpose:** Canonical visual and interaction design guidance for Cue. Product, brand, UI, marketing, industrial-design, and image-generation work should follow this file together with [`CUE_CONTEXT.md`](./CUE_CONTEXT.md).
 >
 > **Status:** Direction approved; production artwork remains to be drawn and validated.  
-> **Last updated:** 2026-10-03
+> **Last updated:** 2026-10-03 (haptic vocabulary, touch controls, and app tokens synced with `CUE_CONTEXT.md` §26; see §25)
 
 ## Contents
 
@@ -298,6 +298,7 @@ Default recommendation: start with **cobalt** for product UI. Keep oxblood and c
 - Never apply all three accents simultaneously.
 - Do not use pastel rainbow gradients as shorthand for Gen Z.
 - Meet WCAG contrast requirements for functional text and controls.
+- **[PROVISIONAL]** In the product app, cobalt marks coaching cues and selected state only. Meters, touch-control confirmations, and corrections stay neutral (ink / stone / warm gray). In dark mode cobalt is lifted (`#8C9BFF`) to keep contrast on ink surfaces; validate with the brand team.
 - Warm gray is not suitable for small text on bone without a contrast check.
 
 ## 8. Typography
@@ -467,9 +468,18 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - Use slower 300–450 ms transitions for expanding reflections or progress views.
 - Avoid bouncing, shaking, flashing, or celebratory confetti for filler reduction.
 - Respect reduced-motion settings.
-- Visual feedback for a cue may use one subtle outward movement or brief pause in motion.
-- Haptic meaning stays simple: the default tap means **make space**.
-- Do not create a large vocabulary of vibration patterns without user testing.
+- Visual feedback for a cue may use one subtle outward movement or brief pause in motion. On screen, each coaching rhythm is drawn as outward rings: **one** ring, **two** quick rings, or **one slow, wide** ring. No shaking, jitter, or flashing.
+- **[PROVISIONAL — owner decision 2026-10-03, see `CUE_CONTEXT.md` §5 and §26]** Haptic meaning stays small and learnable: three coaching rhythms distinguished by rhythm, not strength.
+
+  | Rhythm | Behavior | Meaning |
+  |---|---|---|
+  | One tap | Filler word | Pause |
+  | Two quick taps | Speaking too fast | Slow down |
+  | One long pulse | Speaking too quietly | Speak up |
+
+  A single-tap mode ("make space" for everything) remains a setting and the comparison condition for user testing.
+- **Touch-control confirmations** (long press = Cue on/off, double tap = Conversation/Presentation mode) are **ramps**: a vibration that swells or fades, shown on screen as a neutral swell, never as rings or taps, so they can't be mistaken for coaching. Rising = on / Conversation, falling = off, two swells = Presentation.
+- Do not add vibration patterns beyond these without user testing.
 
 ## 12. UI design principles
 
@@ -492,7 +502,7 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - Do not gamify “perfect speech” or reward zero fillers.
 - Appropriate progress stories include:
   - Device interventions decreasing.
-  - Self-caught moments increasing.
+  - Self-caught moments increasing (once self-correction can be reliably inferred from speech; the cuff's touch surface is reserved for controls, so there is no self-catch tap).
   - Pause duration becoming steadier.
   - Retention improving during no-feedback periods.
 
@@ -727,3 +737,17 @@ Every final logo asset must pass:
 ## 24. Agent handoff
 
 Cue’s identity is built around **two interlocking voices creating space**. Use the approved two-form symbol and lowercase wordmark direction, but treat the included PNG as concept art pending a professional vector redraw. Keep the system warm-neutral, restrained, calm, and highly legible. Gen Z relevance should come from taste and confidence—not trend clichés. Always depict a single, elegant outer-ear cuff; prioritize one clear idea, supportive language, accessible contrast, consistent geometry, and honest technical representation.
+
+## 25. Change log
+
+### 2026-10-03 (after the expanded brand standards)
+
+- **Superseded:** the app's switch to Inter / Inter Tight (below) conflicts with the expanded §8, which specifies **Geist Sans** (and Geist Mono for diagnostics). The app is being moved back to Geist with the §8 type scale, the header to a horizontal lockup (§3 responsive tiers), and logo exports to the `cue-logo-[form]-[color]-[background]` naming (§22).
+
+### 2026-10-03
+
+- §11: replaced the single "make space" tap with the three-rhythm coaching vocabulary and ramp confirmations for touch controls, matching owner decisions recorded in `CUE_CONTEXT.md` §26. Cue animations are now outward rings only (no shaking).
+- §13: self-caught progress depends on inferring self-correction from speech.
+- §7: how the product app applies the single-accent rule (cobalt for cues; neutrals elsewhere) and the dark-mode cobalt lift.
+- The software MVP is one calm page (§12 "one clear primary action"; `CUE_CONTEXT.md` §8 "not an overwhelming AI dashboard"): the hero is the cue itself, a single large word (*Ready when you are.* → *Pause.* / *Slow down.* / *Speak up.*) over its rings, with one primary button and an always-visible microphone state. Review, Practice and Settings sit below as collapsed sections; Review opens when a session ends. The live transcript is an off-by-default testing aid, since showing transcripts during conversation is a non-goal.
+- The software MVP (`src/app`) now uses these tokens: bone/ink neutrals, cobalt cues, Inter / Inter Tight, 8 px controls and 16 px cards, no red error states. At the owner's request the app header shows the stacked lockup at its 72 px minimum width, using **interim rasters derived from the approved concept** (`scripts/brand-assets.py` → `public/brand/`): the background is made transparent, and the dark-mode reverse recolors the ink form to bone and the gray form to a lifted warm gray (§19), rather than inverting. The favicon is the symbol on a bone tile. These are not production masters; replace them with the vector redraw (§3).

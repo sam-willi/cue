@@ -74,7 +74,7 @@ Likely early adopter segments:
 - **Practice session:** Deliberately record a short speech, review detected events, and train context recognition.
 - **Baseline/calibration:** Speak naturally for several minutes so the system can estimate pace, pause patterns, common fillers, and usable sensor thresholds.
 - **Retention assessment:** Receive no or very little feedback during selected windows so Cue can measure whether improvement persists.
-- **Self-caught event:** The user notices and corrects their own filler, rushing, or near-miss before Cue intervenes. The cuff has no button or touch input (see Decision log, 2026-10-03), so self-catches must be inferred from speech; how to do that reliably is an **[OPEN QUESTION]**.
+- **Self-caught event:** The user notices and corrects their own filler, rushing, or near-miss before Cue intervenes. The cuff's touch surface is reserved for controls, not coaching (see Decision log, 2026-10-03), so self-catches must be inferred from speech; how to do that reliably is an **[OPEN QUESTION]**.
 
 ### Accessibility and clinical boundary
 
@@ -124,6 +124,8 @@ model updates event history and future intervention rate
 | **One long pulse** | Speaking too quietly | Speak up |
 
 A single-tap mode ("**Tap = make space.** Pause, breathe, or slow down.") remains available as a setting, both as a fallback for users who prefer one cue and as the comparison condition for testing. Do not add patterns beyond these three without user testing.
+
+**[WORKING ASSUMPTION — 2026-10-03]** Touch-control confirmations use **ramps** (smoothly rising or falling vibration), never taps, so they can't be mistaken for a coaching cue: rising ramp = Cue on, falling ramp = Cue off, one ramp = Conversation mode, two ramps = Presentation mode.
 
 ## 6. Live detection behavior and context awareness
 
@@ -263,7 +265,7 @@ Exact schedules such as “100% in week one, 70% in week two” were illustrativ
 - a small outer jewelry-like shell containing electronics;
 - a compliant silicone or elastomer contact surface for comfort and grip;
 - an inward-facing or shielded microphone port if acoustic sensing is required;
-- no button or touch input on the cuff (decision 2026-10-03); pause/mute and settings live in the app;
+- a capacitive touch surface (e.g. the metal shell) **for controls only** (decision 2026-10-03): **long press (~1.5 s) = Cue on/off**, **double tap = switch Conversation / Presentation mode**; no touch gestures for coaching; other settings live in the app;
 - charging contacts or a sealed wireless/contact charging interface;
 - no always-visible LED during wear; any status light should be subtle and disableable.
 
@@ -340,7 +342,7 @@ App storage
 
 ### MVP architecture recommendation
 
-- **[WORKING ASSUMPTION]** Begin phone-centric. The cuff acts as sensor, haptic endpoint, and BLE peripheral.
+- **[WORKING ASSUMPTION]** Begin phone-centric. The cuff acts as sensor, haptic endpoint, touch controls, and BLE peripheral.
 - Use the phone’s microphone or an off-the-shelf headset first to validate behavior before relying on unproven cuff acoustics.
 - Run streaming ASR and contextual classification on the phone where platform support allows.
 - Use cloud processing only for experiments that cannot run locally, with explicit consent and clear indication.
@@ -421,7 +423,7 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
 - “Like” is especially difficult because semantic, quotative, approximative, and discourse-marker uses overlap.
 - Accents, code-switching, overlapping speakers, music, wind, and informal speech will affect performance.
 - Predicting a filler or planning breakdown before it occurs is an interesting research direction, **not a promised feature**.
-- Measuring “self-correction” automatically is ambiguous, and with no input on the cuff there is no physical self-caught label; any automatic measure must be validated before it drives progress metrics.
+- Measuring “self-correction” automatically is ambiguous, and the cuff's touch input is reserved for controls, so there is no physical self-caught label; any automatic measure must be validated before it drives progress metrics.
 
 ## 15. Data model and events
 
@@ -433,7 +435,7 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
 - `Session` — start/end, mode, capture source, coverage/quality, privacy settings.
 - `SpeechEvent` — model-observed behavior candidate.
 - `CueEvent` — an actual haptic intervention or intentionally withheld eligible cue.
-- `SelfCaughtEvent` — a self-correction inferred from speech (no wearer input exists on the cuff; method is an open question).
+- `SelfCaughtEvent` — a self-correction inferred from speech (touch is reserved for controls; method is an open question).
 - `OutcomeWindow` — measurable speech behavior after a cue/self-caught event.
 - `DailySummary` — aggregates with confidence and coverage.
 - `ModelFeedback` — user correction/confirmation of a prediction.
@@ -524,7 +526,7 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
 ### Phase 2 — Ear-cuff electronics proof of concept (2–4 weeks)
 
 - Rapid ergonomic shells in several cuff geometries.
-- BLE MCU, haptic actuator, battery, and one or more candidate sensors (no touch input).
+- BLE MCU, haptic actuator, touch sensing for controls, battery, and one or more candidate sensors.
 - Benchmark air mic, contact sensor, and fused sensing against phone audio.
 - Measure contact stability, wearer-activity gating, BLE latency, battery draw, temperature, and haptic audibility.
 
@@ -764,14 +766,18 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 
 ## 25. Concise agent handoff summary
 
-Cue is a **single, discreet, jewelry-like ear cuff**—not an earbud—that coaches speaking during real conversations. The hero loop is **true filler detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement**. It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use a three-rhythm haptic vocabulary (tap / double tap / long pulse), have no button or touch input on the cuff, avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio. Start with a phone/watch or BLE-haptic behavioral prototype, then validate cuff sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is small, elegant, metallic, Gen Z–aware, and consistent across all angles, with one-device charging case and jewelry-like colorways. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
+Cue is a **single, discreet, jewelry-like ear cuff**—not an earbud—that coaches speaking during real conversations. The hero loop is **true filler detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement**. It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use a three-rhythm haptic vocabulary (tap / double tap / long pulse), use the cuff's touch surface only for on/off and mode switching (not coaching), avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio. Start with a phone/watch or BLE-haptic behavioral prototype, then validate cuff sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is small, elegant, metallic, Gen Z–aware, and consistent across all angles, with one-device charging case and jewelry-like colorways. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
 
 ## 26. Decision log
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
+### 2026-10-03 (later) — Touch for controls
+
+4. **Touch input returns, for controls only.** Amends decision 2 below. The cuff gets a touch surface for **on/off (long press)** and **switching Conversation / Presentation mode (double tap)**, confirmed by vibration *ramps* that can't be confused with coaching taps. Touch is still **not** used mid-conversation for coaching (e.g. no self-catch tap). *Rationale:* these are occasional controls between conversations, not something the wearer must do while talking; gestures are deliberately few and hard to trigger by accident (people touch their ears often). The rev 0 hardware's Qvar shell-electrode touch (with IQS227 fallback) fits this.
+
 ### 2026-10-03 — Owner decisions during software MVP development
 
 1. **Three haptic rhythms instead of one tap.** Previously **[CONFIRMED]** "Tap = make space" as the single default cue. Now: one tap = filler (pause), two quick taps = too fast (slow down), one long pulse = too quiet (speak up). *Rationale:* each behavior asks for a different action, and a single tap can't say which; rhythm is the most reliably distinguished vibrotactile dimension. Kept as a **[WORKING ASSUMPTION]** to validate with users; the single-tap mode stays available as a setting and test condition.
-2. **No button or touch input on the cuff.** Previously a **[WORKING ASSUMPTION]** of capacitive touch for self-caught events and pause/mute. *Rationale:* the wearer won't have anything to press mid-conversation; controls live in the app. *Consequence:* the **[CONFIRMED]** goal "device-caught events fall while self-caught events rise" still stands, but self-catches must be inferred from speech (**[OPEN QUESTION]**). The software MVP's "I caught it" button was removed for the same reason.
+2. **No button or touch input on the cuff.** *(Amended by decision 4: touch is back for controls only.)* Previously a **[WORKING ASSUMPTION]** of capacitive touch for self-caught events and pause/mute. *Rationale:* the wearer won't have anything to press mid-conversation; controls live in the app. *Consequence:* the **[CONFIRMED]** goal "device-caught events fall while self-caught events rise" still stands, but self-catches must be inferred from speech (**[OPEN QUESTION]**). The software MVP's "I caught it" button was removed for the same reason.
 3. **Detect speaking too quietly.** New **[CONFIRMED]** target behavior, measured against the wearer's own normal level. Speaking too loudly is out of scope.

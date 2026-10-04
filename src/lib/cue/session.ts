@@ -6,8 +6,17 @@ import { WearerModel, wordLevel } from "./wearer";
 import { measurePace, type Pace } from "./pace";
 import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word } from "./types";
 
-/** Two detections of the same type closer than this (s) are the same event. */
-const SAME_EVENT = 0.25;
+/**
+ * Deciding whether two detections are the same word. Deepgram's interim results move a
+ * word's timestamps by up to ~1 s before the final result (measured: one "um" at 13.01 →
+ * 13.30 → 13.73 s; another at 21.79 → 22.75 s), so time alone isn't enough:
+ *  - within SAME_EVENT_CLOSE seconds, it's the same word regardless of context;
+ *  - within SAME_EVENT_FAR seconds, it's the same word if the word before it matches.
+ * Two real fillers after the same word that close together can't happen ("um, um" has
+ * different previous words).
+ */
+const SAME_EVENT_CLOSE = 0.3;
+const SAME_EVENT_FAR = 1.5;
 /** Words an interim word must be followed by before we trust it. */
 const INTERIM_STABILITY = 2;
 /** Interim "um"/"uh" at or above this ASR confidence cue immediately (no context needed). */
@@ -82,7 +91,7 @@ export class CueSession {
   private finalWords: Word[] = [];
   private interimWords: Word[] = [];
   /** Every candidate already decided (cued, withheld, or judged not a filler). */
-  private decided: { type: BehaviorType | "like_checked"; start: number }[] = [];
+  private decided: { type: BehaviorType | "like_checked"; start: number; prev: string }[] = [];
   private lastCueEnd = -Infinity;
   private lastPaceCueEnd = -Infinity;
   private paceAboveSince: number | null = null;
@@ -181,14 +190,16 @@ export class CueSession {
         // Hesitations need no context: a confident interim result is enough.
         if (!stable && w.confidence < FAST_HESITATION_CONFIDENCE) continue;
         const type: BehaviorType = UM_FORMS.has(w.norm) ? "filler_um" : "filler_uh";
-        if (this.isDecided(type, w.start)) continue;
-        this.markDecided(type, w.start);
+        const prev = words[i - 1]?.norm ?? "";
+        if (this.isDecided(type, w.start, prev)) continue;
+        this.markDecided(type, w.start, prev);
         decisions.push(this.decide(this.event(type, w, w.confidence, `"${w.norm}" is a hesitation filler`, words, i)));
         continue;
       }
 
       if (w.norm === "like") {
-        if (this.isDecided("like_checked", w.start)) continue;
+        const prevWord = words[i - 1]?.norm ?? "";
+        if (this.isDecided("like_checked", w.start, prevWord)) continue;
         const v = classifyLike(words, i, { rightClosed });
         if (v === NEED_MORE) continue;
         const counts = FILLER_LIKE_USES[v.use];
@@ -204,7 +215,7 @@ export class CueSession {
             next.confidence >= EARLY_NEXT_WORD_CONFIDENCE;
           if (!early) continue;
         }
-        this.markDecided("like_checked", w.start);
+        this.markDecided("like_checked", w.start, prevWord);
         likeChecks.push({
           id: `l${this.nextId++}`,
           start: w.start,
@@ -360,12 +371,16 @@ export class CueSession {
     };
   }
 
-  private isDecided(type: BehaviorType | "like_checked", start: number) {
-    return this.decided.some((d) => d.type === type && Math.abs(d.start - start) < SAME_EVENT);
+  private isDecided(type: BehaviorType | "like_checked", start: number, prev: string) {
+    return this.decided.some((d) => {
+      if (d.type !== type) return false;
+      const gap = Math.abs(d.start - start);
+      return gap < SAME_EVENT_CLOSE || (gap < SAME_EVENT_FAR && d.prev === prev);
+    });
   }
 
-  private markDecided(type: BehaviorType | "like_checked", start: number) {
-    this.decided.push({ type, start });
+  private markDecided(type: BehaviorType | "like_checked", start: number, prev: string) {
+    this.decided.push({ type, start, prev });
     if (this.decided.length > 500) this.decided.splice(0, 250);
   }
 }
