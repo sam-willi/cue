@@ -188,23 +188,26 @@ export default function CueApp() {
   const startLive = async () => {
     stopAll();
     reset();
-    const t = new LiveTranscriber({
-      onMessage: (msg) => {
-        rawRef.current.push(msg);
-        if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
-        const u = feedMessage(sessionRef.current, msg);
-        if (u) apply(u);
+    const t = new LiveTranscriber(
+      {
+        onMessage: (msg) => {
+          rawRef.current.push(msg);
+          if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
+          const u = feedMessage(sessionRef.current, msg);
+          if (u) apply(u);
+        },
+        onLevel: (t, db) => {
+          levelsRef.current.push([t, db]);
+          sessionRef.current.ingestLevel(t, db);
+        },
+        onStatus: (s, detail) => {
+          if (s === "stopped") return;
+          setStatus(s === "error" ? "error" : s);
+          if (detail) setError(detail);
+        },
       },
-      onLevel: (t, db) => {
-        levelsRef.current.push([t, db]);
-        sessionRef.current.ingestLevel(t, db);
-      },
-      onStatus: (s, detail) => {
-        if (s === "stopped") return;
-        setStatus(s === "error" ? "error" : s);
-        if (detail) setError(detail);
-      },
-    });
+      config.engine,
+    );
     rawRef.current = [];
     setRecorded(0);
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
@@ -775,6 +778,24 @@ export default function CueApp() {
                 on={config.distinctCues}
                 onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
               />
+              <div>
+                <p className="mb-2">Speech engine</p>
+                <Segmented
+                  label="Speech engine"
+                  value={config.engine}
+                  options={[
+                    { value: "flux", label: "Fastest" },
+                    { value: "nova-2", label: "Speaker labels" },
+                  ]}
+                  onChange={(v) => setConfig((c) => ({ ...c, engine: v }))}
+                />
+                <p className="mt-2 text-[13px] text-muted">
+                  {config.engine === "flux"
+                    ? "Cues arrive about twice as fast. Your voice is told apart from others by loudness only."
+                    : "Cues are slower, but other people's voices are told apart more reliably."}{" "}
+                  Applies the next time you start listening.
+                </p>
+              </div>
               <Switch
                 label="Only coach my voice"
                 hint="Cue learns your voice in the first 15 seconds, so talk on your own then."
