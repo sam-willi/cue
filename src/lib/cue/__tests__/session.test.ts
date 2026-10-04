@@ -52,6 +52,43 @@ describe("CueSession", () => {
     expect(s.history.map((d) => d.event.type)).toEqual(["filler_like"]);
   });
 
+  it("counts one 'um' once even when Deepgram's interim timings drift", () => {
+    // Real timings from a nova-2 stream: interim 13.30, interim 13.01, final 13.73.
+    const s = new CueSession({ cooldownSec: 0 });
+    const w = (text: string, start: number, end: number) => ({
+      text,
+      norm: text.toLowerCase().replace(/\W/g, ""),
+      start,
+      end,
+      confidence: 0.99,
+    });
+    s.ingest([w("enough", 12.5, 12.9), w("now.", 12.9, 13.2), w("Um,", 13.3, 13.55)], false);
+    s.ingest([w("enough", 12.5, 12.9), w("now.", 12.9, 13.0), w("Um,", 13.01, 13.51), w("so", 13.6, 13.7)], false);
+    s.ingest([w("enough", 12.5, 12.9), w("now.", 12.9, 13.0), w("Um,", 13.73, 13.81), w("so", 13.9, 14.0)], true);
+    expect(s.history.filter((d) => d.event.type === "filler_um")).toHaveLength(1);
+  });
+
+  it("matches a drifted 'um' by the word before it, up to ~1.5 s", () => {
+    // Real timings: interim 21.79, final 22.75 (0.96 s apart), both after "later."
+    const s = new CueSession({ cooldownSec: 0 });
+    const w = (text: string, start: number, end: number) => ({
+      text,
+      norm: text.toLowerCase().replace(/\W/g, ""),
+      start,
+      end,
+      confidence: 0.99,
+    });
+    s.ingest([w("later.", 21.2, 21.6), w("Um,", 21.79, 22.29)], false);
+    s.ingest([w("later.", 21.2, 21.6), w("Um,", 22.75, 22.83), w("yeah.", 23.0, 23.3)], true);
+    expect(s.history.filter((d) => d.event.type === "filler_um")).toHaveLength(1);
+  });
+
+  it("still counts two separate 'um's said close together", () => {
+    const s = new CueSession({ cooldownSec: 0 });
+    s.ingest(simulateWords("so um um i think"), true);
+    expect(s.history.filter((d) => d.event.type === "filler_um")).toHaveLength(2);
+  });
+
   it("cues a confident interim 'um' immediately", () => {
     const s = new CueSession();
     s.ingest(simulateWords("so um"), false);

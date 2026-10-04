@@ -13,7 +13,10 @@ export interface TranscriberHandlers {
 }
 
 const LISTEN_PARAMS = new URLSearchParams({
-  model: "nova-3",
+  // nova-2, not nova-3: in live streaming nova-3 drops most "um"/"uh" (especially at the
+  // start or end of an utterance, a known Deepgram issue). Measured on the same audio:
+  // nova-3 kept 0–1 of 5 fillers, nova-2 kept 5 of 5.
+  model: "nova-2",
   language: "en",
   filler_words: "true", // keep "um"/"uh" — stripped by default
   diarize: "true", // speaker labels per word, used to coach only the wearer
