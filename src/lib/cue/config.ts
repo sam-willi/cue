@@ -42,6 +42,11 @@ export interface CueConfig {
   quietSustainSec: number;
   /** Minimum gap between two too-quiet cues, seconds. */
   quietCooldownSec: number;
+  /**
+   * Speech engine. "flux": Deepgram Flux, updates ~every 0.2 s (fillers arrive ~0.5–0.9 s after
+   * they're said) but no speaker labels. "nova-2": updates ~every 1 s (~1–2 s) with speaker labels.
+   */
+  engine: "flux" | "nova-2";
   /** Coach only the wearer's voice; ignore other people talking nearby. */
   onlyWearer: boolean;
   muted: boolean;
@@ -63,6 +68,7 @@ export const DEFAULT_CONFIG: CueConfig = {
   quietDropDb: 6,
   quietSustainSec: 3,
   quietCooldownSec: 20,
+  engine: "flux",
   onlyWearer: true,
   muted: false,
   distinctCues: true,
