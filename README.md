@@ -19,6 +19,8 @@ This repository is the **software MVP**: a web app that listens through the micr
 
 Each alert has its own haptic rhythm: **one tap** = filler (pause), **two taps** = too fast (slow down), **long pulse** = too quiet (speak up). A setting switches to one tap for everything. Cues are fast: "um"/"uh" cue on the first confident result, and a clear filler "like" cues as soon as the next word is heard. Ambiguous cases wait for more words. Each cue's measured delay appears in the app.
 
+**Cuff touch controls (simulated in the app).** The cuff's touch surface is for controls only: **hold 1.5 s** = Cue on/off, **double-tap** = switch Conversation / Presentation mode. A single tap or a lingering touch does nothing, so adjusting your hair or glasses won't trigger it. Confirmations are swelling or fading _ramps_, never taps, so they can't be mistaken for a coaching cue.
+
 **Only your voice is coached.** Deepgram's speaker labels plus loudness (you're nearest the mic) separate you from people nearby; your label is learned in the first 15 s, so talk on your own then. Other people's words are greyed out in the transcript and never cued. No voiceprint is stored.
 
 A cue is withheld when confidence is too low, within the cooldown after the last cue, while muted, or when its category is off. Withheld detections still show in the app's "Why Cue acted" log.

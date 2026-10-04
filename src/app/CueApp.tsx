@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
 import type { Correction, SessionFile } from "@/lib/cue/evaluate";
-import { PATTERNS, patternFor, type CueKind, type CuePattern } from "@/lib/cue/patterns";
+import { CONFIRMS, PATTERNS, patternFor, type ConfirmPattern, type CueKind, type CuePattern } from "@/lib/cue/patterns";
+import { DOUBLE_TAP_GAP_MS, LONG_PRESS_MS, TAP_MAX_MS, TouchGestures, type TouchAction } from "@/lib/cue/touch";
 import { CueSession, type SessionUpdate, type VolumeStatus } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
 import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
@@ -78,6 +79,7 @@ export default function CueApp() {
   const [speakingSec, setSpeakingSec] = useState(0);
   const [words, setWords] = useState<(Word & { wearer: boolean })[]>([]);
   const [buzz, setBuzz] = useState<{ n: number; label: string; pattern: CuePattern } | null>(null);
+  const [confirm, setConfirm] = useState<{ n: number; pattern: ConfirmPattern } | null>(null);
   const [showTranscript, setShowTranscript] = useState(true);
   const [demoText, setDemoText] = useState(EXAMPLES[0]);
   const [demoWpm, setDemoWpm] = useState(150);
@@ -92,12 +94,40 @@ export default function CueApp() {
   const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
 
+  const configRef = useRef(config);
   useEffect(() => {
     sessionRef.current.config = config;
+    configRef.current = config;
   }, [config]);
+
+  /** Play a touch-control confirmation (a ramp, never a coaching tap). */
+  const playConfirm = useCallback((pattern: ConfirmPattern) => {
+    setBuzz(null);
+    setConfirm((c) => ({ n: (c?.n ?? 0) + 1, pattern }));
+    navigator.vibrate?.(CONFIRMS[pattern].vibrate);
+    window.clearTimeout(buzzTimer.current);
+    buzzTimer.current = window.setTimeout(() => setConfirm(null), CONFIRMS[pattern].durationMs + 600);
+  }, []);
+
+  /** A cuff touch gesture: long press = Cue on/off, double tap = switch mode. */
+  const onTouch = useCallback(
+    (action: TouchAction) => {
+      const c = configRef.current;
+      if (action === "toggle_on") {
+        setConfig((x) => ({ ...x, muted: !c.muted }));
+        playConfirm(c.muted ? "ramp_up" : "ramp_down");
+      } else {
+        const next = c.paceMode === "presentation" ? "conversation" : "presentation";
+        setConfig((x) => ({ ...x, paceMode: next, paceThreshold: PACE_PRESETS[next].threshold }));
+        playConfirm(next === "presentation" ? "ramp_twice" : "ramp_once");
+      }
+    },
+    [playConfirm],
+  );
 
   const triggerBuzz = useCallback((kind: CueKind) => {
     const pattern = patternFor(kind, sessionRef.current.config.distinctCues);
+    setConfirm(null);
     setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: LABEL[kind], pattern }));
     navigator.vibrate?.(PATTERNS[pattern].vibrate);
     window.clearTimeout(buzzTimer.current);
@@ -294,15 +324,19 @@ export default function CueApp() {
         {/* --- The cue --- */}
         <section className="rounded-3xl border border-line bg-surface p-6 sm:p-8">
           <div className="flex flex-col items-center gap-6">
-            <BuzzIndicator buzz={buzz} />
+            <BuzzIndicator buzz={buzz} confirm={confirm} />
             <p className="relative z-10 h-5 text-center text-sm text-muted" aria-live="polite">
-              {buzz ? (
+              {confirm ? (
+                <span className="font-medium text-accent">{CONFIRMS[confirm.pattern].label}</span>
+              ) : buzz ? (
                 <>
                   <span className="font-medium text-cue">
                     {config.distinctCues ? PATTERNS[buzz.pattern].action : "Make space"}
                   </span>{" "}
                   · {buzz.label}
                 </>
+              ) : config.muted ? (
+                "Cue is off. Long-press the cuff to turn it back on."
               ) : busy && config.onlyWearer && volume?.expectedDb == null ? (
                 "Talk on your own for a few seconds so Cue can learn your voice…"
               ) : busy ? (
@@ -331,10 +365,13 @@ export default function CueApp() {
                 className="rounded-full border border-line px-5 py-3 text-sm"
                 aria-pressed={config.muted}
               >
-                {config.muted ? "Unmute cues" : "Mute cues"}
+                {config.muted ? "Turn Cue on" : "Turn Cue off"}
               </button>
             </div>
             {error && <p className="max-w-md text-center text-sm text-red-500">{error}</p>}
+
+            {/* Simulated cuff touch surface (controls only) */}
+            <CuffTouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
 
             {/* Cue language: what each rhythm means; click to preview */}
             <div className="w-full max-w-sm">
@@ -794,14 +831,28 @@ export default function CueApp() {
   );
 }
 
-function BuzzIndicator({ buzz }: { buzz: { n: number; label: string; pattern: CuePattern } | null }) {
+function BuzzIndicator({
+  buzz,
+  confirm,
+}: {
+  buzz: { n: number; label: string; pattern: CuePattern } | null;
+  confirm: { n: number; pattern: ConfirmPattern } | null;
+}) {
+  const state = confirm ? "cue-confirming" : buzz ? "cue-buzzing" : "";
   return (
     <div
-      key={buzz?.n ?? 0}
+      key={`${buzz?.n ?? 0}-${confirm?.n ?? 0}`}
       data-pattern={buzz?.pattern}
-      className={`relative grid h-44 w-44 place-items-center ${buzz ? "cue-buzzing" : ""}`}
+      data-confirm={confirm?.pattern}
+      className={`relative grid h-44 w-44 place-items-center ${state}`}
       role="img"
-      aria-label={buzz ? `Haptic cue: ${PATTERNS[buzz.pattern].name}, ${buzz.label}` : "Haptic cue idle"}
+      aria-label={
+        confirm
+          ? `Confirmation: ${CONFIRMS[confirm.pattern].label}`
+          : buzz
+            ? `Haptic cue: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
+            : "Haptic cue idle"
+      }
     >
       <div className="pointer-events-none absolute inset-0">
         {[0, 1].map((k) => (
@@ -810,7 +861,11 @@ function BuzzIndicator({ buzz }: { buzz: { n: number; label: string; pattern: Cu
       </div>
       <div
         className={`cue-core grid h-28 w-28 place-items-center rounded-full border transition-colors duration-300 ${
-          buzz ? "border-cue bg-cue-soft text-cue" : "border-line bg-surface-2 text-muted"
+          confirm
+            ? "border-accent bg-accent-soft text-accent"
+            : buzz
+              ? "border-cue bg-cue-soft text-cue"
+              : "border-line bg-surface-2 text-muted"
         }`}
       >
         {/* Vibration glyph: a device with motion lines */}
@@ -818,6 +873,104 @@ function BuzzIndicator({ buzz }: { buzz: { n: number; label: string; pattern: Cu
           <rect x="20" y="12" width="16" height="32" rx="4" stroke="currentColor" strokeWidth="2.5" />
           <path d="M13 20v16M8 24v8M43 20v16M48 24v8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Stand-in for the cuff's touch surface (controls only). Hold 1.5 s = on/off,
+ * double-tap = switch mode; a single tap does nothing, as on the real cuff.
+ */
+function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => void; mode: string; on: boolean }) {
+  const gestures = useRef(new TouchGestures());
+  const holdTimer = useRef<number | undefined>(undefined);
+  const hintTimer = useRef<number | undefined>(undefined);
+  const downAt = useRef(0);
+  const longFired = useRef(false);
+  const [pressing, setPressing] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+
+  const flash = (text: string) => {
+    setHint(text);
+    window.clearTimeout(hintTimer.current);
+    hintTimer.current = window.setTimeout(() => setHint(null), 1200);
+  };
+  const fire = (a: TouchAction | null) => a && onAction(a);
+  const release = (cancelled: boolean) => {
+    window.clearTimeout(holdTimer.current);
+    setPressing(false);
+    if (cancelled) return gestures.current.cancel();
+    const now = performance.now();
+    const a = gestures.current.up(now);
+    if (a) return fire(a);
+    if (longFired.current) return;
+    const held = now - downAt.current;
+    // Explain ignored touches, but only once it's clear no second tap is coming.
+    if (held <= TAP_MAX_MS)
+      hintTimer.current = window.setTimeout(
+        () => flash("single tap: ignored (double-tap to switch mode)"),
+        DOUBLE_TAP_GAP_MS + 50,
+      );
+    else flash("released early: hold 1.5 s to turn Cue on/off");
+  };
+
+  return (
+    <div className="flex w-full max-w-sm items-center gap-4 rounded-2xl border border-dashed border-line p-3">
+      <button
+        type="button"
+        aria-label="Simulated cuff touch surface: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
+        className={`cuff-pad relative grid h-16 w-16 shrink-0 touch-none select-none place-items-center rounded-full border border-accent/60 bg-accent-soft text-[10px] font-medium text-accent ${pressing ? "pressing" : ""}`}
+        onPointerDown={(e) => {
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId); // keep the press if the finger drifts
+          } catch {
+            /* synthetic or already-released pointer */
+          }
+          window.clearTimeout(hintTimer.current);
+          setHint(null);
+          downAt.current = performance.now();
+          longFired.current = false;
+          gestures.current.down(downAt.current);
+          setPressing(true);
+          holdTimer.current = window.setTimeout(() => {
+            setPressing(false);
+            const a = gestures.current.poll(performance.now());
+            if (a) longFired.current = true;
+            fire(a);
+          }, LONG_PRESS_MS);
+        }}
+        onPointerUp={() => release(false)}
+        onPointerCancel={() => release(true)}
+        onKeyDown={(e) => {
+          // Keyboard: Enter = double tap, Shift+Enter = long press.
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          onAction(e.shiftKey ? "toggle_on" : "toggle_mode");
+        }}
+      >
+        <svg className="absolute inset-0" viewBox="0 0 36 36" aria-hidden>
+          <circle
+            className="press-ring"
+            cx="18"
+            cy="18"
+            r="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            pathLength={100}
+            transform="rotate(-90 18 18)"
+          />
+        </svg>
+        cuff
+      </button>
+      <div className="text-xs text-muted">
+        <p className="font-medium text-text">
+          Cuff touch <span className="font-normal text-muted">(simulated)</span>
+        </p>
+        <p>Hold 1.5 s: Cue {on ? "off" : "on"}</p>
+        <p>Double-tap: switch mode · now {mode}</p>
+        <p className="h-4 text-accent">{hint}</p>
       </div>
     </div>
   );
