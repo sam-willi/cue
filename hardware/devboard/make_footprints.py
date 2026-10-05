@@ -278,7 +278,7 @@ def stock_copies():
     import re
     for name, (lib, model) in STOCK_COPIES.items():
         t = open(f"/usr/share/kicad/footprints/{lib}.pretty/{name}.kicad_mod").read()
-        t = re.sub(r'\(model "[^"]+"', f'(model "${{KIPRJMOD}}/Cue.3dshapes/{model}.wrl"', t)
+        t = re.sub(r'\(model "?[^\s"]+"?', f'(model "${{KIPRJMOD}}/Cue.3dshapes/{model}.wrl"', t)  # quoted or not
         open(os.path.join(LIB, name + ".kicad_mod"), "w").write(t)
         print("wrote", os.path.join(LIB, name + ".kicad_mod"))
 
