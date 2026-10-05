@@ -1,6 +1,7 @@
 import { DEFAULT_CONFIG, type CueConfig } from "./config";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
+import { DecisionEngine, type Moment, type Outcome } from "./engine";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
 import { FRAME_SEC, median, noiseFloor, speechLevels, type LevelFrame } from "./loudness";
 import { OTHER_DROP_DB, WearerModel, wordLevel } from "./wearer";
@@ -46,6 +47,16 @@ const NOISE_WINDOW = 10;
 const LOMBARD_SLOPE = 0.6;
 /** Cap on how far room noise can move the expected level, dB. */
 const LOMBARD_MAX = 10;
+/** Silence (s) after a word that counts as a natural break for a tap. */
+const BREAK_SEC = 0.25;
+/** Rushing = this much faster than the wearer's own normal pace (SOFTWARE.md §8). */
+const PACE_RISE = { conversation: 1.2, presentation: 1.1 };
+/** Never call speech under this rushing (syllables/s), however slow the wearer's normal is. */
+const PACE_FLOOR = 3.6;
+/** A gap (s) between the wearer's words that counts as a meaningful pause (SOFTWARE.md §9). */
+const MEANINGFUL_PAUSE = 0.6;
+/** Silence (s) that ends the wearer's speaking turn even if nobody else spoke. */
+const TURN_GAP = 2.5;
 
 export interface VolumeStatus {
   /** Recent speaking level, dBFS, or null when not enough recent speech. */
@@ -72,12 +83,26 @@ const FILLER_LIKE_USES: Record<LikeUse, keyof CueConfig["likeCounts"] | true | f
   unknown: false,
 };
 
+/** What the engine is currently seeing (SOFTWARE.md §12), for display. */
+export interface Signals {
+  fillersLastMinute: number;
+  /** The wearer's learned normal pace (syllables/s), once known. */
+  paceBaseline: number | null;
+  /** Current rushing threshold (syllables/s). */
+  paceLimit: number;
+  secondsSincePause: number;
+  turnSeconds: number;
+}
+
 export interface SessionUpdate {
   decisions: CueDecision[];
   /** "like"s judged during this update, including non-fillers. */
   likeChecks: LikeCheck[];
   pace: Pace | null;
   volume: VolumeStatus | null;
+  /** Earlier taps whose outcome was just judged. */
+  outcomes: { id: string; outcome: Outcome }[];
+  signals: Signals;
 }
 
 /**
@@ -95,9 +120,10 @@ export class CueSession {
   private interimWords: Word[] = [];
   /** Every candidate already decided (cued, withheld, or judged not a filler). */
   private decided: { type: BehaviorType | "like_checked"; start: number; prev: string }[] = [];
-  private lastCueEnd = -Infinity;
-  private lastPaceCueEnd = -Infinity;
+  private engine = new DecisionEngine(() => this.config);
   private paceAboveSince: number | null = null;
+  private paceSamples: number[] = [];
+  private paceBaseline: number | null = null;
   private levels: LevelFrame[] = [];
   private calibrationLevels: number[] = [];
   private calibratedUpTo = -Infinity;
@@ -107,7 +133,6 @@ export class CueSession {
   /** Settled wearer/other decisions by word start, so a word never flips. */
   private attribution = new Map<number, boolean>();
   private quietSince: number | null = null;
-  private lastQuietCueEnd = -Infinity;
   private nextId = 1;
   /** All decisions so far, newest last. */
   readonly history: CueDecision[] = [];
@@ -115,6 +140,11 @@ export class CueSession {
 
   constructor(config: Partial<CueConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  /** Taps the engine has made, with their outcomes once judged. */
+  engineTaps() {
+    return this.engine.taps;
   }
 
   get words(): Word[] {
@@ -218,6 +248,8 @@ export class CueSession {
     const decisions: CueDecision[] = [];
     const likeChecks: LikeCheck[] = [];
     const from = Math.max(0, words.length - SCAN_WINDOW);
+    const moment = this.moment(words, rightClosed);
+    const disfluent = (ev: SpeechEvent) => decisions.push(this.engine.considerDisfluency(ev, moment));
 
     for (let i = from; i < words.length; i++) {
       const w = words[i];
@@ -231,7 +263,7 @@ export class CueSession {
         const prev = words[i - 1]?.norm ?? "";
         if (this.isDecided(type, w.start, prev)) continue;
         this.markDecided(type, w.start, prev);
-        decisions.push(this.decide(this.event(type, w, w.confidence, `"${w.norm}" is a hesitation filler`, words, i)));
+        disfluent(this.event(type, w, w.confidence, `"${w.norm}" is a hesitation filler`, words, i));
         continue;
       }
 
@@ -266,7 +298,8 @@ export class CueSession {
         const confidence = Math.min(v.confidence, Math.max(w.confidence, 0.5) + 0.1);
         const ev = this.event("filler_like", w, confidence, v.reason, words, i);
         ev.like = v;
-        decisions.push(this.decide(ev));
+        disfluent(ev);
+        continue;
       }
 
       const span = lowkeySpan(words, i);
@@ -280,54 +313,157 @@ export class CueSession {
         this.markDecided("filler_lowkey", w.start, prevWord);
         if (!v.filler) continue;
         const last = words[i + span - 1];
-        const ev = this.event("filler_lowkey", { ...w, end: last.end }, v.confidence, v.reason, words, i);
-        decisions.push(this.decide(ev));
+        disfluent(this.event("filler_lowkey", { ...w, end: last.end }, v.confidence, v.reason, words, i));
+        continue;
+      }
+
+      // Repetition ("I, I, I think", "and then, and then"): judged once the run has ended.
+      if (stable) {
+        const rep = findRepetition(words, i, rightClosed);
+        if (rep && !this.isDecided("repetition", words[rep.from].start, words[rep.from - 1]?.norm ?? "")) {
+          this.markDecided("repetition", words[rep.from].start, words[rep.from - 1]?.norm ?? "");
+          const ev = this.event(
+            "repetition",
+            { ...words[rep.from], end: words[i].end },
+            rep.confidence,
+            rep.reason,
+            words,
+            i,
+          );
+          disfluent(ev);
+        }
       }
     }
 
+    // --- Sustained behaviors -------------------------------------------------
     const pace = measurePace(words, this.config.paceWindowSec);
-    const paceDecision = this.checkPace(words, pace);
-    if (paceDecision) decisions.push(paceDecision);
-    const { status: volume, decision: volumeDecision } = this.checkVolume(all, words);
-    if (volumeDecision) decisions.push(volumeDecision);
+    this.learnPace(words, pace);
+    const paceLimit = this.paceLimit();
+    const rushing = this.rushingActive(words, pace, paceLimit);
+    const lastWord = words[words.length - 1];
+    const sustained = (type: BehaviorType, active: boolean, describe: () => SpeechEvent) => {
+      const d = this.engine.considerSustained(type, active, describe, moment);
+      if (d) decisions.push(d);
+    };
+    sustained("rushing", rushing, () => {
+      const ev = this.event(
+        "rushing",
+        { ...lastWord, start: this.paceAboveSince ?? lastWord.start },
+        0.9,
+        `~${pace!.sps.toFixed(1)} syllables/s (≈${Math.round(pace!.wpm)} wpm) for ${Math.round(moment.now - (this.paceAboveSince ?? moment.now))} s; ${
+          this.paceBaseline !== null && this.config.paceMode !== "custom"
+            ? `your normal is ~${this.paceBaseline.toFixed(1)}`
+            : `limit ${paceLimit.toFixed(1)}`
+        }`,
+        words,
+        words.length - 1,
+      );
+      ev.pace = pace!;
+      return ev;
+    });
+
+    const sincePause = words.length ? moment.now - lastPauseEnd(words) : 0;
+    sustained("no_pause", sincePause >= this.config.noPauseSec, () =>
+      this.event(
+        "no_pause",
+        { ...lastWord, start: lastPauseEnd(words) },
+        0.9,
+        `${Math.round(sincePause)} s of talking without a pause`,
+        words,
+        words.length - 1,
+      ),
+    );
+
+    const turn = words.length ? moment.now - turnStart(all, words, (w) => this.isWearerWord(w)) : 0;
+    sustained("long_turn", turn >= this.config.longTurnSec, () =>
+      this.event(
+        "long_turn",
+        { ...lastWord, start: moment.now - turn },
+        0.9,
+        `you've been talking for ${Math.round(turn)} s; maybe give the other person space`,
+        words,
+        words.length - 1,
+      ),
+    );
+
+    const { status: volume, quiet } = this.checkVolume(all, words);
+    if (quiet) sustained("too_quiet", true, quiet);
+    else sustained("too_quiet", false, () => null as never);
+
+    // --- Did earlier taps work? (SOFTWARE.md §13) -----------------------------
+    const outcomes: { id: string; outcome: Outcome }[] = [];
+    for (const tap of this.engine.due(moment.now)) {
+      const after = tap.at + this.config.outcomeWindowSec;
+      let worked: boolean;
+      if (tap.reason === "rushing") worked = !rushing;
+      else if (tap.reason === "no_pause") worked = lastPauseEnd(words) > tap.at;
+      else if (tap.reason === "long_turn") worked = moment.now - turn > tap.at;
+      else if (tap.reason === "too_quiet") worked = !quiet;
+      else worked = this.engine.disfluenciesBetween(tap.at, after) === 0;
+      const outcome: Outcome = worked ? "worked" : "no_change";
+      this.engine.resolve(tap, outcome);
+      outcomes.push({ id: tap.id, outcome });
+    }
 
     this.history.push(...decisions);
     this.likeChecks.push(...likeChecks);
-    return { decisions, likeChecks, pace, volume };
+    const signals: Signals = {
+      fillersLastMinute: this.engine.fillerRate(moment.now),
+      paceBaseline: this.paceBaseline,
+      paceLimit,
+      secondsSincePause: sincePause,
+      turnSeconds: turn,
+    };
+    return { decisions, likeChecks, pace, volume, outcomes, signals };
   }
 
-  private checkPace(words: Word[], pace: Pace | null): CueDecision | null {
+  /** "Now" on the speech clock, and whether the wearer is at a natural break in speech. */
+  private moment(words: Word[], rightClosed: boolean): Moment {
+    const last = words[words.length - 1];
+    const now = last?.end ?? this.words[this.words.length - 1]?.end ?? 0;
+    if (rightClosed || !last) return { now, atBreak: true };
+    // The mic runs ahead of transcription: if the audio right after the last word is quiet,
+    // a pause has begun. Without audio, use the gap before the last word.
+    const after = this.levels.filter((f) => f.t > now && f.t <= now + BREAK_SEC);
+    if (after.length * FRAME_SEC >= BREAK_SEC * 0.8) {
+      const voicedLine = (this.baselineNoiseDb ?? -60) + 10;
+      return { now, atBreak: after.every((f) => f.db <= voicedLine) };
+    }
+    const prev = words[words.length - 2];
+    return { now, atBreak: !!prev && last.start - prev.end >= BREAK_SEC };
+  }
+
+  /** Learn the wearer's normal pace from their first `paceBaselineSec` of speech. */
+  private learnPace(words: Word[], pace: Pace | null) {
+    if (this.paceBaseline !== null || !pace) return;
+    this.paceSamples.push(pace.sps);
+    if (speakingSecondsOf(words) >= this.config.paceBaselineSec) this.paceBaseline = median(this.paceSamples);
+  }
+
+  /** Rushing threshold: relative to the wearer's normal once learned (SOFTWARE.md §8). */
+  private paceLimit(): number {
+    const c = this.config;
+    if (c.paceMode === "custom" || this.paceBaseline === null) return c.paceThreshold;
+    const rise = c.paceMode === "presentation" ? PACE_RISE.presentation : PACE_RISE.conversation;
+    return Math.max(PACE_FLOOR, this.paceBaseline * rise);
+  }
+
+  private rushingActive(words: Word[], pace: Pace | null, limit: number): boolean {
     const now = words.at(-1)?.end ?? 0;
-    const limit = this.config.paceThreshold;
     // Hysteresis: a brief dip (a comma, a short word) shouldn't restart the clock.
     if (pace === null || pace.sps < limit - PACE_HYSTERESIS) {
       this.paceAboveSince = null;
-      return null;
+      return false;
     }
-    if (pace.sps <= limit) return null;
-    this.paceAboveSince ??= now;
-    if (now - this.paceAboveSince < this.config.paceSustainSec) return null;
-    if (now - this.lastPaceCueEnd < this.config.paceCooldownSec) return null;
-    this.lastPaceCueEnd = now;
-    const last = words.at(-1)!;
-    const ev = this.event(
-      "rushing",
-      { ...last, start: this.paceAboveSince },
-      0.9,
-      `~${pace.sps.toFixed(1)} syllables/s (≈${Math.round(pace.wpm)} wpm) for ${Math.round(now - this.paceAboveSince)}s — limit ${this.config.paceThreshold.toFixed(1)}`,
-      words,
-      words.length - 1,
-    );
-    ev.pace = pace;
-    this.paceAboveSince = null;
-    return this.decide(ev);
+    if (pace.sps > limit) this.paceAboveSince ??= now;
+    return this.paceAboveSince !== null && now - this.paceAboveSince >= this.config.paceSustainSec;
   }
 
   /**
    * Too quiet = recent speech well below the wearer's own normal level, sustained.
    * The normal level is learned from the first `calibrationSec` of speech.
    */
-  private checkVolume(all: Word[], mine: Word[]): { status: VolumeStatus | null; decision?: CueDecision } {
+  private checkVolume(all: Word[], mine: Word[]): { status: VolumeStatus | null; quiet?: () => SpeechEvent } {
     if (this.levels.length === 0 || all.length === 0) return { status: null };
     const c = this.config;
     const now = all[all.length - 1].end;
@@ -367,43 +503,26 @@ export class CueSession {
     if (db > quietLine + VOLUME_HYSTERESIS) this.quietSince = null;
     if (db >= quietLine) return { status };
     this.quietSince ??= now;
-    if (now - this.quietSince < c.quietSustainSec || now - this.lastQuietCueEnd < c.quietCooldownSec) return { status };
+    if (now - this.quietSince < c.quietSustainSec) return { status };
 
-    this.lastQuietCueEnd = now;
+    const since = this.quietSince;
     const last = mine[mine.length - 1];
     const roomNote = shift >= 3 ? " for this noisy room" : "";
-    const ev = this.event(
-      "too_quiet",
-      { ...last, start: this.quietSince },
-      0.9,
-      `~${Math.round(expectedDb - db)} dB below your normal speaking level${roomNote} for ${Math.round(now - this.quietSince)}s`,
-      mine,
-      mine.length - 1,
-    );
-    ev.level = { db, baselineDb, expectedDb, noiseDb };
-    this.quietSince = null;
-    return { status, decision: this.decide(ev) };
-  }
-
-  /** The intervention policy: a detected event may correctly produce no cue. */
-  private decide(event: SpeechEvent): CueDecision {
-    const c = this.config;
-    const cat = {
-      filler_um: "um",
-      filler_uh: "uh",
-      filler_like: "like",
-      filler_lowkey: "lowkey",
-      rushing: "rushing",
-      too_quiet: "quiet",
-    } as const;
-    let withheldReason: CueDecision["withheldReason"];
-    if (!c.categories[cat[event.type]]) withheldReason = "category_off";
-    else if (event.confidence < c.minConfidence) withheldReason = "low_confidence";
-    else if (c.muted) withheldReason = "muted";
-    else if (event.end - this.lastCueEnd < c.cooldownSec) withheldReason = "cooldown";
-    const delivered = !withheldReason;
-    if (delivered) this.lastCueEnd = event.end;
-    return { event, delivered, withheldReason };
+    return {
+      status,
+      quiet: () => {
+        const ev = this.event(
+          "too_quiet",
+          { ...last, start: since },
+          0.9,
+          `~${Math.round(expectedDb - db)} dB below your normal speaking level${roomNote} for ${Math.round(now - since)} s`,
+          mine,
+          mine.length - 1,
+        );
+        ev.level = { db, baselineDb, expectedDb, noiseDb };
+        return ev;
+      },
+    };
   }
 
   private event(
@@ -448,4 +567,75 @@ function contextAround(words: Word[], i: number): string {
 
 function isHesitation(w: Word): boolean {
   return UM_FORMS.has(w.norm) || UH_FORMS.has(w.norm);
+}
+
+/** Seconds of speech in `words`, excluding pauses longer than 0.6 s. */
+function speakingSecondsOf(words: Word[]): number {
+  let total = 0;
+  for (let k = 0; k < words.length; k++) {
+    total += words[k].end - words[k].start;
+    const gap = k + 1 < words.length ? words[k + 1].start - words[k].end : 0;
+    if (gap > 0 && gap <= 0.6) total += gap;
+  }
+  return total;
+}
+
+/** When the wearer last resumed speaking after a meaningful pause (or started). */
+function lastPauseEnd(words: Word[]): number {
+  for (let k = words.length - 1; k > 0; k--)
+    if (words[k].start - words[k - 1].end >= MEANINGFUL_PAUSE) return words[k].start;
+  return words[0]?.start ?? 0;
+}
+
+/** Start of the wearer's current speaking turn: after someone else spoke, or a long silence. */
+function turnStart(all: Word[], mine: Word[], isWearer: (w: Word) => boolean): number {
+  let start = mine[mine.length - 1]?.start ?? 0;
+  for (let k = all.length - 1; k >= 0; k--) {
+    const w = all[k];
+    if (!isWearer(w)) break;
+    const prev = all[k - 1];
+    start = w.start;
+    if (prev && w.start - prev.end >= TURN_GAP) break;
+  }
+  return start;
+}
+
+/** Words that are often repeated on purpose ("very, very", "no, no", "bye bye"). */
+const INTENTIONAL_REPEATS = new Set(
+  "very really so no yeah yes yep bye ha haha hey ok okay well wow please go come that had is more much bla blah".split(
+    " ",
+  ),
+);
+
+/**
+ * Accidental repetition ending at word `i`: a word said 2+ times in a row ("I, I, I think")
+ * or a two-word phrase repeated ("and then, and then"). Words often repeated for emphasis
+ * don't count. Returns the run's first index and a confidence, once the run has ended.
+ */
+function findRepetition(
+  words: Word[],
+  i: number,
+  rightClosed: boolean,
+): { from: number; confidence: number; reason: string } | null {
+  const w = words[i];
+  if (!w || INTENTIONAL_REPEATS.has(w.norm) || isHesitation(w) || w.norm === "like") return null;
+  const next = words[i + 1];
+  // Single word repeated
+  if (words[i - 1]?.norm === w.norm) {
+    if (next?.norm === w.norm) return null; // run continues; judge at its end
+    if (!next && !rightClosed) return null;
+    let from = i;
+    while (from > 0 && words[from - 1].norm === w.norm) from--;
+    const n = i - from + 1;
+    return { from, confidence: n >= 3 ? 0.9 : 0.82, reason: `"${w.norm}" said ${n} times in a row` };
+  }
+  // Two-word phrase repeated: "and then and then"
+  const a = words[i - 3];
+  const b = words[i - 2];
+  const c = words[i - 1];
+  if (a && b && c && a.norm === c.norm && b.norm === w.norm && a.norm !== b.norm && !INTENTIONAL_REPEATS.has(a.norm)) {
+    if (next && words[i + 1]?.norm === a.norm && words[i + 2]?.norm === w.norm) return null; // continues
+    return { from: i - 3, confidence: 0.88, reason: `"${c.norm} ${w.norm}" repeated` };
+  }
+  return null;
 }

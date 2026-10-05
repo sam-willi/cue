@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import { CueSession } from "../session";
 import { simulateWords } from "../simulate";
 
+// Detection tests use "every filler" mode with a short cooldown, so each detection shows up as
+// a tap; the decision engine's pattern rules are tested in engine.test.ts.
+const DETECT = { tapOn: "every" as const, cooldownSec: 2.5 };
+
 function run(text: string, opts: { wpm?: number; config?: ConstructorParameters<typeof CueSession>[0] } = {}) {
-  const s = new CueSession(opts.config);
+  const s = new CueSession({ ...DETECT, ...opts.config });
   const words = simulateWords(text, { wpm: opts.wpm });
   // Stream word by word as interim results, then commit and close the utterance.
   for (let k = 1; k <= words.length; k++) s.ingest(words.slice(0, k), false);
@@ -24,7 +28,7 @@ describe("CueSession", () => {
   });
 
   it("cues a confident filler 'like' as soon as the next word is heard", () => {
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     const words = simulateWords("i like went to the mall");
     s.ingest(words.slice(0, 2), false); // "i like" — needs the next word
     expect(s.history).toHaveLength(0);
@@ -33,7 +37,7 @@ describe("CueSession", () => {
   });
 
   it("waits for stable words when the word after 'like' is uncertain", () => {
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     const words = simulateWords("i like went to the mall");
     words[2].confidence = 0.5; // recognizer unsure about "went"
     s.ingest(words.slice(0, 3), false);
@@ -43,7 +47,7 @@ describe("CueSession", () => {
   });
 
   it("never decides a non-filler on unstable words, so a revision can still be caught", () => {
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     // Interim mishears "went" as "wind": "i like wind" reads as the verb.
     const misheard = simulateWords("i like wind");
     s.ingest(misheard, false);
@@ -54,7 +58,7 @@ describe("CueSession", () => {
 
   it("counts one 'um' once even when Deepgram's interim timings drift", () => {
     // Real timings from a nova-2 stream: interim 13.30, interim 13.01, final 13.73.
-    const s = new CueSession({ cooldownSec: 0 });
+    const s = new CueSession({ ...DETECT, cooldownSec: 0 });
     const w = (text: string, start: number, end: number) => ({
       text,
       norm: text.toLowerCase().replace(/\W/g, ""),
@@ -70,7 +74,7 @@ describe("CueSession", () => {
 
   it("matches a drifted 'um' by the word before it, up to ~1.5 s", () => {
     // Real timings: interim 21.79, final 22.75 (0.96 s apart), both after "later."
-    const s = new CueSession({ cooldownSec: 0 });
+    const s = new CueSession({ ...DETECT, cooldownSec: 0 });
     const w = (text: string, start: number, end: number) => ({
       text,
       norm: text.toLowerCase().replace(/\W/g, ""),
@@ -84,19 +88,19 @@ describe("CueSession", () => {
   });
 
   it("still counts two separate 'um's said close together", () => {
-    const s = new CueSession({ cooldownSec: 0 });
+    const s = new CueSession({ ...DETECT, cooldownSec: 0 });
     s.ingest(simulateWords("so um um i think"), true);
     expect(s.history.filter((d) => d.event.type === "filler_um")).toHaveLength(2);
   });
 
   it("cues a confident interim 'um' immediately", () => {
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     s.ingest(simulateWords("so um"), false);
     expect(s.history.map((d) => [d.event.type, d.delivered])).toEqual([["filler_um", true]]);
   });
 
   it("waits on a low-confidence interim 'um'", () => {
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     const words = simulateWords("so um");
     words[1].confidence = 0.6;
     s.ingest(words, false);
@@ -104,7 +108,7 @@ describe("CueSession", () => {
   });
 
   it("measures speaking time without long pauses", () => {
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     s.ingest(simulateWords("one two three. four five six"), true);
     // 6 words × 0.32 s + 4 short gaps × 0.08 s; the 0.88 s gap after "three." is excluded.
     expect(s.speakingSeconds()).toBeCloseTo(6 * 0.32 + 4 * 0.08, 2);
@@ -124,7 +128,7 @@ describe("CueSession", () => {
     expect(h.map((d) => [d.event.type, d.delivered, d.withheldReason])).toEqual([
       ["filler_um", true, undefined],
       ["filler_uh", false, "cooldown"],
-      ["filler_like", false, "cooldown"],
+      ["filler_like", true, undefined], // 1.6 s later: past the 1.5 s "every filler" cooldown
     ]);
   });
 
@@ -150,7 +154,7 @@ describe("CueSession", () => {
   });
 
   it("does not flag a normal pace", () => {
-    expect(run(longText, { wpm: 150 })).toEqual([]);
+    expect(run(longText, { wpm: 150 }).map((d) => d.event.type)).not.toContain("rushing");
   });
 
   it("is stricter in the presentation preset", () => {
@@ -171,7 +175,7 @@ describe("CueSession", () => {
   it("waits through a pause after 'like' and decides from what follows", () => {
     // Deepgram finalizes "and i was like" at a short endpointing pause, then the rest.
     const words = simulateWords("and i was like... i don't know what to say");
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     s.ingest(words.slice(0, 4), true); // segment ends on "like"
     expect(s.likeChecks).toHaveLength(0); // still waiting for right context
     s.ingest(words.slice(4), true);
@@ -179,7 +183,7 @@ describe("CueSession", () => {
   });
 
   it("logs non-filler likes with a reason", () => {
-    const s = new CueSession();
+    const s = new CueSession(DETECT);
     const words = simulateWords("i like tofu a lot");
     s.ingest(words, true);
     s.endUtterance();
