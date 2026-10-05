@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
 import type { Correction, SessionFile } from "@/lib/cue/evaluate";
@@ -9,6 +9,7 @@ import { CONFIRMS, PATTERNS, patternFor, type ConfirmPattern, type CueKind, type
 import { DOUBLE_TAP_GAP_MS, LONG_PRESS_MS, TAP_MAX_MS, TouchGestures, type TouchAction } from "@/lib/cue/touch";
 import { CueSession, type SessionUpdate, type VolumeStatus } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
+import { bluetoothAvailable, TapDevice } from "@/lib/cue/tapDevice";
 import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
@@ -63,6 +64,8 @@ const EXAMPLES = [
 
 type Status = "idle" | "connecting" | "listening" | "demo" | "error";
 
+const noSubscribe = () => () => {};
+
 export default function CueApp() {
   const [config, setConfig] = useState<CueConfig>(DEFAULT_CONFIG);
   const [status, setStatus] = useState<Status>("idle");
@@ -97,6 +100,13 @@ export default function CueApp() {
   const levelsRef = useRef<[number, number][]>([]);
   const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
+  /** Optional Bluetooth tap device (XIAO + vibration motor) standing in for the cuff. */
+  const [tapName, setTapName] = useState<string | null>(null);
+  const [tapError, setTapError] = useState<string | null>(null);
+  const tapRef = useRef<TapDevice | null>(null);
+  const tap = () => (tapRef.current ??= new TapDevice(setTapName));
+  // Server render says "no Bluetooth"; the browser answers after hydration, avoiding a mismatch.
+  const btOk = useSyncExternalStore(noSubscribe, bluetoothAvailable, () => false);
 
   const configRef = useRef(config);
   useEffect(() => {
@@ -109,6 +119,7 @@ export default function CueApp() {
     setBuzz(null);
     setConfirm((c) => ({ n: (c?.n ?? 0) + 1, pattern }));
     navigator.vibrate?.(CONFIRMS[pattern].vibrate);
+    tapRef.current?.play(CONFIRMS[pattern].vibrate);
     window.clearTimeout(buzzTimer.current);
     buzzTimer.current = window.setTimeout(() => setConfirm(null), CONFIRMS[pattern].durationMs + 600);
   }, []);
@@ -134,6 +145,7 @@ export default function CueApp() {
     setConfirm(null);
     setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: LABEL[kind], pattern }));
     navigator.vibrate?.(PATTERNS[pattern].vibrate);
+    tapRef.current?.play(PATTERNS[pattern].vibrate);
     window.clearTimeout(buzzTimer.current);
     buzzTimer.current = window.setTimeout(() => setBuzz(null), PATTERNS[pattern].durationMs + 600);
   }, []);
@@ -772,6 +784,50 @@ export default function CueApp() {
 
             <div className="space-y-4">
               <h3 className="font-display text-base font-semibold">How Cue taps</h3>
+              <div>
+                <p className="mb-2">Tap device</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {tapName ? (
+                    <button
+                      onClick={() => tap().disconnect()}
+                      className="min-h-11 rounded-lg border border-line px-4 text-[15px] hover:border-text"
+                    >
+                      Disconnect {tapName}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setTapError(null);
+                        tap()
+                          .connect()
+                          .catch((e: unknown) => {
+                            if (e instanceof Error && e.name !== "NotFoundError") setTapError(e.message);
+                          });
+                      }}
+                      disabled={!btOk}
+                      className="min-h-11 rounded-lg border border-line px-4 text-[15px] hover:border-text disabled:opacity-50"
+                    >
+                      Connect tap device
+                    </button>
+                  )}
+                  {tapName && (
+                    <button
+                      onClick={() => triggerBuzz("filler_um")}
+                      className="min-h-11 rounded-lg border border-line px-4 text-[15px] hover:border-text"
+                    >
+                      Test tap
+                    </button>
+                  )}
+                </div>
+                <p className="mt-2 text-[13px] text-muted">
+                  {!btOk
+                    ? "This browser can't use Bluetooth. Use Chrome on Android or a laptop."
+                    : tapName
+                      ? "Every cue and confirmation also plays on the device."
+                      : "A small Bluetooth board with a vibration motor, worn near the ear or collar, taps when Cue cues."}
+                  {tapError && ` ${tapError}`}
+                </p>
+              </div>
               <Switch
                 label="A different tap for each kind of cue"
                 hint="Off: one tap for everything, meaning make space."
