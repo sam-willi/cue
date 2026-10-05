@@ -17,3 +17,5 @@ assembled PCB.
 - T5838: [EV-T5838-FX2](https://www.digikey.com/en/products/detail/tdk-invensense/EV-T5838-FX2/16903856)
 - LSM6DSV16BX: [STEVAL-MKI241KA adapter kit](https://www.mouser.com/new/stmicroelectronics/stm-steval-mki241ka-kit/)
 - V2S200D: [KAS-700-0177](https://www.digikey.com/en/products/detail/syntiant/KAS-700-0177/18670178)
+
+The off-the-shelf parts for the bone-conduction test kit (with buy links) are in [`../kit/README.md`](../kit/README.md).
