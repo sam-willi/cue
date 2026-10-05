@@ -31,7 +31,7 @@ export function patternFor(kind: CueKind, distinct: boolean): CuePattern {
 export type ConfirmPattern = "ramp_up" | "ramp_down" | "ramp_once" | "ramp_twice";
 
 // navigator.vibrate can only switch on/off, so a ramp is approximated by pulses whose
-// on-time grows (or shrinks) while the gaps shrink (or grow). The cuff's DRV2605L does true ramps.
+// on-time grows (or shrinks) while the gaps shrink (or grow). The device's DRV2605L does true ramps.
 const RISE = [8, 40, 14, 30, 22, 20, 32, 10, 60];
 const FALL = [60, 10, 32, 20, 22, 30, 14, 40, 8];
 

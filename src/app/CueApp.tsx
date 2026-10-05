@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import DeviceModel from "./DeviceModel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
@@ -74,6 +75,11 @@ export default function CueApp() {
   const [config, setConfig] = useState<CueConfig>(DEFAULT_CONFIG);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  // A visitor's own Deepgram key. Kept in this browser only (this tab, or this device if they
+  // choose) and sent straight to Deepgram, never to this app's server.
+  const [apiKey, setApiKey] = useState("");
+  const [rememberKey, setRememberKey] = useState(false);
+  const [keyFormOpen, setKeyFormOpen] = useState(false);
   const [pace, setPace] = useState<Pace | null>(null);
   const [volume, setVolume] = useState<VolumeStatus | null>(null);
   const [demoQuiet, setDemoQuiet] = useState(false);
@@ -138,7 +144,7 @@ export default function CueApp() {
     buzzTimer.current = window.setTimeout(() => setConfirm(null), CONFIRMS[pattern].durationMs + 600);
   }, []);
 
-  /** A cuff touch gesture: long press = Cue on/off, double tap = switch mode. */
+  /** A touch gesture on the device: long press = Cue on/off, double tap = switch mode. */
   const onTouch = useCallback(
     (action: TouchAction) => {
       const c = configRef.current;
@@ -232,7 +238,32 @@ export default function CueApp() {
 
   useEffect(() => () => stopAll(), [stopAll]);
 
-  const startLive = async (opts: { record?: boolean } = {}) => {
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(KEY_STORAGE);
+      const key = saved ?? sessionStorage.getItem(KEY_STORAGE);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage only exists after mount
+      if (key) setApiKey(key);
+      setRememberKey(saved !== null);
+    } catch {
+      // Storage blocked (private window, previews): the key just isn't remembered.
+    }
+  }, []);
+
+  const saveKey = (key: string, remember: boolean) => {
+    setApiKey(key);
+    setRememberKey(remember);
+    setKeyFormOpen(false);
+    try {
+      localStorage.removeItem(KEY_STORAGE);
+      sessionStorage.removeItem(KEY_STORAGE);
+      if (key) (remember ? localStorage : sessionStorage).setItem(KEY_STORAGE, key);
+    } catch {
+      // Storage blocked: the key works until the page closes.
+    }
+  };
+
+  const startLive = async (opts: { record?: boolean; apiKey?: string } = {}) => {
     stopAll();
     reset();
     recordAudioRef.current = !!opts.record;
@@ -257,17 +288,19 @@ export default function CueApp() {
         levelsRef.current.push([t, db]);
         sessionRef.current.ingestLevel(t, db);
       },
-      onStatus: (s, detail) => {
+      onStatus: (s, detail, code) => {
         if (s === "stopped") return;
         setStatus(s === "error" ? "error" : s);
         if (detail) setError(detail);
+        // No usable key: open the field for the visitor's own (the headline says why).
+        if (code) setKeyFormOpen(true);
       },
     });
     rawRef.current = [];
     setRecorded(0);
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
     transcriberRef.current = t;
-    await t.start();
+    await t.start({ apiKey: (opts.apiKey ?? apiKey) || undefined });
   };
 
   const runDemo = (text = demoText) => {
@@ -277,7 +310,7 @@ export default function CueApp() {
     const demoStart = performance.now();
     clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
     let sim: Word[] = simulateWords(text, { wpm: demoWpm });
-    // "A friend cuts in": the microphone hears them, but the cuff's bone sensor doesn't,
+    // "A friend cuts in": the microphone hears them, but the device's bone sensor doesn't,
     // so their fillers shouldn't tap.
     let friend: Word[] = [];
     if (demoFriend && sim.length > 4) {
@@ -454,7 +487,7 @@ export default function CueApp() {
         : status === "error"
           ? (error ?? "")
           : config.muted
-            ? "Long-press the cuff, or switch Cue on below."
+            ? "Long-press the device, or switch Cue on below."
             : calibrating
               ? "Talk normally for a few seconds so Cue learns your usual volume."
               : live
@@ -469,7 +502,7 @@ export default function CueApp() {
     : "Nothing yet. Start listening or play a practice sentence.";
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-5 pb-24 pt-8 sm:px-8">
+    <main className="mx-auto w-full max-w-6xl px-5 pb-24 pt-8 sm:px-8">
       <header className="flex items-center justify-between gap-4">
         {/* Horizontal lockup (Tier 2, navigation) at ≥96 px wide (DESIGN.md §3, §5). Interim rasters
             derived from the approved concept; swap for the vector masters when they exist. */}
@@ -494,637 +527,805 @@ export default function CueApp() {
         <MicState status={status} recording={recordingTraining} />
       </header>
 
-      {/* --- Live: the one thing on screen while you talk --- */}
-      <section aria-label="Live coaching" className="flex flex-col items-center pt-14 text-center sm:pt-20">
-        <CueRings buzz={buzz} confirm={confirm} noticed={heard} />
-        <p
-          className="mt-10 font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl text-balance"
-          aria-live="polite"
-        >
-          {heroWord}
-        </p>
-        <p className="mt-4 min-h-12 max-w-md text-body text-muted">{heroLine}</p>
-
-        <div className="mt-8 flex flex-col items-center gap-3">
-          {live ? (
-            <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
-              Stop
-            </button>
-          ) : status === "demo" ? (
-            <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
-              Stop practice
-            </button>
-          ) : (
-            <button
-              onClick={() => startLive()}
-              className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
-            >
-              Start listening
-            </button>
-          )}
-          <p className="max-w-md text-body-sm text-muted">
-            {status === "demo"
-              ? "Practice doesn’t use the microphone."
-              : "Your audio goes to Deepgram to be transcribed. Cue doesn’t store it."}
-          </p>
-        </div>
-
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
-          <Segmented
-            label="Mode"
-            value={config.paceMode === "custom" ? null : config.paceMode}
-            options={[
-              { value: "conversation", label: "Conversation" },
-              { value: "presentation", label: "Presentation" },
-            ]}
-            onChange={(v) =>
-              setConfig((c) => ({
-                ...c,
-                paceMode: v,
-                paceThreshold: PACE_PRESETS[v as keyof typeof PACE_PRESETS].threshold,
-              }))
+      <div className="lg:flex lg:flex-row-reverse lg:items-start lg:gap-12">
+        {/* The behind-the-ear device, from its CAD: each cue leaves the motor on the skin side. Beside the page on wide
+          screens, above it on phones. */}
+        <aside aria-label="The device" className="mt-6 lg:sticky lg:top-8 lg:mt-8 lg:w-[44%] lg:shrink-0">
+          <figure
+            role="img"
+            aria-label={
+              confirm
+                ? `Confirmation on the device: ${CONFIRMS[confirm.pattern].label}`
+                : buzz
+                  ? `The device buzzes: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
+                  : heard
+                    ? `Noticed ${heard.label}, no buzz yet`
+                    : "The Cue behind-the-ear device, no cue right now"
             }
-          />
-          <Switch label="Cue on" on={!config.muted} onChange={(v) => setConfig((c) => ({ ...c, muted: !v }))} />
-          <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
-        </div>
+            className="overflow-hidden rounded-2xl bg-surface-2"
+          >
+            <DeviceModel
+              buzz={buzz}
+              confirm={confirm}
+              noticed={heard}
+              className="h-72 sm:h-96 lg:h-[calc(100svh-10rem)] lg:max-h-[44rem]"
+            />
+          </figure>
+          <p className="mt-3 text-caption text-muted">
+            Cue’s behind-the-ear (BTE) device, from its CAD. Taps leave the motor behind your ear; drag to turn it.
+          </p>
+        </aside>
 
-        {/* What each tap means */}
-        <div className="mt-12 w-full">
-          <p className="text-body-sm text-muted">What each tap means. Select one to feel it.</p>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {LEGEND.map(({ kind, label }) => {
-              const p = patternFor(kind, config.distinctCues);
-              return (
-                <button
-                  key={kind}
-                  onClick={() => {
-                    triggerBuzz(kind);
-                    sessionRef.current.hapticPlayed(PATTERNS[p].vibrate.reduce((x, y) => x + y, 0) / 1000);
-                  }}
-                  className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-label transition-colors duration-200 hover:border-cue ${
-                    buzz?.pattern === p && buzz.label === LABEL[kind] ? "cue-playing border-cue" : "border-line"
-                  }`}
-                >
-                  <RhythmGlyph pattern={p} />
-                  <span className="font-medium">{config.distinctCues ? PATTERNS[p].action : "Make space"}</span>
-                  <span className="text-muted">{label}</span>
+        <div className="mx-auto w-full max-w-2xl lg:mx-0 lg:min-w-0 lg:flex-1">
+          {/* --- Live: the one thing on screen while you talk --- */}
+          <section aria-label="Live coaching" className="flex flex-col items-center pt-10 text-center lg:pt-20">
+            <p
+              className="font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl text-balance"
+              aria-live="polite"
+            >
+              {heroWord}
+            </p>
+            <p className="mt-4 min-h-12 max-w-md text-body text-muted">{heroLine}</p>
+
+            <div className="mt-8 flex flex-col items-center gap-3">
+              {live ? (
+                <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
+                  Stop
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              ) : status === "demo" ? (
+                <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
+                  Stop practice
+                </button>
+              ) : (
+                <button
+                  onClick={() => startLive()}
+                  className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+                >
+                  Start listening
+                </button>
+              )}
+              <p className="max-w-md text-body-sm text-muted">
+                {status === "demo"
+                  ? "Practice doesn’t use the microphone."
+                  : "Your audio goes to Deepgram to be transcribed. Cue doesn’t store it."}
+              </p>
+              {status !== "demo" && !live && (
+                <DeepgramKey
+                  value={apiKey}
+                  remember={rememberKey}
+                  open={keyFormOpen}
+                  onOpen={() => setKeyFormOpen(true)}
+                  onCancel={() => setKeyFormOpen(false)}
+                  onRemove={() => saveKey("", false)}
+                  onSave={(key, remember) => {
+                    saveKey(key, remember);
+                    void startLive({ apiKey: key });
+                  }}
+                />
+              )}
+            </div>
 
-        {(live || status === "demo" || pace || volume) && (
-          <div className="mt-10 grid w-full gap-5 text-left sm:grid-cols-2">
-            <Meter
-              label="Pace"
-              value={
-                pace
-                  ? `${pace.sps.toFixed(1)} syllables/s, about ${Math.round(pace.wpm)} wpm`
-                  : "Measuring after a few words"
-              }
-              frac={paceFrac}
-              mark={1 / 1.4}
-              alert={sps > config.paceThreshold}
-            />
-            <Meter
-              label="Volume"
-              value={
-                !volume
-                  ? "Measuring once you speak"
-                  : volume.baselineDb === null || volume.expectedDb === null
-                    ? `Learning your normal level, ${Math.round(volume.calibration * 100)}%`
-                    : volume.db === null
-                      ? "Normal level learned"
-                      : `${formatDb(volume.db - volume.expectedDb)} from your normal${
-                          Math.abs(volume.expectedDb - volume.baselineDb) >= 3
-                            ? volume.expectedDb > volume.baselineDb
-                              ? " for this noisy room"
-                              : " for this quiet room"
-                            : ""
-                        }`
-              }
-              frac={
-                volume?.expectedDb != null && volume.db !== null
-                  ? Math.max(0, Math.min(1, (volume.db - volume.expectedDb + 20) / 27))
-                  : (volume?.calibration ?? 0)
-              }
-              mark={volume?.expectedDb != null ? (20 - config.quietDropDb) / 27 : undefined}
-              alert={
-                volume?.expectedDb != null && volume.db !== null && volume.db < volume.expectedDb - config.quietDropDb
-              }
-              learning={volume?.expectedDb == null}
-            />
-          </div>
-        )}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
+              <Segmented
+                label="Mode"
+                value={config.paceMode === "custom" ? null : config.paceMode}
+                options={[
+                  { value: "conversation", label: "Conversation" },
+                  { value: "presentation", label: "Presentation" },
+                ]}
+                onChange={(v) =>
+                  setConfig((c) => ({
+                    ...c,
+                    paceMode: v,
+                    paceThreshold: PACE_PRESETS[v as keyof typeof PACE_PRESETS].threshold,
+                  }))
+                }
+              />
+              <Switch label="Cue on" on={!config.muted} onChange={(v) => setConfig((c) => ({ ...c, muted: !v }))} />
+              <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
+            </div>
 
-        {showTranscript && (
-          <div className="mt-10 w-full rounded-lg border border-dashed border-line p-4 text-left">
-            <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
-            {signals && (
-              <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
-                <div>
-                  <dt className="inline">Fillers in the last minute: </dt>
-                  <dd className="inline tabular-nums text-text">{signals.fillersLastMinute}</dd>
-                </div>
-                <div>
-                  <dt className="inline">Since your last pause: </dt>
-                  <dd className="inline tabular-nums text-text">{Math.round(signals.secondsSincePause)} s</dd>
-                </div>
-                <div>
-                  <dt className="inline">This turn: </dt>
-                  <dd className="inline tabular-nums text-text">{Math.round(signals.turnSeconds)} s</dd>
-                </div>
-                <div>
-                  <dt className="inline">Your normal pace: </dt>
-                  <dd className="inline tabular-nums text-text">
-                    {signals.paceBaseline === null ? "learning" : `${signals.paceBaseline.toFixed(1)} syllables/s`}
-                  </dd>
-                </div>
-              </dl>
+            {/* What each tap means */}
+            <div className="mt-12 w-full">
+              <p className="text-body-sm text-muted">What each tap means. Select one to feel it.</p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {LEGEND.map(({ kind, label }) => {
+                  const p = patternFor(kind, config.distinctCues);
+                  return (
+                    <button
+                      key={kind}
+                      onClick={() => {
+                        triggerBuzz(kind);
+                        sessionRef.current.hapticPlayed(PATTERNS[p].vibrate.reduce((x, y) => x + y, 0) / 1000);
+                      }}
+                      className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-label transition-colors duration-200 hover:border-cue ${
+                        buzz?.pattern === p && buzz.label === LABEL[kind] ? "cue-playing border-cue" : "border-line"
+                      }`}
+                    >
+                      <RhythmGlyph pattern={p} />
+                      <span className="font-medium">{config.distinctCues ? PATTERNS[p].action : "Make space"}</span>
+                      <span className="text-muted">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {(live || status === "demo" || pace || volume) && (
+              <div className="mt-10 grid w-full gap-5 text-left sm:grid-cols-2">
+                <Meter
+                  label="Pace"
+                  value={
+                    pace
+                      ? `${pace.sps.toFixed(1)} syllables/s, about ${Math.round(pace.wpm)} wpm`
+                      : "Measuring after a few words"
+                  }
+                  frac={paceFrac}
+                  mark={1 / 1.4}
+                  alert={sps > config.paceThreshold}
+                />
+                <Meter
+                  label="Volume"
+                  value={
+                    !volume
+                      ? "Measuring once you speak"
+                      : volume.baselineDb === null || volume.expectedDb === null
+                        ? `Learning your normal level, ${Math.round(volume.calibration * 100)}%`
+                        : volume.db === null
+                          ? "Normal level learned"
+                          : `${formatDb(volume.db - volume.expectedDb)} from your normal${
+                              Math.abs(volume.expectedDb - volume.baselineDb) >= 3
+                                ? volume.expectedDb > volume.baselineDb
+                                  ? " for this noisy room"
+                                  : " for this quiet room"
+                                : ""
+                            }`
+                  }
+                  frac={
+                    volume?.expectedDb != null && volume.db !== null
+                      ? Math.max(0, Math.min(1, (volume.db - volume.expectedDb + 20) / 27))
+                      : (volume?.calibration ?? 0)
+                  }
+                  mark={volume?.expectedDb != null ? (20 - config.quietDropDb) / 27 : undefined}
+                  alert={
+                    volume?.expectedDb != null &&
+                    volume.db !== null &&
+                    volume.db < volume.expectedDb - config.quietDropDb
+                  }
+                  learning={volume?.expectedDb == null}
+                />
+              </div>
             )}
-            <p className="mt-2 text-body">
-              {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
-              {words.map((w, k) => {
-                const d = flagged.get(wordKey(w.start));
-                return (
-                  <span
-                    key={k}
-                    className={
-                      !w.wearer
-                        ? "italic text-muted/70"
-                        : d
+
+            {showTranscript && (
+              <div className="mt-10 w-full rounded-lg border border-dashed border-line p-4 text-left">
+                <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
+                {signals && (
+                  <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
+                    <div>
+                      <dt className="inline">Fillers in the last minute: </dt>
+                      <dd className="inline tabular-nums text-text">{signals.fillersLastMinute}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Since your last pause: </dt>
+                      <dd className="inline tabular-nums text-text">{Math.round(signals.secondsSincePause)} s</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">This turn: </dt>
+                      <dd className="inline tabular-nums text-text">{Math.round(signals.turnSeconds)} s</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Your normal pace: </dt>
+                      <dd className="inline tabular-nums text-text">
+                        {signals.paceBaseline === null ? "learning" : `${signals.paceBaseline.toFixed(1)} syllables/s`}
+                      </dd>
+                    </div>
+                  </dl>
+                )}
+                <p className="mt-2 text-body">
+                  {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
+                  {words.map((w, k) => {
+                    const d = flagged.get(wordKey(w.start));
+                    return (
+                      <span
+                        key={k}
+                        className={
+                          !w.wearer
+                            ? "italic text-muted/70"
+                            : d
+                              ? d.delivered
+                                ? "rounded bg-cue-soft px-1 text-cue"
+                                : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
+                              : undefined
+                        }
+                      >
+                        {w.text}{" "}
+                      </span>
+                    );
+                  })}
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* --- Everything else waits below, collapsed --- */}
+          <div className="mt-20 border-t border-line">
+            <Disclosure
+              title="Review last session"
+              summary={reviewSummary}
+              open={open.review}
+              onToggle={() => toggle("review")}
+            >
+              {words.length === 0 ? (
+                <p className="text-body text-muted">
+                  After you stop, this shows what Cue noticed, why it acted, and a transcript you can correct.
+                </p>
+              ) : (
+                <div className="space-y-12">
+                  <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
+                    <Stat
+                      label="Speaking"
+                      value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`}
+                    />
+                    <Stat
+                      label="Taps"
+                      value={String(totalCues)}
+                      hint={judged ? `${worked} of ${judged} worked` : "none judged yet"}
+                    />
+                    <Stat
+                      label="Fillers noticed"
+                      value={String(noticed)}
+                      hint={
+                        speakingSec >= 30
+                          ? `${(noticed / (speakingSec / 60)).toFixed(1)} per minute`
+                          : "per minute after 30 s"
+                      }
+                    />
+                    <Stat
+                      label="Cue delay"
+                      value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
+                      hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
+                    />
+                    <Stat
+                      label="You marked"
+                      value={`${falseBuzzes + misses}`}
+                      hint={`${falseBuzzes} wrong, ${misses} missed`}
+                    />
+                  </dl>
+
+                  <div>
+                    <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                      Transcript
+                    </h3>
+                    <p className="mt-1 text-body-sm text-muted">
+                      Select a word to mark a wrong cue or a filler Cue missed. Hover a marked word for the reason.
+                    </p>
+                    <TranscriptKey />
+                    <p className="mt-4 text-body leading-8">
+                      {words.map((w, k) => {
+                        if (!w.wearer)
+                          return (
+                            <span
+                              key={k}
+                              className="italic text-muted/70"
+                              title="The bone sensor didn’t hear you say this, so it isn’t coached."
+                            >
+                              {w.text}{" "}
+                            </span>
+                          );
+                        const d = flagged.get(wordKey(w.start));
+                        const c = !d && w.norm === "like" ? checked.get(wordKey(w.start)) : undefined;
+                        const fix = corrected.get(wordKey(w.start));
+                        const base = d
                           ? d.delivered
                             ? "rounded bg-cue-soft px-1 text-cue"
                             : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
-                          : undefined
-                    }
-                  >
-                    {w.text}{" "}
-                  </span>
-                );
-              })}
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* --- Everything else waits below, collapsed --- */}
-      <div className="mt-20 border-t border-line">
-        <Disclosure
-          title="Review last session"
-          summary={reviewSummary}
-          open={open.review}
-          onToggle={() => toggle("review")}
-        >
-          {words.length === 0 ? (
-            <p className="text-body text-muted">
-              After you stop, this shows what Cue noticed, why it acted, and a transcript you can correct.
-            </p>
-          ) : (
-            <div className="space-y-12">
-              <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
-                <Stat
-                  label="Speaking"
-                  value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`}
-                />
-                <Stat
-                  label="Taps"
-                  value={String(totalCues)}
-                  hint={judged ? `${worked} of ${judged} worked` : "none judged yet"}
-                />
-                <Stat
-                  label="Fillers noticed"
-                  value={String(noticed)}
-                  hint={
-                    speakingSec >= 30
-                      ? `${(noticed / (speakingSec / 60)).toFixed(1)} per minute`
-                      : "per minute after 30 s"
-                  }
-                />
-                <Stat
-                  label="Cue delay"
-                  value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
-                  hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
-                />
-                <Stat
-                  label="You marked"
-                  value={`${falseBuzzes + misses}`}
-                  hint={`${falseBuzzes} wrong, ${misses} missed`}
-                />
-              </dl>
-
-              <div>
-                <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Transcript</h3>
-                <p className="mt-1 text-body-sm text-muted">
-                  Select a word to mark a wrong cue or a filler Cue missed. Hover a marked word for the reason.
-                </p>
-                <TranscriptKey />
-                <p className="mt-4 text-body leading-8">
-                  {words.map((w, k) => {
-                    if (!w.wearer)
-                      return (
-                        <span
-                          key={k}
-                          className="italic text-muted/70"
-                          title="The bone sensor didn’t hear you say this, so it isn’t coached."
-                        >
-                          {w.text}{" "}
-                        </span>
-                      );
-                    const d = flagged.get(wordKey(w.start));
-                    const c = !d && w.norm === "like" ? checked.get(wordKey(w.start)) : undefined;
-                    const fix = corrected.get(wordKey(w.start));
-                    const base = d
-                      ? d.delivered
-                        ? "rounded bg-cue-soft px-1 text-cue"
-                        : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
-                      : c
-                        ? "rounded bg-surface-2 px-1"
-                        : "";
-                    const marked = fix
-                      ? fix.label === "false_buzz"
-                        ? " line-through decoration-2"
-                        : " rounded ring-1 ring-text"
-                      : "";
-                    const why = d
-                      ? d.event.reason
-                      : c
-                        ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}`
-                        : "Select to mark as a missed filler";
-                    return (
-                      <span key={k}>
-                        <button
-                          type="button"
-                          onClick={() => toggleCorrection(w.start, d ? "false_buzz" : "missed")}
-                          title={`${why}${fix ? ". Marked, select to undo" : d ? ". Select if this wasn’t a filler" : ""}`}
-                          className={`cursor-pointer rounded hover:bg-surface-2 ${base}${marked}`}
-                        >
-                          {w.text}
-                        </button>{" "}
-                      </span>
-                    );
-                  })}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                  Why Cue acted
-                </h3>
-                <ul className="mt-4 divide-y divide-line">
-                  {entries.map(({ key, d, c }) =>
-                    c ? (
-                      <li key={key} className="py-4 text-body">
-                        <p className="font-medium">
-                          “like” wasn’t a filler <span className="font-normal text-muted">({c.verdict.use})</span>
-                        </p>
-                        <p className="mt-1 text-muted">{c.verdict.reason}</p>
-                        <p className="mt-1 text-body-sm text-muted">“…{c.context}…”</p>
-                        <CorrectionButton
-                          on={corrected.get(wordKey(c.start))?.label === "missed"}
-                          onClick={() => toggleCorrection(c.start, "missed")}
-                        >
-                          It was a filler
-                        </CorrectionButton>
-                      </li>
-                    ) : d ? (
-                      <li key={key} className="py-4 text-body">
-                        <p className="font-medium">
-                          {capitalize(LABEL[d.event.type])}{" "}
-                          <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
-                            {d.delivered
-                              ? `tapped${d.trigger ? `: ${d.trigger}` : ""}${
-                                  outcomes[d.event.id] === "worked"
-                                    ? ", and it worked"
-                                    : outcomes[d.event.id] === "no_change"
-                                      ? ", no change after"
-                                      : ""
-                                }`
-                              : `held back: ${WITHHELD[d.withheldReason!]}${d.trigger ? ` (${d.trigger})` : ""}`}
+                          : c
+                            ? "rounded bg-surface-2 px-1"
+                            : "";
+                        const marked = fix
+                          ? fix.label === "false_buzz"
+                            ? " line-through decoration-2"
+                            : " rounded ring-1 ring-text"
+                          : "";
+                        const why = d
+                          ? d.event.reason
+                          : c
+                            ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}`
+                            : "Select to mark as a missed filler";
+                        return (
+                          <span key={k}>
+                            <button
+                              type="button"
+                              onClick={() => toggleCorrection(w.start, d ? "false_buzz" : "missed")}
+                              title={`${why}${fix ? ". Marked, select to undo" : d ? ". Select if this wasn’t a filler" : ""}`}
+                              className={`cursor-pointer rounded hover:bg-surface-2 ${base}${marked}`}
+                            >
+                              {w.text}
+                            </button>{" "}
                           </span>
-                        </p>
-                        <p className="mt-1 text-muted">{d.event.reason}</p>
-                        <p className="mt-1 text-body-sm text-muted">
-                          “…{d.event.context}…” {Math.round(d.event.confidence * 100)}% sure
-                          {latency[d.event.id] != null && `, cued ${(latency[d.event.id] / 1000).toFixed(2)} s after`}
-                        </p>
-                        {isFiller(d) && (
-                          <CorrectionButton
-                            on={corrected.get(wordKey(d.event.start))?.label === "false_buzz"}
-                            onClick={() => toggleCorrection(d.event.start, "false_buzz")}
-                          >
-                            Not a filler
-                          </CorrectionButton>
-                        )}
-                      </li>
-                    ) : null,
-                  )}
-                </ul>
-              </div>
+                        );
+                      })}
+                    </p>
+                  </div>
 
-              {recorded > 0 && !busy && (
-                <div>
-                  <button
-                    onClick={downloadSession}
-                    className="min-h-11 rounded-lg border border-line px-4 text-body hover:border-text"
-                  >
-                    Download session
-                  </button>
-                  <p className="mt-2 text-body-sm text-muted">
-                    Saves what Deepgram heard, your marks, and cue timing. No audio. Keep it out of the repo.
-                  </p>
+                  <div>
+                    <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                      Why Cue acted
+                    </h3>
+                    <ul className="mt-4 divide-y divide-line">
+                      {entries.map(({ key, d, c }) =>
+                        c ? (
+                          <li key={key} className="py-4 text-body">
+                            <p className="font-medium">
+                              “like” wasn’t a filler <span className="font-normal text-muted">({c.verdict.use})</span>
+                            </p>
+                            <p className="mt-1 text-muted">{c.verdict.reason}</p>
+                            <p className="mt-1 text-body-sm text-muted">“…{c.context}…”</p>
+                            <CorrectionButton
+                              on={corrected.get(wordKey(c.start))?.label === "missed"}
+                              onClick={() => toggleCorrection(c.start, "missed")}
+                            >
+                              It was a filler
+                            </CorrectionButton>
+                          </li>
+                        ) : d ? (
+                          <li key={key} className="py-4 text-body">
+                            <p className="font-medium">
+                              {capitalize(LABEL[d.event.type])}{" "}
+                              <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
+                                {d.delivered
+                                  ? `tapped${d.trigger ? `: ${d.trigger}` : ""}${
+                                      outcomes[d.event.id] === "worked"
+                                        ? ", and it worked"
+                                        : outcomes[d.event.id] === "no_change"
+                                          ? ", no change after"
+                                          : ""
+                                    }`
+                                  : `held back: ${WITHHELD[d.withheldReason!]}${d.trigger ? ` (${d.trigger})` : ""}`}
+                              </span>
+                            </p>
+                            <p className="mt-1 text-muted">{d.event.reason}</p>
+                            <p className="mt-1 text-body-sm text-muted">
+                              “…{d.event.context}…” {Math.round(d.event.confidence * 100)}% sure
+                              {latency[d.event.id] != null &&
+                                `, cued ${(latency[d.event.id] / 1000).toFixed(2)} s after`}
+                            </p>
+                            {isFiller(d) && (
+                              <CorrectionButton
+                                on={corrected.get(wordKey(d.event.start))?.label === "false_buzz"}
+                                onClick={() => toggleCorrection(d.event.start, "false_buzz")}
+                              >
+                                Not a filler
+                              </CorrectionButton>
+                            )}
+                          </li>
+                        ) : null,
+                      )}
+                    </ul>
+                  </div>
+
+                  {recorded > 0 && !busy && (
+                    <div>
+                      <button
+                        onClick={downloadSession}
+                        className="min-h-11 rounded-lg border border-line px-4 text-body hover:border-text"
+                      >
+                        Download session
+                      </button>
+                      <p className="mt-2 text-body-sm text-muted">
+                        Saves what Deepgram heard, your marks, and cue timing. No audio. Keep it out of the repo.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-        </Disclosure>
+            </Disclosure>
 
-        <Disclosure
-          title="Practice"
-          summary="Try a sentence without a mic, or try the cuff’s touch controls"
-          open={open.practice}
-          onToggle={() => toggle("practice")}
-        >
-          <div className="space-y-12">
-            <div>
-              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                Try a sentence
-              </h3>
-              <p className="mt-1 text-body-sm text-muted">Cue reads it word by word, as if you were saying it.</p>
-              <textarea
-                value={demoText}
-                onChange={(e) => setDemoText(e.target.value)}
-                rows={3}
-                aria-label="Practice sentence"
-                className="mt-4 w-full resize-none rounded-lg border border-line bg-surface p-3 text-body outline-none focus:border-cue"
-              />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {EXAMPLES.map((ex) => (
-                  <button
-                    key={ex}
-                    onClick={() => {
-                      setDemoText(ex);
-                      setOpen((o) => ({ ...o, practice: true }));
-                      runDemo(ex);
-                    }}
-                    className="min-h-9 max-w-full truncate rounded-lg border border-line px-3 text-left text-body-sm text-muted hover:border-text hover:text-text"
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-6 space-y-4">
-                <Slider
-                  label="Speaking speed"
-                  value={demoWpm}
-                  min={100}
-                  max={280}
-                  step={10}
-                  format={(v) => `${v} wpm`}
-                  onChange={setDemoWpm}
-                />
-                <Switch label="Trail off quietly at the end" on={demoQuiet} onChange={setDemoQuiet} />
-                <Switch
-                  label="A friend cuts in with “um… like went”"
-                  hint="The mic hears them; the cuff’s bone sensor doesn’t, so Cue ignores them."
-                  on={demoFriend}
-                  onChange={setDemoFriend}
-                />
-              </div>
-              <button
-                onClick={() => runDemo()}
-                disabled={live}
-                className="mt-6 min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
-              >
-                Play sentence
-              </button>
-            </div>
-
-            <div>
-              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                Try the cuff’s touch controls
-              </h3>
-              <p className="mt-1 text-body-sm text-muted">
-                On the cuff, touch is only for controls. A single tap does nothing, so fixing your hair won’t trigger
-                it.
-              </p>
-              <div className="mt-4">
-                <CuffTouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
-              </div>
-            </div>
-          </div>
-        </Disclosure>
-
-        <Disclosure
-          title="Training"
-          summary="Record yourself talking, then mark every filler to teach and test the detector"
-          open={open.training}
-          onToggle={() => toggle("training")}
-        >
-          <div className="space-y-8">
-            <div>
-              <p className="max-w-prose text-body text-muted">
-                Talk for a few minutes the way you normally do. Cue records the audio for this session only. Afterwards,
-                select every word that was a filler, then save it to the training set on this computer.
-              </p>
-              <p className="mt-2 max-w-prose text-body-sm text-muted">
-                Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub. Only
-                record people who have agreed to it.
-              </p>
-              <div className="mt-4">
-                {live && recordingTraining ? (
-                  <button
-                    onClick={endSession}
-                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
-                  >
-                    Stop and label
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => startLive({ record: true })}
-                    disabled={live || status === "demo"}
-                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
-                  >
-                    Start training recording
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
-              <div>
-                <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                  Mark the fillers
-                </h3>
-                <p className="mt-1 text-body-sm text-muted">
-                  Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
-                  unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
-                </p>
-                {trainingAudioUrl && (
-                  <audio
-                    controls
-                    src={trainingAudioUrl}
-                    className="mt-4 w-full"
-                    onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
-                    onEnded={() => setPlayhead(null)}
+            <Disclosure
+              title="Practice"
+              summary="Try a sentence without a mic, or try the device’s touch controls"
+              open={open.practice}
+              onToggle={() => toggle("practice")}
+            >
+              <div className="space-y-12">
+                <div>
+                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    Try a sentence
+                  </h3>
+                  <p className="mt-1 text-body-sm text-muted">Cue reads it word by word, as if you were saying it.</p>
+                  <textarea
+                    value={demoText}
+                    onChange={(e) => setDemoText(e.target.value)}
+                    rows={3}
+                    aria-label="Practice sentence"
+                    className="mt-4 w-full resize-none rounded-lg border border-line bg-surface p-3 text-body outline-none focus:border-cue"
                   />
-                )}
-                <p className="mt-4 text-body leading-9">
-                  {words.map((w, k) => {
-                    const marked = fillerMarks.has(wordKey(w.start));
-                    const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
-                    return (
-                      <span key={k}>
-                        <button
-                          type="button"
-                          aria-pressed={marked}
-                          onClick={() => toggleFillerMark(w.start)}
-                          className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
-                        >
-                          {w.text}
-                        </button>{" "}
-                      </span>
-                    );
-                  })}
-                </p>
-                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {EXAMPLES.map((ex) => (
+                      <button
+                        key={ex}
+                        onClick={() => {
+                          setDemoText(ex);
+                          setOpen((o) => ({ ...o, practice: true }));
+                          runDemo(ex);
+                        }}
+                        className="min-h-9 max-w-full truncate rounded-lg border border-line px-3 text-left text-body-sm text-muted hover:border-text hover:text-text"
+                      >
+                        {ex}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-6 space-y-4">
+                    <Slider
+                      label="Speaking speed"
+                      value={demoWpm}
+                      min={100}
+                      max={280}
+                      step={10}
+                      format={(v) => `${v} wpm`}
+                      onChange={setDemoWpm}
+                    />
+                    <Switch label="Trail off quietly at the end" on={demoQuiet} onChange={setDemoQuiet} />
+                    <Switch
+                      label="A friend cuts in with “um… like went”"
+                      hint="The mic hears them; the device’s bone sensor doesn’t, so Cue ignores them."
+                      on={demoFriend}
+                      onChange={setDemoFriend}
+                    />
+                  </div>
                   <button
-                    onClick={saveTraining}
-                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                    onClick={() => runDemo()}
+                    disabled={live}
+                    className="mt-6 min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
                   >
-                    Save to training set
+                    Play sentence
                   </button>
-                  <span className="text-body-sm text-muted">
-                    {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
-                  </span>
                 </div>
-                {trainingSaved && (
-                  <p className="mt-3 text-body-sm" role="status">
-                    {trainingSaved}
+
+                <div>
+                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    Try the device’s touch controls
+                  </h3>
+                  <p className="mt-1 text-body-sm text-muted">
+                    On the device, touch is only for controls. A single tap does nothing, so fixing your hair won’t
+                    trigger it.
                   </p>
+                  <div className="mt-4">
+                    <TouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
+                  </div>
+                </div>
+              </div>
+            </Disclosure>
+
+            <Disclosure
+              title="Training"
+              summary="Record yourself talking, then mark every filler to teach and test the detector"
+              open={open.training}
+              onToggle={() => toggle("training")}
+            >
+              <div className="space-y-8">
+                <div>
+                  <p className="max-w-prose text-body text-muted">
+                    Talk for a few minutes the way you normally do. Cue records the audio for this session only.
+                    Afterwards, select every word that was a filler, then save it to the training set on this computer.
+                  </p>
+                  <p className="mt-2 max-w-prose text-body-sm text-muted">
+                    Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub.
+                    Only record people who have agreed to it.
+                  </p>
+                  <div className="mt-4">
+                    {live && recordingTraining ? (
+                      <button
+                        onClick={endSession}
+                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                      >
+                        Stop and label
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => startLive({ record: true })}
+                        disabled={live || status === "demo"}
+                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
+                      >
+                        Start training recording
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
+                  <div>
+                    <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                      Mark the fillers
+                    </h3>
+                    <p className="mt-1 text-body-sm text-muted">
+                      Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
+                      unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
+                    </p>
+                    {trainingAudioUrl && (
+                      <audio
+                        controls
+                        src={trainingAudioUrl}
+                        className="mt-4 w-full"
+                        onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
+                        onEnded={() => setPlayhead(null)}
+                      />
+                    )}
+                    <p className="mt-4 text-body leading-9">
+                      {words.map((w, k) => {
+                        const marked = fillerMarks.has(wordKey(w.start));
+                        const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
+                        return (
+                          <span key={k}>
+                            <button
+                              type="button"
+                              aria-pressed={marked}
+                              onClick={() => toggleFillerMark(w.start)}
+                              className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
+                            >
+                              {w.text}
+                            </button>{" "}
+                          </span>
+                        );
+                      })}
+                    </p>
+                    <div className="mt-6 flex flex-wrap items-center gap-4">
+                      <button
+                        onClick={saveTraining}
+                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                      >
+                        Save to training set
+                      </button>
+                      <span className="text-body-sm text-muted">
+                        {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
+                      </span>
+                    </div>
+                    {trainingSaved && (
+                      <p className="mt-3 text-body-sm" role="status">
+                        {trainingSaved}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        </Disclosure>
+            </Disclosure>
 
-        <Disclosure
-          title="Settings"
-          summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
-          open={open.settings}
-          onToggle={() => toggle("settings")}
-        >
-          <div className="space-y-10 text-body">
-            <fieldset>
-              <legend className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                What Cue coaches
-              </legend>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(["um", "uh", "like", "lowkey", "repetition", "rushing", "pauses", "turns", "quiet"] as const).map(
-                  (k) => (
-                    <Chip
-                      key={k}
-                      on={config.categories[k]}
-                      onClick={() =>
-                        setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))
-                      }
-                    >
-                      {CHIP_LABEL[k] ?? `“${k}”`}
-                    </Chip>
-                  ),
-                )}
+            <Disclosure
+              title="Settings"
+              summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
+              open={open.settings}
+              onToggle={() => toggle("settings")}
+            >
+              <div className="space-y-10 text-body">
+                <fieldset>
+                  <legend className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    What Cue coaches
+                  </legend>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(["um", "uh", "like", "lowkey", "repetition", "rushing", "pauses", "turns", "quiet"] as const).map(
+                      (k) => (
+                        <Chip
+                          key={k}
+                          on={config.categories[k]}
+                          onClick={() =>
+                            setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))
+                          }
+                        >
+                          {CHIP_LABEL[k] ?? `“${k}”`}
+                        </Chip>
+                      ),
+                    )}
+                  </div>
+                </fieldset>
+
+                <div className="space-y-4">
+                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    How Cue taps
+                  </h3>
+                  <Switch
+                    label="Tap for patterns, not every filler"
+                    hint={
+                      config.tapOn === "patterns"
+                        ? `A tap needs ${config.clusterCount} fillers within ${config.clusterWindowSec} s, or ${config.densityPerMin} in a minute. One “um” is normal.`
+                        : "Testing mode: every filler taps (with a short gap)."
+                    }
+                    on={config.tapOn === "patterns"}
+                    onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
+                  />
+                  <Switch
+                    label="A different tap for each kind of cue"
+                    hint="Off: one tap for everything, meaning make space."
+                    on={config.distinctCues}
+                    onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    Filler “like”
+                  </h3>
+                  <Switch
+                    label="Count quoting “like”"
+                    hint="“She was like, no way”"
+                    on={config.likeCounts.quotative}
+                    onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, quotative: v } }))}
+                  />
+                  <Switch
+                    label="Count “like” meaning “about”"
+                    hint="“Like twenty people”"
+                    on={config.likeCounts.approximator}
+                    onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, approximator: v } }))}
+                  />
+                </div>
+
+                <div className="space-y-5">
+                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    Thresholds
+                  </h3>
+                  <Slider
+                    label="Too fast above"
+                    value={config.paceThreshold}
+                    min={3}
+                    max={6.5}
+                    step={0.1}
+                    format={(v) => `${v.toFixed(1)} syllables/s, about ${toApproxWpm(v)} wpm`}
+                    onChange={(v) => {
+                      const preset = (Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]).find(
+                        (k) => Math.abs(PACE_PRESETS[k].threshold - v) < 0.01,
+                      );
+                      setConfig((c) => ({ ...c, paceThreshold: v, paceMode: preset ?? "custom" }));
+                    }}
+                  />
+                  <Slider
+                    label="Sensitivity"
+                    value={Math.round((1 - config.minConfidence) * 100)}
+                    min={5}
+                    max={35}
+                    step={5}
+                    format={(v) => (v <= 10 ? "Cautious" : v <= 25 ? "Balanced" : "Eager")}
+                    onChange={(v) => setConfig((c) => ({ ...c, minConfidence: 1 - v / 100 }))}
+                  />
+                  <Slider
+                    label="Quiet time between taps"
+                    value={config.cooldownSec}
+                    min={5}
+                    max={30}
+                    step={1}
+                    format={(v) => `${v} s`}
+                    onChange={(v) => setConfig((c) => ({ ...c, cooldownSec: v }))}
+                  />
+                </div>
+
+                <div>
+                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Privacy</h3>
+                  <p className="mt-2 max-w-prose text-muted">
+                    While you listen, audio streams to Deepgram to be transcribed. If you add your own Deepgram key, it
+                    stays in this browser and goes straight to Deepgram. Cue keeps nothing on its own. A session is only
+                    saved if you choose Download session, and that file has words and timing, never audio. Cue never
+                    builds a voiceprint: on the device, a bone-conduction sensor hears only your own voice. In this web
+                    prototype the microphone hears everyone, so other people’s fillers can tap too.
+                  </p>
+                </div>
               </div>
-            </fieldset>
-
-            <div className="space-y-4">
-              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">How Cue taps</h3>
-              <Switch
-                label="Tap for patterns, not every filler"
-                hint={
-                  config.tapOn === "patterns"
-                    ? `A tap needs ${config.clusterCount} fillers within ${config.clusterWindowSec} s, or ${config.densityPerMin} in a minute. One “um” is normal.`
-                    : "Testing mode: every filler taps (with a short gap)."
-                }
-                on={config.tapOn === "patterns"}
-                onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
-              />
-              <Switch
-                label="A different tap for each kind of cue"
-                hint="Off: one tap for everything, meaning make space."
-                on={config.distinctCues}
-                onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                Filler “like”
-              </h3>
-              <Switch
-                label="Count quoting “like”"
-                hint="“She was like, no way”"
-                on={config.likeCounts.quotative}
-                onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, quotative: v } }))}
-              />
-              <Switch
-                label="Count “like” meaning “about”"
-                hint="“Like twenty people”"
-                on={config.likeCounts.approximator}
-                onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, approximator: v } }))}
-              />
-            </div>
-
-            <div className="space-y-5">
-              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Thresholds</h3>
-              <Slider
-                label="Too fast above"
-                value={config.paceThreshold}
-                min={3}
-                max={6.5}
-                step={0.1}
-                format={(v) => `${v.toFixed(1)} syllables/s, about ${toApproxWpm(v)} wpm`}
-                onChange={(v) => {
-                  const preset = (Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]).find(
-                    (k) => Math.abs(PACE_PRESETS[k].threshold - v) < 0.01,
-                  );
-                  setConfig((c) => ({ ...c, paceThreshold: v, paceMode: preset ?? "custom" }));
-                }}
-              />
-              <Slider
-                label="Sensitivity"
-                value={Math.round((1 - config.minConfidence) * 100)}
-                min={5}
-                max={35}
-                step={5}
-                format={(v) => (v <= 10 ? "Cautious" : v <= 25 ? "Balanced" : "Eager")}
-                onChange={(v) => setConfig((c) => ({ ...c, minConfidence: 1 - v / 100 }))}
-              />
-              <Slider
-                label="Quiet time between taps"
-                value={config.cooldownSec}
-                min={5}
-                max={30}
-                step={1}
-                format={(v) => `${v} s`}
-                onChange={(v) => setConfig((c) => ({ ...c, cooldownSec: v }))}
-              />
-            </div>
-
-            <div>
-              <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Privacy</h3>
-              <p className="mt-2 max-w-prose text-muted">
-                While you listen, audio streams to Deepgram to be transcribed. Cue keeps nothing on its own. A session
-                is only saved if you choose Download session, and that file has words and timing, never audio. Cue never
-                builds a voiceprint: on the cuff, a bone-conduction sensor hears only your own voice. In this web
-                prototype the microphone hears everyone, so other people’s fillers can tap too.
-              </p>
-            </div>
+            </Disclosure>
           </div>
-        </Disclosure>
+        </div>
       </div>
     </main>
+  );
+}
+
+const KEY_STORAGE = "cue.deepgramKey";
+
+/**
+ * Use your own Deepgram key: for a deployment with no key of its own, or anyone who'd rather
+ * pay for their own transcription. The key stays in the browser and goes straight to Deepgram.
+ */
+function DeepgramKey({
+  value,
+  remember,
+  open,
+  onOpen,
+  onCancel,
+  onRemove,
+  onSave,
+}: {
+  value: string;
+  remember: boolean;
+  open: boolean;
+  onOpen: () => void;
+  onCancel: () => void;
+  onRemove: () => void;
+  onSave: (key: string, remember: boolean) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [keep, setKeep] = useState(remember);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    // Start each edit from what's saved.
+    setWasOpen(open);
+    if (open) {
+      setDraft(value);
+      setKeep(remember);
+    }
+  }
+
+  if (!open) {
+    return value ? (
+      <p className="text-body-sm text-muted">
+        Listening uses your Deepgram key.{" "}
+        <button onClick={onOpen} className="underline underline-offset-2 hover:text-text">
+          Change
+        </button>{" "}
+        or{" "}
+        <button onClick={onRemove} className="underline underline-offset-2 hover:text-text">
+          remove it
+        </button>
+      </p>
+    ) : (
+      <button onClick={onOpen} className="text-body-sm text-muted underline underline-offset-2 hover:text-text">
+        Use your own Deepgram key
+      </button>
+    );
+  }
+
+  const key = draft.trim();
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (key) onSave(key, keep);
+      }}
+      className="mt-2 w-full max-w-md rounded-lg border border-line bg-surface p-4 text-left"
+    >
+      <label htmlFor="dg-key" className="text-label font-medium">
+        Deepgram API key
+      </label>
+      <input
+        id="dg-key"
+        type="password"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        autoComplete="off"
+        spellCheck={false}
+        autoFocus
+        className="mt-1.5 min-h-11 w-full rounded-lg border border-line bg-bg px-3 font-mono text-body-sm focus:border-text focus:outline-none"
+      />
+      <label className="mt-3 flex items-center gap-2 text-body-sm">
+        <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} className="accent-cue" />
+        Remember on this device
+      </label>
+      <p className="mt-3 text-caption text-muted">
+        Your key stays in this browser and goes straight to Deepgram; Cue’s server never sees it. Without “remember”,
+        it’s forgotten when you close the tab. No key yet? New accounts at{" "}
+        <a
+          href="https://console.deepgram.com/signup"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-text"
+        >
+          console.deepgram.com
+        </a>{" "}
+        come with free credit.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="submit"
+          disabled={!key}
+          className="min-h-11 rounded-lg bg-text px-5 text-body-sm font-medium text-bg disabled:opacity-40"
+        >
+          Save and start listening
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-11 rounded-lg border border-line px-5 text-body-sm hover:border-text"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -1147,88 +1348,6 @@ function describeTap(d: CueDecision): string {
 
 const capitalize = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
 const formatDb = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(Math.round(x))} dB`;
-
-/** The cue, drawn: a still center with outward rings (one, two, or one slow). */
-function CueRings({
-  buzz,
-  confirm,
-  noticed,
-}: {
-  buzz: { n: number; label: string; pattern: CuePattern } | null;
-  confirm: { n: number; pattern: ConfirmPattern } | null;
-  noticed: { n: number; label: string } | null;
-}) {
-  const state = confirm ? "cue-confirming" : buzz ? "cue-buzzing" : noticed ? "cue-noticed" : "";
-  const showIcon = !!buzz || (!!noticed && !confirm);
-  return (
-    <div
-      key={`${buzz?.n ?? 0}-${confirm?.n ?? 0}-${noticed?.n ?? 0}`}
-      data-pattern={buzz?.pattern}
-      data-confirm={confirm?.pattern}
-      className={`relative grid h-56 w-56 place-items-center ${state}`}
-      role="img"
-      aria-label={
-        confirm
-          ? `Confirmation: ${CONFIRMS[confirm.pattern].label}`
-          : buzz
-            ? `Buzz: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
-            : noticed
-              ? `Noticed ${noticed.label}, no buzz yet`
-              : "No cue right now"
-      }
-    >
-      {[0, 1].map((k) => (
-        <span
-          key={k}
-          className="cue-ring pointer-events-none absolute inset-4 rounded-full border-2 border-cue opacity-0"
-        />
-      ))}
-      <span
-        className={`cue-core grid h-48 w-48 place-items-center rounded-full border transition-colors duration-200 ${
-          confirm
-            ? "border-neutral bg-neutral-soft"
-            : buzz
-              ? "border-cue bg-cue-soft text-cue"
-              : noticed
-                ? "border-line bg-surface-2 text-muted"
-                : "border-line bg-surface"
-        }`}
-      >
-        {showIcon ? (
-          <BuzzGlyph />
-        ) : (
-          <span
-            className={`block h-3 w-3 rounded-full transition-colors duration-200 ${confirm ? "bg-neutral" : "bg-line"}`}
-            aria-hidden
-          />
-        )}
-      </span>
-    </div>
-  );
-}
-
-/** The buzz icon: a device with motion lines on both sides that pulse in the tap's rhythm. */
-function BuzzGlyph() {
-  return (
-    <svg className="buzz-glyph" width="124" height="124" viewBox="0 0 96 96" fill="none" aria-hidden>
-      <rect x="34" y="20" width="28" height="56" rx="8" stroke="currentColor" strokeWidth="3.5" />
-      <path
-        className="buzz-lines buzz-lines-inner"
-        d="M24 36v24M72 36v24"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-      <path
-        className="buzz-lines buzz-lines-outer"
-        d="M14 41v14M82 41v14"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 /** A pattern's rhythm drawn as beats: one, two, or one long. */
 function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
@@ -1507,10 +1626,10 @@ function TranscriptKey() {
 }
 
 /**
- * Stand-in for the cuff's touch surface (controls only). Hold 1.5 s = on/off,
- * double-tap = switch mode; a single tap does nothing, as on the real cuff.
+ * Stand-in for the device's touch surface (controls only). Hold 1.5 s = on/off,
+ * double-tap = switch mode; a single tap does nothing, as on the real device.
  */
-function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => void; mode: string; on: boolean }) {
+function TouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => void; mode: string; on: boolean }) {
   const gestures = useRef(new TouchGestures());
   const holdTimer = useRef<number | undefined>(undefined);
   const hintTimer = useRef<number | undefined>(undefined);
@@ -1547,8 +1666,8 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
     <div className="flex items-center gap-5">
       <button
         type="button"
-        aria-label="Simulated cuff touch surface: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
-        className={`cuff-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-body-sm font-medium ${pressing ? "pressing" : ""}`}
+        aria-label="Simulated touch surface on the device: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
+        className={`touch-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-body-sm font-medium ${pressing ? "pressing" : ""}`}
         onPointerDown={(e) => {
           try {
             e.currentTarget.setPointerCapture(e.pointerId); // keep the press if the finger drifts
@@ -1590,7 +1709,7 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
             transform="rotate(-90 18 18)"
           />
         </svg>
-        Cuff
+        Device
       </button>
       <div className="text-body">
         <p>Hold for 1.5 seconds to turn Cue {on ? "off" : "on"}.</p>

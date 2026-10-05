@@ -78,139 +78,9 @@ body {
   color: var(--text);
 }
 
-/*
- * Haptic cue animations (DESIGN.md §11: a breath, not an alarm — one subtle outward
- * movement, no shaking or flashing). Each rhythm is drawn as outward rings:
- *   tap    — one ring           → pause
- *   double — two quick rings    → slow down
- *   long   — one slow, wide one → speak up
- */
-@keyframes cue-ring {
-  from {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-  to {
-    transform: scale(1.55);
-    opacity: 0;
-  }
-}
-@keyframes cue-ring-slow {
-  from {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-  to {
-    transform: scale(1.75);
-    opacity: 0;
-  }
-}
-.cue-buzzing[data-pattern="tap"] .cue-ring:nth-child(1) {
-  animation: cue-ring 0.6s ease-out forwards;
-}
-.cue-buzzing[data-pattern="double"] .cue-ring:nth-child(1) {
-  animation: cue-ring 0.45s ease-out forwards;
-}
-.cue-buzzing[data-pattern="double"] .cue-ring:nth-child(2) {
-  animation: cue-ring 0.45s ease-out 0.22s forwards;
-}
-.cue-buzzing[data-pattern="long"] .cue-ring:nth-child(1) {
-  border-width: 4px;
-  animation: cue-ring-slow 1.1s ease-out forwards;
-}
+/* Haptic cues are drawn on the 3D device (src/app/DeviceModel.tsx), leaving the motor in their rhythm. */
 
-/*
- * The big buzz icon: motion lines pulse outward in the tap's rhythm (one / two / one long),
- * and the device holds still (DESIGN.md §11: no shaking). A noticed-but-not-buzzed filler
- * shows the same icon in gray, with one faint pulse.
- */
-@keyframes buzz-pulse {
-  0% {
-    opacity: 0.6;
-    transform: scaleY(0.85);
-  }
-  40% {
-    opacity: 1;
-    transform: scaleY(1.15);
-  }
-  100% {
-    opacity: 0.35;
-    transform: scaleY(1);
-  }
-}
-/* Scale only, no fade: the icon must stay visible even if animations stall (background tabs). */
-@keyframes buzz-in {
-  from {
-    transform: scale(0.85);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-.buzz-glyph {
-  animation: buzz-in 0.18s ease-out;
-}
-.buzz-lines {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.cue-buzzing[data-pattern="tap"] .buzz-lines {
-  animation: buzz-pulse 0.5s ease-out 1;
-}
-.cue-buzzing[data-pattern="tap"] .buzz-lines-outer {
-  animation-delay: 0.06s;
-}
-.cue-buzzing[data-pattern="double"] .buzz-lines {
-  animation: buzz-pulse 0.3s ease-out 2;
-}
-.cue-buzzing[data-pattern="double"] .buzz-lines-outer {
-  animation-delay: 0.05s;
-}
-.cue-buzzing[data-pattern="long"] .buzz-lines {
-  animation: buzz-pulse 0.9s ease-in-out 1;
-}
-.cue-noticed .buzz-lines {
-  animation: buzz-pulse 0.6s ease-out 1;
-  opacity: 0.5;
-}
-
-/* Touch-control confirmations: a neutral swell or fade (a ramp), never a ring. */
-@keyframes confirm-swell {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 var(--neutral-soft);
-  }
-  60% {
-    transform: scale(1.04);
-    box-shadow: 0 0 0 16px var(--neutral-soft);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-@keyframes confirm-fade {
-  0% {
-    transform: scale(1.04);
-    box-shadow: 0 0 0 16px var(--neutral-soft);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-.cue-confirming[data-confirm="ramp_up"] .cue-core,
-.cue-confirming[data-confirm="ramp_once"] .cue-core {
-  animation: confirm-swell 0.9s ease-in-out 1;
-}
-.cue-confirming[data-confirm="ramp_twice"] .cue-core {
-  animation: confirm-swell 0.7s ease-in-out 2;
-}
-.cue-confirming[data-confirm="ramp_down"] .cue-core {
-  animation: confirm-fade 0.9s ease-out 1;
-}
-
-/* Simulated cuff touch pad: a ring fills while held, reaching full at the 1.5 s long press. */
+/* Simulated touch pad on the device: a ring fills while held, reaching full at the 1.5 s long press. */
 @keyframes press-fill {
   from {
     stroke-dashoffset: 100;
@@ -219,11 +89,11 @@ body {
     stroke-dashoffset: 0;
   }
 }
-.cuff-pad .press-ring {
+.touch-pad .press-ring {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
 }
-.cuff-pad.pressing .press-ring {
+.touch-pad.pressing .press-ring {
   animation: press-fill 1.5s linear forwards;
 }
 
@@ -246,19 +116,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cue-buzzing .cue-ring,
-  .buzz-glyph,
-  .buzz-lines,
-  .cue-confirming .cue-core,
   .cue-playing .beat,
-  .cuff-pad.pressing .press-ring {
+  .touch-pad.pressing .press-ring {
     animation: none !important;
   }
-  .cue-buzzing .cue-ring:nth-child(1) {
-    opacity: 0.5;
-    transform: scale(1.2);
-  }
-  .cuff-pad.pressing .press-ring {
+  .touch-pad.pressing .press-ring {
     stroke-dashoffset: 0;
   }
 }
