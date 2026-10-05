@@ -118,6 +118,8 @@ export default function CueApp() {
     setBuzz(null);
     setConfirm((c) => ({ n: (c?.n ?? 0) + 1, pattern }));
     navigator.vibrate?.(CONFIRMS[pattern].vibrate);
+    // The motor shakes the bone sensor: tell the session so it isn't read as speech.
+    sessionRef.current.hapticPlayed(CONFIRMS[pattern].vibrate.reduce((x, y) => x + y, 0) / 1000);
     window.clearTimeout(buzzTimer.current);
     buzzTimer.current = window.setTimeout(() => setConfirm(null), CONFIRMS[pattern].durationMs + 600);
   }, []);
@@ -462,7 +464,10 @@ export default function CueApp() {
               return (
                 <button
                   key={kind}
-                  onClick={() => triggerBuzz(kind)}
+                  onClick={() => {
+                    triggerBuzz(kind);
+                    sessionRef.current.hapticPlayed(PATTERNS[p].vibrate.reduce((x, y) => x + y, 0) / 1000);
+                  }}
                   className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-label transition-colors duration-200 hover:border-cue ${
                     buzz?.pattern === p && buzz.label === LABEL[kind] ? "cue-playing border-cue" : "border-line"
                   }`}

@@ -2,6 +2,7 @@ import { DEFAULT_CONFIG, type CueConfig } from "./config";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
 import { DecisionEngine, type Moment, type Outcome } from "./engine";
+import { PATTERNS, patternFor } from "./patterns";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
 import { FRAME_SEC, median, noiseFloor, speechLevels, type LevelFrame } from "./loudness";
 import { measurePace, type Pace } from "./pace";
@@ -56,6 +57,14 @@ const MEANINGFUL_PAUSE = 0.6;
 const BONE_SLACK = 0.1;
 /** Share of a word's bone frames that must be active for it to be the wearer's. */
 const BONE_SHARE = 0.5;
+/**
+ * The vibration motor shakes the bone sensor, which would read as the wearer speaking.
+ * Bone frames from just before a tap until the motor has settled are ignored.
+ */
+const HAPTIC_MASK_BEFORE = 0.05;
+const HAPTIC_MASK_AFTER = 0.15;
+/** If a word's bone frames are all masked, judge it by the unmasked frames this close (s). */
+const MASK_FALLBACK = 0.3;
 /** Silence (s) that ends the wearer's speaking turn. */
 const TURN_GAP = 2.5;
 
@@ -132,6 +141,8 @@ export class CueSession {
   private baselineNoiseDb: number | null = null;
   private quietSince: number | null = null;
   private bone: { t: number; active: boolean }[] = [];
+  /** Audio-time intervals when the vibration motor was running. */
+  private hapticMasks: [number, number][] = [];
   private nextId = 1;
   /** All decisions so far, newest last. */
   readonly history: CueDecision[] = [];
@@ -159,10 +170,40 @@ export class CueSession {
   /** True if the bone sensor confirms the wearer said `w` (always true with no bone signal). */
   isWearerWord(w: Word): boolean {
     if (this.bone.length === 0) return true;
-    const frames = this.bone.filter((f) => f.t >= w.start - BONE_SLACK && f.t <= w.end + BONE_SLACK);
+    const near = (slack: number) =>
+      this.bone.filter((f) => f.t >= w.start - slack && f.t <= w.end + slack && !this.masked(f.t));
+    const all = this.bone.filter((f) => f.t >= w.start - BONE_SLACK && f.t <= w.end + BONE_SLACK);
     // Not heard yet by the bone stream: count it for now; it's re-checked on later updates.
-    if (frames.length === 0) return this.bone[this.bone.length - 1].t < w.end;
+    if (all.length === 0) return this.bone[this.bone.length - 1].t < w.end;
+    // Ignore frames while the motor was vibrating; if that hides the whole word, judge it
+    // by the frames just around it, and if there are none, give the wearer the benefit.
+    let frames = near(BONE_SLACK);
+    if (frames.length === 0) frames = near(MASK_FALLBACK);
+    if (frames.length === 0) return true;
     return frames.filter((f) => f.active).length / frames.length >= BONE_SHARE;
+  }
+
+  /**
+   * The motor just played a pattern lasting `durationSec` (a tap the app chose to play,
+   * e.g. a touch-control confirmation or a preview). Bone frames during it are ignored.
+   * Taps from the decision engine are recorded automatically.
+   */
+  hapticPlayed(durationSec: number, at = this.audioNow()) {
+    this.hapticMasks.push([at - HAPTIC_MASK_BEFORE, at + durationSec + HAPTIC_MASK_AFTER]);
+    if (this.hapticMasks.length > 200) this.hapticMasks.splice(0, 100);
+  }
+
+  /** The latest audio time heard on any stream: the bone sensor and mic run ahead of transcription. */
+  private audioNow(): number {
+    return Math.max(
+      this.bone[this.bone.length - 1]?.t ?? -Infinity,
+      this.levels[this.levels.length - 1]?.t ?? -Infinity,
+      this.words[this.words.length - 1]?.end ?? 0,
+    );
+  }
+
+  private masked(t: number): boolean {
+    return this.hapticMasks.some(([a, b]) => t >= a && t <= b);
   }
 
   get words(): Word[] {
@@ -370,6 +411,12 @@ export class CueSession {
       outcomes.push({ id: tap.id, outcome });
     }
 
+    // The motor vibrates the moment a tap is delivered: mask the bone sensor for it.
+    for (const d of decisions) {
+      if (!d.delivered) continue;
+      const pattern = PATTERNS[patternFor(d.event.type, this.config.distinctCues)];
+      this.hapticPlayed(pattern.vibrate.reduce((a, b) => a + b, 0) / 1000);
+    }
     this.history.push(...decisions);
     this.likeChecks.push(...likeChecks);
     const signals: Signals = {
