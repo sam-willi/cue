@@ -742,7 +742,9 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ### 2026-10-03 (after the expanded brand standards)
 
-- **Superseded:** the app's switch to Inter / Inter Tight (below) conflicts with the expanded §8, which specifies **Geist Sans** (and Geist Mono for diagnostics). The app is being moved back to Geist with the §8 type scale, the header to a horizontal lockup (§3 responsive tiers), and logo exports to the `cue-logo-[form]-[color]-[background]` naming (§22).
+- **App aligned with the expanded standards:** Geist Sans / Geist Mono with the §8 fallback stacks and type scale (hero `display-xl` 72/72, mobile 48/50; section titles `heading-3`; body 16/24; controls `label` 13/16); the header uses the horizontal lockup (Tier 2) at 112 px wide; transcript markings use fills and outlines instead of underlines ("Underline only links"); curly apostrophes in UI copy. This supersedes the Inter / Inter Tight switch recorded below.
+- Logo exports renamed to the §22 scheme (`public/brand/cue-logo-[form]-fullcolor-[light|dark].png`), plus a concept-derived horizontal lockup built to the §3 provisional proportions, and light/dark favicons (symbol on bone / ink, 16% clear space per side). `scripts/brand-assets.py` regenerates them and writes a 16–32 px favicon review sheet to `scripts/out/` (not shipped).
+- **Open:** at 16 px the symbol's negative-space channel closes up; §3 calls for a separately simplified micro master, which needs a designer.
 
 ### 2026-10-03
 

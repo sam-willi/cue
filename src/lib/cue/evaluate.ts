@@ -26,7 +26,7 @@ export interface SessionFile {
 }
 
 const SAME_WORD = 0.25;
-const FILLER_TYPES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like"];
+const FILLER_TYPES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like", "filler_lowkey"];
 
 /** A detection that would have buzzed if cooldown and mute didn't apply. */
 const wouldCue = (d: CueDecision) =>

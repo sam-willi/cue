@@ -6,6 +6,16 @@ This repository is the **software MVP**: a web app that listens through the micr
 
 > Status: prototype for validating the behavior loop. Not a medical device. Detection accuracy has not been measured on real users yet.
 
+## How Cue decides to tap
+
+Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). Detectors notice fillers, repetition, pace, pauses, turn length and volume; a **decision engine** (`src/lib/cue/engine.ts`) asks whether a tap would help right now:
+
+- **Patterns, not single fillers:** 3 fillers or accidental repeats within 12 s, or 8 in a minute. One “um” is normal. (Settings has an "every filler" testing mode.)
+- **Pace against your own normal**, learned from your first minute of speech (20% faster in Conversation, 10% in Presentation).
+- **No pause for 30 s**, and **a speaking turn over 90 s** ("give the other person space").
+- **One tap at a time:** a 15 s gap after any tap; sustained behaviors wait for a natural break so the tap doesn't land mid-word.
+- **Did it work?** 8 s after each tap Cue checks whether you paused, slowed down, stopped the fillers or spoke up, and gives more room next time if you did. Review shows "tapped: 3 in 9 s, and it worked".
+
 ## What it detects
 
 | Behavior                              | How                                                                                                                                                                                                                                                                                                                                             |

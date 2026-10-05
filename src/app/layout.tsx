@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
-import { Inter, Inter_Tight } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// DESIGN.md §8: Inter for UI/body and data, Inter Tight for display.
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const interTight = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"], weight: ["500", "600"] });
+// DESIGN.md §8: Geist Sans for product UI and headlines; Geist Mono only for technical readouts.
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Cue — speak with intention",
   description: "Real-time filler-word and pace cues.",
+  // Symbol on a bone field for light browser chrome, on an ink field for dark (DESIGN.md §3).
+  icons: {
+    icon: [
+      { url: "/brand/cue-logo-symbol-fullcolor-light-64.png", media: "(prefers-color-scheme: light)" },
+      { url: "/brand/cue-logo-symbol-fullcolor-dark-64.png", media: "(prefers-color-scheme: dark)" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${interTight.variable} h-full antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );
