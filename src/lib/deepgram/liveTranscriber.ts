@@ -11,7 +11,19 @@ export interface TranscriberHandlers {
   onLevel?: (t: number, db: number) => void;
   /** Every 16 kHz PCM chunk sent to Deepgram, for opt-in training recordings. */
   onAudio?: (pcm: Int16Array) => void;
-  onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string) => void;
+  onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string, code?: KeyProblem) => void;
+}
+
+/** Why listening couldn't start for want of a usable Deepgram key. */
+export type KeyProblem = "needs_key" | "bad_key";
+
+class KeyError extends Error {
+  constructor(
+    message: string,
+    readonly code: KeyProblem,
+  ) {
+    super(message);
+  }
 }
 
 /**
@@ -39,15 +51,29 @@ export class LiveTranscriber {
 
   constructor(private h: TranscriberHandlers) {}
 
-  async start() {
+  /**
+   * Start listening. With `apiKey` (the visitor's own Deepgram key), the browser connects to
+   * Deepgram directly and the key never reaches this app's server. Without it, the server
+   * mints a short-lived token from its own DEEPGRAM_API_KEY, if it has one.
+   */
+  async start(opts: { apiKey?: string } = {}) {
     this.stopped = false;
     this.sentSec = 0;
     this.clockZero = Infinity;
     this.h.onStatus("connecting");
     try {
-      const res = await fetch("/api/deepgram-token", { method: "POST" });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? "Could not get a Deepgram token");
+      let protocols: string[];
+      if (opts.apiKey) {
+        protocols = ["token", opts.apiKey];
+      } else {
+        const res = await fetch("/api/deepgram-token", { method: "POST" });
+        const body = await res.json();
+        if (!res.ok) {
+          const msg = body.error ?? "Could not get a Deepgram token";
+          throw body.code === "no_server_key" ? new KeyError(msg, "needs_key") : new Error(msg);
+        }
+        protocols = ["bearer", body.token];
+      }
 
       this.stream = await navigator.mediaDevices.getUserMedia({
         // Gain control and noise suppression are off: they would boost quiet speech and erase the
@@ -60,10 +86,12 @@ export class LiveTranscriber {
       this.node = new AudioWorkletNode(this.ctx, "pcm-worklet");
       src.connect(this.node);
 
-      const ws = new WebSocket(LISTEN_URL, ["bearer", body.token]);
+      const ws = new WebSocket(LISTEN_URL, protocols);
       ws.binaryType = "arraybuffer";
       this.ws = ws;
+      let opened = false;
       ws.onopen = () => {
+        opened = true;
         this.h.onStatus("listening");
         this.node!.port.onmessage = (e: MessageEvent<ArrayBuffer>) => {
           if (ws.readyState !== WebSocket.OPEN) return;
@@ -80,15 +108,30 @@ export class LiveTranscriber {
         };
       };
       ws.onmessage = (e) => this.h.onMessage(JSON.parse(e.data));
-      ws.onerror = () => this.h.onStatus("error", "Connection to Deepgram failed");
+      // Browsers hide the HTTP status of a refused WebSocket, so a visitor's key that never
+      // opens a connection is reported as a key problem (wrong, revoked, or out of credit).
+      const refusedKey = () => !opened && !!opts.apiKey;
+      ws.onerror = () => {
+        if (refusedKey())
+          this.h.onStatus(
+            "error",
+            "Deepgram didn’t accept that key. Check it, or its balance, and try again.",
+            "bad_key",
+          );
+        else this.h.onStatus("error", "Connection to Deepgram failed");
+      };
       ws.onclose = (e) => {
-        if (!this.stopped)
+        if (!this.stopped && !refusedKey())
           this.h.onStatus("error", `Deepgram closed the connection (${e.code}${e.reason ? `: ${e.reason}` : ""})`);
         this.teardownAudio();
       };
     } catch (err) {
       this.teardownAudio();
-      this.h.onStatus("error", err instanceof Error ? err.message : String(err));
+      this.h.onStatus(
+        "error",
+        err instanceof Error ? err.message : String(err),
+        err instanceof KeyError ? err.code : undefined,
+      );
     }
   }
 

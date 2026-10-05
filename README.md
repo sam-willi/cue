@@ -48,7 +48,7 @@ npm run dev
 Open http://localhost:3000.
 
 - **Try a sentence** plays typed text through the same detector. It doesn't need a key.
-- **Start listening** streams your mic to Deepgram for live detection.
+- **Start listening** streams your mic to Deepgram for live detection. With no `DEEPGRAM_API_KEY` on the server (e.g. a public demo), visitors can choose **Use your own Deepgram key**: the key stays in their browser (this tab, or this device if they choose) and connects straight to Deepgram, never through Cue's server.
 - **Mark mistakes**: click a word in the transcript, or use the buttons in "Why Cue acted", to flag a wrong buzz or a missed filler.
 - **Download session** (after a live session) saves the words and timings Deepgram heard, your corrections and cue delays (no audio). Put the files in `sessions/` and run `npm run eval`.
 
@@ -83,7 +83,7 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram live (nova-3, filler_words
 | `src/lib/cue/pace.ts`, `syllables.ts` | Rolling speaking rate                                                               |
 | `src/lib/cue/config.ts`               | Defaults and pace presets                                                           |
 | `src/lib/deepgram/liveTranscriber.ts` | Mic capture and Deepgram WebSocket client                                           |
-| `src/app/api/deepgram-token/route.ts` | Mints 30 s Deepgram tokens so the API key never reaches the browser                 |
+| `src/app/api/deepgram-token/route.ts` | Mints 30 s Deepgram tokens so the server's key never reaches the browser            |
 | `src/app/CueApp.tsx`                  | The UI                                                                              |
 
 ## Privacy
