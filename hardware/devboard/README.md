@@ -1,8 +1,11 @@
 # Cue rev A dev board
 
-A 38 × 28 mm, 4-layer board (signal / GND / 1V8 / signal) with the cuff circuits plus bench conveniences: USB-C
+A 42 × 32 mm, 4-layer board (signal / GND / 1V8 / signal) with the cuff circuits plus bench conveniences: USB-C
 charging, JST-PH battery and JST-SH motor connectors, SWD debug and an expansion header for the V2S200D eval board.
-P1.12 (the old J5 pin 10 spare) is left unconnected per Ezurio Note 7.
+
+**Radio module: Ezurio BL54L15 453-00044** (14 × 10 mm, MHF4 antenna connector). The cuff's BL54L15µ (453-00223) is
+out of stock everywhere until about Dec 2026, so the dev board uses its bigger sibling. Same nRF54L15 chip and the
+same port pins as the cuff, so firmware is identical. It needs a plug-in 2.4 GHz antenna (see below).
 
 **Status: pre-manufacturing.** Schematic, layout and JLCPCB fab files are generated and checked: DRC 0 violations / 0 unconnected, schematic = circuit = PCB pad for pad. Before
 ordering, open the board in KiCad and review it by eye, and confirm sourcing for the two parts LCSC doesn't stock.
@@ -20,12 +23,20 @@ board is `cue_devboard.kicad_pcb`. A PDF of the schematic is in `fab/schematic.p
 | `fab/bom.csv` | BOM (has an `LCSC Part #` column) |
 | `fab/cpl.csv` | CPL / pick-and-place |
 
-Not stocked at LCSC (checked 2026-10-05), so use JLCPCB **global sourcing** or buy them and send them in (consigned parts):
+Not stocked at LCSC (checked 2026-10-05), so use JLCPCB **global sourcing** or buy them and send them in (consigned parts). Standard PCBA is needed.
 
 | Ref | Part | Where |
 | --- | --- | --- |
-| U1 | Ezurio BL54L15µ 453-00223 (radio module) | Not on LCSC; Digi-Key / Mouser / Ezurio |
-| U2 | Nordic nPM1300-QEAA-R (power) | LCSC C7466043, out of stock |
+| U1 | Ezurio BL54L15 **453-00044C** (radio module, MHF4) | JLCPCB global sourcing: Chip1stop, 231 in stock, ~$15 (2026-10-05) |
+| U2 | Nordic nPM1300-QEAA-R (power) | LCSC C7466043 (check stock) |
+| SW1, SW2 | Omron B3U-1000P buttons | Out of stock at LCSC: leave unassembled and hand-solder |
+
+Also buy one **2.4 GHz antenna with an MHF4 plug** per board and click it onto the module (not assembled by JLCPCB).
+Ezurio's approved list: mFlexPIFA **EFA2400A3S-10MH4L** (stick-on flex, recommended), FlexPIFA 001-0022, NanoBlue
+EBL2400A1-10MH4L. Don't power the radio on without an antenna.
+
+Check U1's rotation in JLCPCB's placement preview: the module's MHF4 connector must sit at the board's top edge, next
+to pad 1 (silk dot), and the pad rows must land on the pads.
 
 
 Everything else has an LCSC number in `fab/bom.csv` (from `devboard_circuit.SOURCING`). The LSM6DSV16BX is in stock
@@ -35,16 +46,22 @@ LCSC-stocked alternatives, if you want everything sourced through JLCPCB (each n
 
 | Instead of | Alternative | LCSC | What changes |
 | --- | --- | --- | --- |
-| BL54L15µ module | u-blox BMD-340 (nRF52840) | C5456944 (19 in stock) | New footprint and pin map, nRF52 firmware port, more current. No nRF54L15 module is stocked at LCSC. |
+| BL54L15 module | u-blox BMD-340 (nRF52840) | C5456944 (19 in stock) | New footprint and pin map, nRF52 firmware port, more current. No nRF54L15 module is stocked at LCSC. |
 | nPM1300 | TI BQ25180 charger + TPS62840 1.8 V buck + TPS7A0230 3.0 V LDO | C3682423, C2071859, C3747031 | Three chips instead of one; new power section. |
 
 ## Design notes
 
-- **Radio module** (BL54L15µ, Ezurio datasheet 2026, p.25): footprint from the recommended land pattern. Module on
-  the top edge, centred, so there is ≥ 15 mm of board edge each side; inset 0.1 mm for copper-to-edge clearance.
-  3.0 × 5.0 mm antenna keep-out on all layers out to the edge.
-- **Ezurio Note 7**: P1.09–P1.12 toggle below 1 MHz behind ≥ 330 Ω. Only slow signals use them, through R7–R8 at the
-  module pads; fast clocks are on clock pins P1.03 (PDM), P1.08 (TDM BCLK), P1.04 (I2C SCL).
+- **Radio module** (BL54L15 453-00044, Ezurio BL54L10/BL54L15 datasheet): footprint from the host PCB land pattern
+  (39 pads, 0.45 × 0.60 mm, 0.75 mm pitch). Module centred on the top edge with its RF / MHF4 end at the edge, inset
+  0.1 mm for copper-to-edge clearance. No tracks or vias under the RF end (5 × 8.5 mm); ground pour is allowed, since
+  this variant has no on-board antenna.
+- **Pin map** (same nRF54L15 pins as the cuff): PDM_CLK P1.03 (pad 14), I2C_SCL P1.04 (23), TDM_BCLK P1.08 (30),
+  I2C_SDA P1.13 (33), PDM_DIN P1.14 (32), TDM_DIN P1.06 (21), IMU_INT1 P1.07 (20), MIC_WAKE P1.05 (22),
+  TDM_WCLK P1.11 (35, via R7), PMIC_INT P1.10 (28, via R8), MIC_THSEL P2.02 (8), HAPTIC_EN P2.00 (9),
+  HAPTIC_TRIG P2.01 (10), BTN_USER P0.00 (17), EXP_P0_01 P0.01 (18). Clock signals are on pins the datasheet marks as
+  clock pins.
+- **R7, R8 (330 Ω)**: the cuff's BL54L15µ Note 7 needs them on P1.09–P1.12; the BL54L15 doesn't, but they stay so
+  both boards behave the same.
 - **nPM1300** matches Nordic's PS v1.2.1 Configuration 1: VSET1 47k = 1.8 V, VSET2 150k = 3.0 V, 3 × 10 µF on VSYS,
   100 nF on VDDIO, 10k B3380 thermistor RT1 on NTC, unused LOADSW2 tied to GND.
 - **Mic safety**: the T5838 (1.98 V max) is behind load switch 1, which is off at reset.
@@ -55,21 +72,22 @@ LCSC-stocked alternatives, if you want everything sourced through JLCPCB (each n
 
 ## Review (2026-10-05)
 
-Every footprint and pin map was checked against the manufacturer's drawing (BL54L15µ, nPM1300, T5838 from the PDFs;
+Every footprint and pin map was checked against the manufacturer's drawing (nPM1300, T5838 from the PDFs;
 LSM6DSV16BX, DRV2605L, USB4125, FTSH-105, JST PH/SH, DFE201210U, B3U-1000P, ESD5Z, NCP15 from the web): no errors.
-DRC: 0 errors, 0 unconnected (2 warnings: the J2/U5 board footprints differ cosmetically from their library copies).
+The BL54L15 footprint, pin map and placement were re-checked by a second reviewer against the Ezurio datasheet: no
+errors. DRC: 0 violations, 0 unconnected; board = circuit pad for pad (56 parts).
 
 Firmware must:
 - select the 10k NTC and a 32 mA charge current before enabling charging;
 - enable LOADSW1 (mic supply) only after BUCK1 is confirmed at 1.8 V;
-- keep P1.09–P1.12 below 1 MHz;
+- keep P1.09–P1.12 below 1 MHz (cuff rule; harmless here);
 - configure the NFC pins as GPIO (UICR NFCPINS): PDM_CLK is on P1.03/NFC2;
 - read the T5838 as the PDM channel sampled on the rising edge (SELECT = GND);
 - enable Qvar on the LSM6DSV16BX (else tie-off is recommended) and drive/pull the TDM pins before use;
 - enable pulls on inputs that can float (BTN_USER, EXP_P0_01).
 
 Optional improvements for a rev B: T5838 paste openings 0.05 mm smaller with a vented ground ring; move C10 closer
-to the mic; GCT USB4125-GF-A-0190 (longer stakes) for a 1.6 mm board; add the antenna keep-out as a footprint rule area.
+to the mic; add the RF-end rule area to the footprint; move back to the BL54L15µ once it is in stock.
 
 ## Rebuild
 
@@ -90,9 +108,9 @@ python3 export_fab.py            # fab/
 | File | What it does |
 | --- | --- |
 | `devboard_circuit.py` | Parts, pad-level nets, sourcing, electrical checks (rails, I2C, clock pins, Note 7) |
-| `make_footprints.py` | `Cue.pretty`: BL54L15µ, TDK T5838, touch pad |
+| `make_footprints.py` | `Cue.pretty`: BL54L15 (dev board), BL54L15µ (cuff), TDK T5838, touch pad |
 | `make_schematic.py` / `check_schematic.py` | Schematic generator and netlist cross-check |
 | `build_board.py` | Placement, plane fan-out, Freerouting, pours, stitching, DRC |
 | `export_fab.py` | Gerbers, drill, JLCPCB BOM and CPL, assembly and schematic PDFs |
 | `render.py` | PNG renders of each layer |
-| `make_3d.py` | Simple 3D models for the radio module and mic (`Cue.3dshapes`) |
+| `make_3d.py` | Simple 3D models for the radio modules, mic and two connectors (`Cue.3dshapes`) |

@@ -1,7 +1,7 @@
 """
 Cue rev A dev board - circuit definition.
 
-Same circuits as the production cuff (hardware/rev0), on a ~32 x 22 mm flat board with
+Same circuits as the production cuff (hardware/rev0), on a 42 x 32 mm flat board with
 bench conveniences: USB-C charging, JST battery and motor connectors, SWD debug
 header, expansion header, buttons and test points.
 
@@ -13,9 +13,10 @@ Differences from the rev0 cuff netlist:
   - The T5838 mic is powered through nPM1300 load switch 1 (MIC_1V8). Firmware sets
     BUCK1 to 1.8 V before closing the switch, so the 1.98 V-max mic is protected
     even if the BUCK1 start-up voltage were wrong.
-  - nRF54L15 pins re-chosen on the BL54L15u pad map: clock signals only on clock pins
-    (P1.03, P1.04, P1.08, P1.11, P1.12), interrupts on P0/P1 only, and Ezurio Note 7
-    respected (P1.09-P1.12 below 1 MHz behind 330 R).
+  - Radio: Ezurio BL54L15 453-00044 (14 x 10 mm, MHF4 antenna connector) because the cuff's BL54L15u is out of
+    stock until Dec 2026. Same nRF54L15 port pins as the cuff: clock signals only on clock pins
+    (P1.03, P1.04, P1.08), interrupts on P0/P1 only, and the cuff's Ezurio Note 7 rule kept
+    (P1.09-P1.12 below 1 MHz behind 330 R) so firmware is identical on both.
 
 Every pin is keyed by its footprint pad number.
 """
@@ -39,34 +40,35 @@ def part(ref, lib, fp, value, mpn, pins, supply=(), i2c=None, note="", status="F
                       i2c=i2c, note=note, status=status, nc=set(nc))
 
 
-# --- U1 radio module: Ezurio BL54L15u (453-00223, chip antenna). Pad map from Ezurio datasheet v1.1.
+# --- U1 radio module: Ezurio BL54L15 453-00044 (nRF54L15, MHF4 antenna connector, 14 x 10 mm).
+# Pad map from the Ezurio BL54L10/BL54L15 datasheet pin-out table. Same nRF54L15 port pins as the cuff's BL54L15u,
+# so firmware carries over unchanged.
 u1 = {
-    "2": "HAPTIC_EN",      # P2.00 (output; P2 is fine for outputs)
-    "3": "TDM_BCLK",       # P1.08 clock pin  -> I2S SCK
-    "5": "1V8",            # VDD_nRF
-    "6": "HAPTIC_TRIG",    # P2.01
-    "7": "TDM_DIN",        # P1.06 -> I2S SDIN
-    "8": "IMU_INT1",       # P1.07 interrupt
-    "13": "MIC_THSEL",     # P2.02
-    "15": "MIC_WAKE",      # P1.05 interrupt
-    "9": "PDM_CLK",        # P1.03 clock pin
-    "17": "I2C_SCL",       # P1.04 clock pin
-    "18": "PDM_DIN",       # P1.14
-    # Ezurio Note 7: P1.09-P1.12 must toggle below 1 MHz with >=330 R series resistance.
-    # Only slow push-pull/input signals go there, each through a 330 R (R7-R9); no I2C.
-    "20": "I2C_SDA",       # P1.13
-    "21": "U1_PMIC_INT",   # P1.10 interrupt via R8
-    "23": "U1_TDM_WCLK",   # P1.11 -> I2S LRCK via R7 (8-48 kHz)
-    "25": "SWDCLK", "27": "SWDIO", "32": "nRESET",
-    "35": "EXP_P0_01",     # P0.01 spare to header
-    "38": "BTN_USER",      # P0.00 user button (internal pull-up)
+    "5": "SWDIO", "6": "SWDCLK", "7": "nRESET",
+    "8": "MIC_THSEL",      # P2.02
+    "9": "HAPTIC_EN",      # P2.00 (output; P2 is fine for outputs)
+    "10": "HAPTIC_TRIG",   # P2.01
+    "14": "PDM_CLK",       # P1.03 clock pin (NFC2: configure as GPIO)
+    "17": "BTN_USER",      # P0.00 user button (internal pull-up)
+    "18": "EXP_P0_01",     # P0.01 spare to header
+    "20": "IMU_INT1",      # P1.07 interrupt
+    "21": "TDM_DIN",       # P1.06 -> I2S SDIN
+    "22": "MIC_WAKE",      # P1.05 interrupt
+    "23": "I2C_SCL",       # P1.04 clock pin
+    "26": "1V8",           # VDD_nRF
+    "28": "U1_PMIC_INT",   # P1.10 interrupt via R8 (cuff Note 7 resistor, kept so both boards match)
+    "30": "TDM_BCLK",      # P1.08 clock pin -> I2S SCK
+    "32": "PDM_DIN",       # P1.14
+    "33": "I2C_SDA",       # P1.13
+    "35": "U1_TDM_WCLK",   # P1.11 -> I2S LRCK via R7 (8-48 kHz)
 }
-for g in ["4", "14", "24", "28", "31", "34", "36", "39", "G1", "G2", "G3", "G4", "G5", "G6"]:
+for g in ["1", "16", "27", "39"]:
     u1[g] = "GND"
-part("U1", CUE, "Ezurio_BL54L15u_453-00223", "BL54L15u", "Ezurio 453-00223", u1,
-     supply=[("5", 1.7, 3.5)],
-     nc=["1", "10", "19", "11", "12", "16", "22", "26", "29", "30", "33", "37", "40", "41", "42", "43", "44", "45"],
-     note="Certified nRF54L15 module, chip antenna, 7.9x6.3x1.75 mm. Place on board edge; no copper under antenna.")
+part("U1", CUE, "Ezurio_BL54L15_453-00044", "BL54L15", "Ezurio 453-00044", u1,
+     supply=[("26", 1.7, 3.6)],
+     nc=["2", "3", "4", "11", "12", "13", "15", "19", "24", "25", "29", "31", "34", "36", "37", "38"],
+     note="Certified nRF54L15 module, 14x10x1.6 mm, MHF4 connector for an external 2.4 GHz antenna "
+          "(e.g. Ezurio mFlexPIFA EFA2400A3S-10MH4L). On the top edge; no tracks or vias under the RF end.")
 
 # --- U2 PMIC: Nordic nPM1300 QFN32 (pin numbers from Nordic product spec). EP = AVSS.
 part("U2", FP + "Package_DFN_QFN.pretty", "QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm", "nPM1300",
@@ -162,7 +164,7 @@ res("R4", "150k", "VSET2", "GND", note="VSET2 per Nordic reference circuit (BUCK
 part("RT1", R0402[0], R0402[1], "10k NTC", "Murata NCP15XH103F03RC", {"1": "NTC", "2": "GND"},
      note="10k 1% B25/50 3380 K (nPM1300 PS Table 11). Next to U2: with the cell on a lead it senses board temperature.")
 res("R6", "0R", "QVAR1", "TOUCH_E", note="Qvar series element, value TBC with ST guidance")
-note7 = "Ezurio Note 7: >=330 R series on P1.09-P1.12; place at U1 pad"
+note7 = "Cuff (BL54L15u) Ezurio Note 7: >=330 R series on P1.09-P1.12; kept so the boards match"
 res("R7", "330R", "U1_TDM_WCLK", "TDM_WCLK", note=note7)
 res("R8", "330R", "U1_PMIC_INT", "PMIC_INT", note=note7)
 
@@ -214,12 +216,11 @@ def check():
     for a, refs in addrs.items():
         (problems if len(refs) > 1 else oks).append(f"I2C 0x{a:02X} -> {refs}")
     # nRF54L15 port rules (U1 pad -> port.pin from Ezurio map)
-    port = {"2": "P2.00", "3": "P1.08", "9": "P1.03", "6": "P2.01", "7": "P1.06", "8": "P1.07", "13": "P2.02", "15": "P1.05",
-            "17": "P1.04", "18": "P1.14", "19": "P1.12", "20": "P1.13", "21": "P1.10", "22": "P1.09", "23": "P1.11",
-            "35": "P0.01", "38": "P0.00"}
-    # Clock pins confirmed in the nRF54L15 pin table (via Flux review, Oct 2026).
-    # LRCK (TDM_WCLK) does not need a clock pin.
-    clock_pins = {"P1.03", "P1.04", "P1.08", "P1.11", "P1.12"}
+    port = {"8": "P2.02", "9": "P2.00", "10": "P2.01", "14": "P1.03", "17": "P0.00", "18": "P0.01", "20": "P1.07",
+            "21": "P1.06", "22": "P1.05", "23": "P1.04", "28": "P1.10", "29": "P1.09", "30": "P1.08", "32": "P1.14",
+            "33": "P1.13", "34": "P1.12", "35": "P1.11"}
+    # Port-1 pins marked "Clock pin" in the Ezurio BL54L15 pin-out table. LRCK (TDM_WCLK) does not need one.
+    clock_pins = {"P1.03", "P1.04", "P1.08", "P1.11"}
     note7 = {"P1.09", "P1.10", "P1.11", "P1.12"}
     u1 = PARTS["U1"]["pins"]
     for pad, net in u1.items():
@@ -265,7 +266,7 @@ for refs, mpn, lcsc, note in [
     ("C22 C8 C9 C10", "Samsung CL05B104KO5NNNC (100nF 16V X7R 0402)", "C1525", "Basic"),
     ("C3", "Samsung CL10A225KO8NNNC (2.2uF 16V X5R 0603)", "C23630", "Basic"),
     ("D1", "onsemi ESD5Z5.0T1G", "C82044", "Extended"),
-    ("J1", "GCT USB4125-GF-A", "C3151650", "Extended; low stock"),
+    ("J1", "GCT USB4125-GF-A-0190", "C5246813", "Extended; same footprint as USB4125-GF-A (C3151650 out of stock)"),
     ("J2", "JST S2B-PH-SM4-TB(LF)(SN)", "C295747", "Extended"),
     ("J3", "JST SM02B-SRSS-TB(LF)(SN)", "C160402", "Extended"),
     ("J4", "Samtec FTSH-105-01-L-DV-K-P-TR", "C2932107", "Extended; check land pattern"),
@@ -278,7 +279,7 @@ for refs, mpn, lcsc, note in [
     ("R7 R8", "UniOhm 0402WGF3300TCE", "C25104", "Basic"),
     ("RT1", "Murata NCP15XH103F03RC", "C77131", "Extended"),
     ("SW1 SW2", "Omron B3U-1000P", "C231329", "Extended"),
-    ("U1", "Ezurio 453-00223", "", "Not on LCSC: JLCPCB global sourcing or consign"),
+    ("U1", "Ezurio 453-00044C", "", "Not on LCSC: JLCPCB global sourcing (Chip1stop, 231 in stock 2026-10-05)"),
     ("U2", "Nordic NPM1300-QEAA-R", "C7466043", "Listed, out of stock: pre-order / global sourcing"),
     ("U3", "ST LSM6DSV16BXTR", "C5267394", "Extended; in stock at LCSC (2nd listing; C5381401 is the dead one)"),
     ("U4", "TDK MMICT5838-00-012", "C7230692", "Extended"),

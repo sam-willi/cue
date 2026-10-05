@@ -4,7 +4,8 @@ Custom footprints for the Cue dev board, written into Cue.pretty with the KiCad 
 TDK_T5838            from TDK DS-000383 v1.1, Figure 34 (outline, bottom view) mirrored to top view.
                      Checked against Figure 3 pin map and Figure 32 land pattern (1:1 with package pads).
 Touch_Pad_4x3mm      plain copper pad for the Qvar touch electrode.
-Ezurio_BL54L15u_...  Ezurio BL54L15u datasheet (2026) p.25 recommended land pattern, 453-00223 chip antenna.
+Ezurio_BL54L15_...   Ezurio BL54L10/BL54L15 datasheet, host PCB land pattern (dev board radio, 453-00044 MHF4).
+Ezurio_BL54L15u_...  Ezurio BL54L15u datasheet (2026) p.25 recommended land pattern, 453-00223 chip antenna (cuff).
 """
 import os
 import sys
@@ -197,6 +198,75 @@ def bl54l15u():
     save(fp, "Ezurio_BL54L15u_453-00223")
 
 
+# BL54L15 land pattern, Ezurio "BL54L10 and BL54L15 Series" datasheet, Host PCB Land Pattern (top view).
+# Module 14.0 x 10.0 mm, 39 castellated pads 0.45 x 0.60 mm at 0.75 mm pitch (long side perpendicular to the edge).
+# Pad centres from the module's top-left corner (drawing's top view):
+#   bottom row 1..16 (right -> left): y = 10 - 0.503, x = 11.80 - 0.75 * (n - 1)   (pad 16 at x = 0.55)
+#   left column 17..27 (bottom -> top): x = 0.50, y = 8.75 - 0.75 * (n - 17)       (pad 27 at y = 1.25)
+#   top row 28..39 (left -> right): y = 0.503, x = 0.55 + 0.75 * (n - 28)          (pad 39 at x = 8.80)
+# The +X end (x 9.0-14.0) is the RF end: trace antenna on 453-00001, MHF4 connector on 453-00044.
+BL15_W, BL15_H = 14.0, 10.0
+# RF end, relative to the footprint origin (module centre): 5.0 x 8.5 mm from the +X edge (453-00001 keep-out)
+BL15_RF = (14.0 - 5.0 - BL15_W / 2, -BL15_H / 2, BL15_W / 2, 8.5 - BL15_H / 2)
+
+
+def bl54l15_pads():
+    """pad -> (x, y, w, h) relative to the module centre."""
+    out = {}
+    for n in range(1, 17):
+        out[str(n)] = (11.80 - 0.75 * (n - 1), 10.0 - 0.503, 0.45, 0.60)
+    for n in range(17, 28):
+        out[str(n)] = (0.50, 8.75 - 0.75 * (n - 17), 0.60, 0.45)
+    for n in range(28, 40):
+        out[str(n)] = (0.55 + 0.75 * (n - 28), 0.503, 0.45, 0.60)
+    return {k: (round(x - BL15_W / 2, 4), round(y - BL15_H / 2, 4), w, h) for k, (x, y, w, h) in out.items()}
+
+
+def bl54l15():
+    """Ezurio BL54L15 453-00044 (MHF4 connector) / 453-00001 (trace antenna). Origin = module centre, RF end +X."""
+    name = "Ezurio_BL54L15_453-00044"
+    fp = new_fp(name, "Ezurio BL54L15 (nRF54L15) 14.0x10.0x1.6 mm, 39 castellated pads. Ezurio BL54L10/BL54L15 "
+                      "datasheet land pattern. RF end (MHF4 connector / trace antenna) at +X.")
+    pads = bl54l15_pads()
+    assert len(pads) == 39
+    for num, (x, y, w, h) in pads.items():
+        smd(fp, num, x, y, w, h)
+    w, h = BL15_W / 2, BL15_H / 2
+    rect(fp, pcbnew.F_Fab, -w, -h, w, h, 0.1)
+    kx1, ky1, kx2, ky2 = BL15_RF
+    rect(fp, pcbnew.F_Fab, kx1, ky1, kx2, ky2, 0.05)
+    # MHF4 connector (453-00044), ~ (10.5, 8.6) from the top-left corner
+    c = pcbnew.FP_SHAPE(fp, pcbnew.SHAPE_T_CIRCLE)
+    c.SetStart(V(3.5, 3.6))
+    c.SetEnd(V(4.5, 3.6))
+    c.SetLayer(pcbnew.F_Fab)
+    c.SetWidth(MM(0.1))
+    c.SetLocalCoord()
+    fp.Add(c)
+    # silkscreen: outline outside the pads, open at the RF end; pin-1 dot beside pad 1
+    s = 0.15
+    for seg in [(-w - s, -h - s, kx1, -h - s), (-w - s, h + s, kx1, h + s), (-w - s, -h - s, -w - s, h + s)]:
+        line(fp, pcbnew.F_SilkS, *seg)
+    dot = pcbnew.FP_SHAPE(fp, pcbnew.SHAPE_T_CIRCLE)
+    p1 = pads["1"]
+    dot.SetStart(V(p1[0], h + 0.55))
+    dot.SetEnd(V(p1[0] + 0.1, h + 0.55))
+    dot.SetLayer(pcbnew.F_SilkS)
+    dot.SetWidth(MM(0.15))
+    dot.SetLocalCoord()
+    fp.Add(dot)
+    rect(fp, pcbnew.F_CrtYd, -w - 0.25, -h - 0.25, w + 0.25, h + 0.25, 0.05)
+    t = pcbnew.FP_TEXT(fp)
+    t.SetText("RF / MHF4")
+    t.SetPosition(V((kx1 + kx2) / 2, 0))
+    t.SetTextSize(V(0.6, 0.6))
+    t.SetLayer(pcbnew.F_Fab)
+    fp.Add(t)
+    fp.Reference().SetPosition(V(-2.0, 0))
+    fp.Value().SetLayer(pcbnew.F_Fab)
+    save(fp, name)
+
+
 # KiCad library footprints re-homed in Cue.pretty so they can carry project-local 3D models (Cue.3dshapes)
 STOCK_COPIES = {
     "VSSOP-10_3x3mm_P0.5mm": ("Package_SO", "VSSOP-10_3x3mm_P0.5mm"),
@@ -214,12 +284,14 @@ def stock_copies():
 
 
 if __name__ == "__main__":
-    which = sys.argv[1:] or ["t5838", "touch", "bl54"]
+    which = sys.argv[1:] or ["t5838", "touch", "bl54", "bl15"]
     if "t5838" in which:
         t5838()
     if "touch" in which:
         touch_pad()
     if "bl54" in which:
-        bl54l15u()
+        bl54l15u()   # kept for the cuff (rev0), which still uses the BL54L15u
+    if "bl15" in which:
+        bl54l15()
     if "stock" in which or not sys.argv[1:]:
         stock_copies()

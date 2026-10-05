@@ -5,7 +5,7 @@ Comment,Designator,Footprint,LCSC Part #,Manufacturer Part,Qty,Status,Sourcing,N
 4.7uF,C16,C_0402_1005Metric,C23733,Samsung CL05A475MP5NRNC (4.7uF 10V X5R 0402),1,FIT,Basic,U1 VDD bulk
 100nF,"C8,C9,C10,C22",C_0402_1005Metric,C1525,Samsung CL05B104KO5NNNC (100nF 16V X7R 0402),4,FIT,Basic,"U3 VDD | U3 VDD_IO | U4 VDD, X7R, closest part to pin 7 | nPM1300 VDDIO pin 12, ref C13"
 TVS 5V,D1,D_SOD-523,C82044,onsemi ESD5Z5.0T1G,1,FIT,Extended,Pad 1 = cathode to VBUS.
-USB-C (power),J1,USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal,C3151650,GCT USB4125-GF-A,1,FIT,Extended; low stock,Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.
+USB-C (power),J1,USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal,C5246813,GCT USB4125-GF-A-0190,1,FIT,Extended; same footprint as USB4125-GF-A (C3151650 out of stock),Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.
 BATT,J2,JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal,C295747,JST S2B-PH-SM4-TB(LF)(SN),1,FIT,Extended,JST-PH to fit the Adafruit #1570 100 mAh LiPo (built-in protection). Check polarity: pin 1 = +.
 LRA,J3,JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal,C160402,JST SM02B-SRSS-TB(LF)(SN),1,FIT,Extended,Coin LRA on a pigtail (Vybronics VG0832013D).
 SWD,J4,PinHeader_2x05_P1.27mm_Vertical_SMD,C2932107,Samtec FTSH-105-01-L-DV-K-P-TR,1,FIT,Extended; check land pattern,ARM Cortex 10-pin debug pinout. VTref = 1V8.
@@ -15,11 +15,11 @@ EXP,J5,PinHeader_2x05_P2.54mm_Vertical,C492422,XFCN PZ254V-12-10P,1,FIT,Extended
 47k,R3,R_0402_1005Metric,C25792,UniOhm 0402WGF4702TCE,1,FIT,Basic,VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table
 150k,R4,R_0402_1005Metric,C25755,UniOhm 0402WGF1503TCE,1,FIT,Extended,VSET2 per Nordic reference circuit (BUCK2 3.0 V) - confirm in PS table
 0R,R6,R_0402_1005Metric,C17168,UniOhm 0402WGF0000TCE,1,FIT,Basic,"Qvar series element, value TBC with ST guidance"
-330R,"R7,R8",R_0402_1005Metric,C25104,UniOhm 0402WGF3300TCE,2,FIT,Basic,Ezurio Note 7: >=330 R series on P1.09-P1.12; place at U1 pad
+330R,"R7,R8",R_0402_1005Metric,C25104,UniOhm 0402WGF3300TCE,2,FIT,Basic,Cuff (BL54L15u) Ezurio Note 7: >=330 R series on P1.09-P1.12; kept so the boards match
 10k NTC,RT1,R_0402_1005Metric,C77131,Murata NCP15XH103F03RC,1,FIT,Extended,10k 1% B25/50 3380 K (nPM1300 PS Table 11). Next to U2: with the cell on a lead it senses board temperature.
 USER,SW1,SW_SPST_B3U-1000P,C231329,Omron B3U-1000P,1,FIT,Extended,
 SHIP/WAKE,SW2,SW_SPST_B3U-1000P,C231329,Omron B3U-1000P,1,FIT,Extended,Hold to leave ship mode / power on.
-BL54L15u,U1,Ezurio_BL54L15u_453-00223,,Ezurio 453-00223,1,FIT,Not on LCSC: JLCPCB global sourcing or consign,"Certified nRF54L15 module, chip antenna, 7.9x6.3x1.75 mm. Place on board edge; no copper under antenna."
+BL54L15,U1,Ezurio_BL54L15_453-00044,,Ezurio 453-00044C,1,FIT,"Not on LCSC: JLCPCB global sourcing (Chip1stop, 231 in stock 2026-10-05)","Certified nRF54L15 module, 14x10x1.6 mm, MHF4 connector for an external 2.4 GHz antenna (e.g. Ezurio mFlexPIFA EFA2400A3S-10MH4L). On the top edge; no tracks or vias under the RF end."
 nPM1300,U2,QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm,C7466043,Nordic NPM1300-QEAA-R,1,FIT,"Listed, out of stock: pre-order / global sourcing","I2C 0x6B. BUCK1=1V8 (VSET1), BUCK2=3V0 (VSET2), LS1 gates MIC_1V8. Matches nPM1300 PS v1.2.1 Configuration 1 (Table 38/39). LOADSW2 unused: LSIN2/LSOUT2 to GND per Fig. 57/58. NTC: 10k B3380 thermistor RT1 (Table 11); select it in ADCNTCRSEL. EP size: KiCad 3.45 mm vs 3.5 mm nominal on sister nPM1304 - confirm."
 LSM6DSV16BX,U3,LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y,C5267394,ST LSM6DSV16BXTR,1,FIT,Extended; in stock at LCSC (2nd listing; C5381401 is the dead one),SA0=GND -> 0x6A. CS=1V8 -> I2C mode. Confirm ST land pattern matches KiCad LGA-14 3x2.5.
 T5838,U4,TDK_T5838,C7230692,TDK MMICT5838-00-012,1,FIT,Extended,SELECT=GND -> right channel (data after the falling clock edge). Bottom port: 0.6 mm board hole (TDK: 0.5-1.0).

@@ -22,54 +22,53 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.join(HERE, "cue_devboard.kicad_pcb")
 CUE_LIB = os.path.join(HERE, "Cue.pretty")
 MM = pcbnew.FromMM
-W, H = 38.0, 28.0                   # board outline, mm
-# BL54L15u on the top edge (inset 0.1 mm so its edge pads keep 0.3 mm copper-to-edge; Ezurio note 5), centred: Ezurio p.25 wants the module on the board edge, preferably edge-centre,
-# with >= 15 mm of board edge on each side (19.0 - 3.15 = 15.85 mm).
-U1_X, U1_Y = W / 2, 4.05             # module centre; footprint rotated 90 so its antenna end (+X) faces the top edge
-# antenna keep-out (Ezurio p.25: 3.0 x 5.0 mm, all layers) = footprint BL54_KEEPOUT rotated 90 deg
-ANT_KEEPOUT = (U1_X - 2.5, 0.0, U1_X + 2.5, U1_Y - 0.95)   # runs out to the board edge
+W, H = 42.0, 32.0                   # board outline, mm
+# BL54L15 (453-00044) on the top edge, centred, inset 0.1 mm so its edge pads keep 0.3 mm copper-to-edge. The MHF4
+# variant has no on-board antenna, so there is no Ezurio keep-out; the RF end still faces the edge so the antenna
+# cable leaves the board directly, and no tracks or vias run under the RF end (the module's RF trace / connector).
+U1_X, U1_Y = W / 2, 7.1              # module centre; footprint rotated 90 so its RF end (+X) faces the top edge
+# RF end of the module (footprint BL15_RF rotated 90 deg): x = centre -5 .. +3.5, y = top edge .. centre -2
+ANT_KEEPOUT = (U1_X - 5.0, 0.0, U1_X + 3.5, U1_Y - 2.0)
 
 
 def V(x, y):
     return pcbnew.VECTOR2I(MM(x), MM(y))
 
 
+# nPM1300 block: U2 and its buck / VSET / VDDIO parts, laid out as Nordic PS 9.3.4 (offsets from U2 centre)
+U2_X, U2_Y = 11.0, 18.6
+_U2_BLOCK = {
+    "U2": (0, 0, 180), "C5": (4.75, 0.25, 0), "L1": (5.35, 2.05, 0), "L2": (5.35, -1.55, 0),
+    "C6": (7.9, 3.15, 90), "C7": (7.9, -2.65, 90), "C17": (-4.2, 0.9, 90),
+    "R4": (-3.7, -4.8, 0), "R3": (-3.7, -3.8, 0), "C22": (3.7, -4.1, 90),
+}
 # ------------------------------------------------------------------ fixed placement: ref -> (x, y, rot, side)
 FIXED = {
-    "U1": (U1_X, U1_Y, 90, "F"),   # module on top edge centre, antenna end at the edge
-    "J4": (30.0, 4.4, 0, "F"),     # SWD, >4 mm clear of the module
+    "U1": (U1_X, U1_Y, 90, "F"),   # module on top edge centre, RF end at the edge
+    "J4": (31.5, 4.6, 0, "F"),     # SWD beside the module's SWD pads (5-7, right side)
     "J1": (3.4, 7.8, -90, "F"),    # USB-C, mouth to the left edge
-    "SW2": (10.4, 7.4, 0, "F"),    # ship/wake, just above the nPM1300 SHPHLD pin (pin 15, top side)
-    "U2": (12.6, 14.4, 180, "F"),  # nPM1300: USB/charger pins face J1, buck pins face the open middle
+    "SW2": (3.6, 17.6, 0, "F"),    # ship/wake, between USB-C and the battery connector
     "J2": (4.6, H - 4.9, 0, "F"),  # battery (JST-PH), mouth to bottom edge
-    "SW1": (11.5, 2.6, 0, "F"),    # user button, top-left beside the module it talks to
-    "U5": (24.0, 13.6, 90, "F"),   # DRV2605L
-    "J3": (21.0, H - 3.2, 0, "F"),  # LRA, mouth to bottom edge
-    "J5": (33.2, 12.0, 0, "F"),    # expansion 2x5 2.54 (origin = pin 1)
-    "C5": (17.35, 14.65, 0, "F"),  # PVDD input cap straight out of pin 4; SW1/SW2 (pins 3, 5) fan out past it
-    "C17": (8.4, 15.3, 90, "F"),   # VBUSOUT cap beside pin 22
-    "L1": (17.95, 16.45, 0, "F"),  # BUCK1 inductor: pad 1 ~1.7 mm from SW1 (pin 3)   # BUCK1 inductor beside SW1 (pin 3)
-    "L2": (17.95, 12.85, 0, "F"),  # BUCK2 inductor: pad 1 ~1.7 mm from SW2 (pin 5)
-    "C6": (20.5, 17.55, 90, "F"),   # BUCK1 output cap at the inductor output
-    "C7": (20.5, 11.75, 90, "F"),   # BUCK2 output cap at the inductor output   # BUCK2 inductor beside SW2 (pin 5)
-    "U3": (29.0, 12.2, 0, "F"),    # LSM6DSV16BX
-    "U4": (29.0, 16.6, 90, "F"),   # T5838 (bottom port hole in footprint)
-    "E1": (28.5, H - 3.0, 0, "F"),  # touch pad
-    # nPM1300 VSET resistors and VDDIO cap beside (not in front of) the top pin row, which needs escape room
-    "R4": (8.9, 9.6, 0, "F"),      # VSET2 (pin 16)
-    "R3": (8.9, 10.6, 0, "F"),      # VSET1 (pin 17)
-    "C22": (16.3, 10.3, 90, "F"),  # VDDIO (pin 12)
+    "SW1": (31.0, 22.0, 0, "F"),   # user button
+    "U5": (30.0, 12.0, 90, "F"),   # DRV2605L beside the HAPTIC pads (8-10, right side)
+    "J3": (23.0, H - 3.2, 0, "F"),  # LRA, mouth to bottom edge
+    "J5": (37.4, 12.6, 0, "F"),    # expansion 2x5 2.54 (origin = pin 1)
+    "U3": (21.8, 18.6, 0, "F"),    # LSM6DSV16BX under the module's TDM / I2C pads
+    "U4": (26.2, 18.6, 90, "F"),   # T5838 (bottom port hole in footprint)
+    "E1": (31.0, H - 3.0, 0, "F"),  # touch pad
     "FID1": (W - 1.0, H - 1.0, 0, "F"),
     "FID2": (W - 1.0, 1.2, 0, "F"),
     "FID3": (1.0, 0.8, 0, "F"),
 }
+for _r, (_dx, _dy, _rot) in _U2_BLOCK.items():
+    FIXED[_r] = (round(U2_X + _dx, 2), round(U2_Y + _dy, 2), _rot, "F")
 # which pin each small part should sit next to: ref -> (anchor ref, anchor pad)
 ANCHOR = {   # placed in this order: Note 7 resistors (must hug the module), buck loop, rail caps, then the rest
-    "R7": ("U1", "23"), "R8": ("U1", "21"),
+    "R7": ("U1", "35"), "R8": ("U1", "28"),
 
     "C4": ("U2", "20"), "C1": ("U2", "21"), "C3": ("U2", "19"), "C19": ("U2", "29"),
     "R1": ("J5", "5"), "R2": ("J5", "6"), "C2": ("U2", "21"),
-    "D1": ("J1", "A9"), "C18": ("U1", "5"), "C16": ("U1", "5"),
+    "D1": ("J1", "A9"), "C18": ("U1", "26"), "C16": ("U1", "26"),
     "C8": ("U3", "8"), "C9": ("U3", "5"), "R6": ("U3", "6"),
     "C10": ("U4", "7"),
     "C11": ("U5", "10"), "C12": ("U5", "1"),
@@ -77,8 +76,8 @@ ANCHOR = {   # placed in this order: Note 7 resistors (must hug the module), buc
 }
 UNPLACED = []
 # plain silkscreen labels (text, x, y) - placed in clear areas, checked by DRC
-SILK_LABELS = [("BATT+", 11.2, H - 1.0), ("LRA", 21.0, 20.4), ("SWD", 26.9, 8.9), ("EXP", 34.5, 10.1)]
-BOTTOM_LABELS = [("SHIP", 10.4, 7.4), ("USER", 11.5, 2.6)]  # under each button
+SILK_LABELS = [("BATT+", 11.2, H - 1.0), ("LRA", 23.0, H - 6.6), ("SWD", 37.6, 4.6), ("EXP", 38.7, 10.2)]
+BOTTOM_LABELS = [("SHIP", 4.6, 16.2), ("USER", 31.0, 22.0)]  # under each button
 USED_LIBS = set()
 PASSES = 100
 POWER_NETS = {"VBUS", "VBAT", "VSYS", "SW1", "SW2", "1V8", "3V0", "MIC_1V8", "LRA_P", "LRA_N", "VBUSOUT"}
@@ -254,8 +253,8 @@ def build(place_only=False):
         if not place_near(ref, pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), "F", top_boxes, rmin=rmin):
             UNPLACED.append(ref)
     # test points on the bottom, spread along the lower half
-    tp_spots = [(2.0, 11.5), (7.0, 18.5), (15.0, 19.5), (24.0, 9.5), (25.0, 6.0), (26.0, 19.5), (2.5, 4.0),
-                (16.0, 23.5), (31.5, 23.5), (36.0, 6.5)]
+    tp_spots = [(2.0, 17.5), (7.0, 25.5), (15.0, 26.0), (28.5, 15.5), (13.0, 4.0), (28.0, 26.0), (3.0, 3.0),
+                (17.0, 29.0), (36.0, 26.5), (39.0, 5.5)]
     for i, ref in enumerate(sorted(r for r in C.PARTS if r.startswith("TP"))):
         x, y = tp_spots[i]
         if not place_near(ref, x, y, "B", bot_boxes, avoid_keepout=True):
@@ -277,10 +276,10 @@ def build(place_only=False):
     zone("GND", pcbnew.In1_Cu)
     zone("1V8", pcbnew.In2_Cu)
 
-    # antenna keep-out (rule area): no copper, tracks, vias, pads on any layer
+    # RF end of the module (rule area): no tracks or vias on any layer; ground pours allowed (MHF4 variant)
     ka = pcbnew.ZONE(board)
     ka.SetIsRuleArea(True)
-    ka.SetDoNotAllowCopperPour(True)
+    ka.SetDoNotAllowCopperPour(False)
     ka.SetDoNotAllowTracks(True)
     ka.SetDoNotAllowVias(True)
     ka.SetDoNotAllowPads(False)   # module's own pads may sit at its edge
@@ -294,7 +293,7 @@ def build(place_only=False):
     x1, y1, x2, y2 = keep
     for x, y in [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]:
         ol.Append(MM(x), MM(y))
-    ka.SetZoneName("ANTENNA_KEEPOUT")
+    ka.SetZoneName("RF_END_NO_ROUTING")
     board.Add(ka)
     band = 0.35
     for (x1, y1, x2, y2) in [(0, 0, W, band), (0, H - band, W, H), (0, 0, band, H), (W - band, 0, W, H)]:
@@ -329,8 +328,8 @@ def build(place_only=False):
         text(lbl, x, y, 0.8)
     for lbl, x, y in BOTTOM_LABELS:
         text(lbl, x, y, 0.8, pcbnew.B_SilkS, True)
-    text("CUE rev A dev", 19.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
-    text("2026-10", 30.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
+    text("CUE rev A dev", 21.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
+    text("2026-10", 33.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
 
     pcbnew.SaveBoard(PCB, board)
     return board
