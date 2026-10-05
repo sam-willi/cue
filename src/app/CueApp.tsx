@@ -90,6 +90,9 @@ export default function CueApp() {
   const [words, setWords] = useState<(Word & { wearer: boolean })[]>([]);
   const [buzz, setBuzz] = useState<{ n: number; label: string; pattern: CuePattern } | null>(null);
   const [confirm, setConfirm] = useState<{ n: number; pattern: ConfirmPattern } | null>(null);
+  /** A filler Cue detected but didn't buzz for (not a pattern yet, or cooling down). */
+  const [heard, setHeard] = useState<{ n: number; label: string } | null>(null);
+  const heardTimer = useRef<number | undefined>(undefined);
   /** Live transcript is a testing aid only; the product never needs the screen mid-conversation. */
   const [showTranscript, setShowTranscript] = useState(false);
   const [open, setOpen] = useState({ review: false, practice: false, settings: false });
@@ -154,7 +157,23 @@ export default function CueApp() {
       if (u.pace !== null) setPace(u.pace);
       if (u.volume !== null) setVolume(u.volume);
       const hit = u.decisions.find((d) => d.delivered);
+      const held = u.decisions.find(
+        (d) =>
+          !d.delivered &&
+          isDisfluency(d.event.type) &&
+          (d.withheldReason === "not_a_pattern" || d.withheldReason === "cooldown"),
+      );
+      if (!hit && held) {
+        const label =
+          held.withheldReason === "cooldown"
+            ? `Noticed ${LABEL[held.event.type]}. Cue just buzzed, so not again yet.`
+            : `Noticed ${LABEL[held.event.type]}${held.trigger ? ` (${held.trigger})` : ""}. No buzz yet.`;
+        setHeard((x) => ({ n: (x?.n ?? 0) + 1, label }));
+        window.clearTimeout(heardTimer.current);
+        heardTimer.current = window.setTimeout(() => setHeard(null), 1600);
+      }
       if (hit) {
+        setHeard(null);
         triggerBuzz(hit.event.type, describeTap(hit));
         const endedAt = isFiller(hit) ? clockRef.current?.toPage(hit.event.end) : null;
         if (endedAt != null) {
@@ -358,19 +377,21 @@ export default function CueApp() {
                 : "Ready when you are.";
   const heroLine = buzz
     ? capitalize(buzz.label)
-    : confirm
-      ? ""
-      : status === "error"
-        ? (error ?? "")
-        : config.muted
-          ? "Long-press the cuff, or switch Cue on below."
-          : calibrating
-            ? "Talk normally for a few seconds so Cue learns your usual volume."
-            : live
-              ? "Talk naturally. You don’t need to watch this screen."
-              : status === "demo"
-                ? "Playing your practice sentence."
-                : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
+    : heard && !confirm
+      ? heard.label
+      : confirm
+        ? ""
+        : status === "error"
+          ? (error ?? "")
+          : config.muted
+            ? "Long-press the cuff, or switch Cue on below."
+            : calibrating
+              ? "Talk normally for a few seconds so Cue learns your usual volume."
+              : live
+                ? "Talk naturally. You don’t need to watch this screen."
+                : status === "demo"
+                  ? "Playing your practice sentence."
+                  : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
 
   const totalCues = tapped.length;
   const reviewSummary = words.length
@@ -405,7 +426,7 @@ export default function CueApp() {
 
       {/* --- Live: the one thing on screen while you talk --- */}
       <section aria-label="Live coaching" className="flex flex-col items-center pt-14 text-center sm:pt-20">
-        <CueRings buzz={buzz} confirm={confirm} />
+        <CueRings buzz={buzz} confirm={confirm} noticed={heard} />
         <p
           className="mt-10 font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl text-balance"
           aria-live="polite"
@@ -965,42 +986,81 @@ const formatDb = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(Math.round(x)
 function CueRings({
   buzz,
   confirm,
+  noticed,
 }: {
   buzz: { n: number; label: string; pattern: CuePattern } | null;
   confirm: { n: number; pattern: ConfirmPattern } | null;
+  noticed: { n: number; label: string } | null;
 }) {
-  const state = confirm ? "cue-confirming" : buzz ? "cue-buzzing" : "";
+  const state = confirm ? "cue-confirming" : buzz ? "cue-buzzing" : noticed ? "cue-noticed" : "";
+  const showIcon = !!buzz || (!!noticed && !confirm);
   return (
     <div
-      key={`${buzz?.n ?? 0}-${confirm?.n ?? 0}`}
+      key={`${buzz?.n ?? 0}-${confirm?.n ?? 0}-${noticed?.n ?? 0}`}
       data-pattern={buzz?.pattern}
       data-confirm={confirm?.pattern}
-      className={`relative grid h-40 w-40 place-items-center ${state}`}
+      className={`relative grid h-56 w-56 place-items-center ${state}`}
       role="img"
       aria-label={
         confirm
           ? `Confirmation: ${CONFIRMS[confirm.pattern].label}`
           : buzz
-            ? `Cue: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
-            : "No cue right now"
+            ? `Buzz: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
+            : noticed
+              ? `Noticed ${noticed.label}, no buzz yet`
+              : "No cue right now"
       }
     >
       {[0, 1].map((k) => (
         <span
           key={k}
-          className="cue-ring pointer-events-none absolute inset-6 rounded-full border-2 border-cue opacity-0"
+          className="cue-ring pointer-events-none absolute inset-4 rounded-full border-2 border-cue opacity-0"
         />
       ))}
       <span
-        className={`cue-core block h-28 w-28 rounded-full border transition-colors duration-200 ${
-          confirm ? "border-neutral bg-neutral-soft" : buzz ? "border-cue bg-cue-soft" : "border-line bg-surface"
+        className={`cue-core grid h-48 w-48 place-items-center rounded-full border transition-colors duration-200 ${
+          confirm
+            ? "border-neutral bg-neutral-soft"
+            : buzz
+              ? "border-cue bg-cue-soft text-cue"
+              : noticed
+                ? "border-line bg-surface-2 text-muted"
+                : "border-line bg-surface"
         }`}
-      />
-      <span
-        className={`absolute h-3 w-3 rounded-full transition-colors duration-200 ${buzz ? "bg-cue" : confirm ? "bg-neutral" : "bg-line"}`}
-        aria-hidden
-      />
+      >
+        {showIcon ? (
+          <BuzzGlyph />
+        ) : (
+          <span
+            className={`block h-3 w-3 rounded-full transition-colors duration-200 ${confirm ? "bg-neutral" : "bg-line"}`}
+            aria-hidden
+          />
+        )}
+      </span>
     </div>
+  );
+}
+
+/** The buzz icon: a device with motion lines on both sides that pulse in the tap's rhythm. */
+function BuzzGlyph() {
+  return (
+    <svg className="buzz-glyph" width="124" height="124" viewBox="0 0 96 96" fill="none" aria-hidden>
+      <rect x="34" y="20" width="28" height="56" rx="8" stroke="currentColor" strokeWidth="3.5" />
+      <path
+        className="buzz-lines buzz-lines-inner"
+        d="M24 36v24M72 36v24"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+      <path
+        className="buzz-lines buzz-lines-outer"
+        d="M14 41v14M82 41v14"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
