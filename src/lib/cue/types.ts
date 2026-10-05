@@ -12,7 +12,16 @@ export interface Word {
   speaker?: number;
 }
 
-export type BehaviorType = "filler_um" | "filler_uh" | "filler_like" | "rushing" | "too_quiet";
+export type BehaviorType =
+  | "filler_um"
+  | "filler_uh"
+  | "filler_like"
+  | "filler_lowkey"
+  | "repetition"
+  | "rushing"
+  | "no_pause"
+  | "long_turn"
+  | "too_quiet";
 
 /**
  * How a particular "like" is being used. Only some of these are fillers;
@@ -59,7 +68,11 @@ export interface CueDecision {
   event: SpeechEvent;
   delivered: boolean;
   /** Why a cue was withheld, if it was. */
-  withheldReason?: "low_confidence" | "cooldown" | "muted" | "category_off";
+  withheldReason?: "low_confidence" | "cooldown" | "muted" | "category_off" | "not_a_pattern";
+  /** What made the engine act, e.g. "3 in 9 s", or how close a held filler came. */
+  trigger?: string;
+  /** Which engine rule produced the tap. */
+  tapReason?: "filler" | "filler_cluster" | "filler_density" | "rushing" | "no_pause" | "long_turn" | "too_quiet";
 }
 
 /** Every "like" the classifier judged, filler or not — so misses are explainable. */

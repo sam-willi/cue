@@ -7,7 +7,8 @@ import type { Pace } from "@/lib/cue/pace";
 import type { Correction, SessionFile } from "@/lib/cue/evaluate";
 import { CONFIRMS, PATTERNS, patternFor, type ConfirmPattern, type CueKind, type CuePattern } from "@/lib/cue/patterns";
 import { DOUBLE_TAP_GAP_MS, LONG_PRESS_MS, TAP_MAX_MS, TouchGestures, type TouchAction } from "@/lib/cue/touch";
-import { CueSession, type SessionUpdate, type VolumeStatus } from "@/lib/cue/session";
+import { isDisfluency, type Outcome } from "@/lib/cue/engine";
+import { CueSession, type SessionUpdate, type Signals, type VolumeStatus } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
 import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
@@ -17,6 +18,10 @@ const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
   filler_uh: "“uh”",
   filler_like: "filler “like”",
+  filler_lowkey: "“lowkey”",
+  repetition: "repeated words",
+  no_pause: "no pause",
+  long_turn: "a long turn",
   rushing: "speaking fast",
   too_quiet: "speaking quietly",
 };
@@ -33,6 +38,7 @@ const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   cooldown: "too soon after the last cue",
   muted: "muted",
   category_off: "category off",
+  not_a_pattern: "not a pattern yet",
 };
 
 /** Converts between the speech engine's clock (s) and the page clock (performance.now(), ms). */
@@ -53,11 +59,11 @@ function percentile(xs: number[], p: number) {
 }
 
 const EXAMPLES = [
+  "So, um, I was like working on this project and, um, it was hard.",
   "I like went to the mall yesterday.",
   "I like tofu.",
-  "So um, she was like, no way.",
+  "I, I, I think we should, um, go now.",
   "There were like twenty people there.",
-  "It looks like rain, and I feel like we should go.",
   "So we spent the whole weekend planning the launch, and honestly it went better than expected. The team pulled together, we fixed the last bugs on Saturday, and by Sunday night everything was ready to ship to our first customers.",
 ];
 
@@ -76,6 +82,9 @@ export default function CueApp() {
   const [recorded, setRecorded] = useState(0);
   /** Measured delay (ms) from the end of a filler to its buzz, by event id. */
   const [latency, setLatency] = useState<Record<string, number>>({});
+  /** Whether each tap worked (the user paused, slowed down, spoke up), by event id. */
+  const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
+  const [signals, setSignals] = useState<Signals | null>(null);
   const [corrections, setCorrections] = useState<Correction[]>([]);
   const [speakingSec, setSpeakingSec] = useState(0);
   const [words, setWords] = useState<(Word & { wearer: boolean })[]>([]);
@@ -129,10 +138,10 @@ export default function CueApp() {
     [playConfirm],
   );
 
-  const triggerBuzz = useCallback((kind: CueKind) => {
+  const triggerBuzz = useCallback((kind: CueKind, label?: string) => {
     const pattern = patternFor(kind, sessionRef.current.config.distinctCues);
     setConfirm(null);
-    setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: LABEL[kind], pattern }));
+    setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: label ?? LABEL[kind], pattern }));
     navigator.vibrate?.(PATTERNS[pattern].vibrate);
     window.clearTimeout(buzzTimer.current);
     buzzTimer.current = window.setTimeout(() => setBuzz(null), PATTERNS[pattern].durationMs + 600);
@@ -144,7 +153,7 @@ export default function CueApp() {
       if (u.volume !== null) setVolume(u.volume);
       const hit = u.decisions.find((d) => d.delivered);
       if (hit) {
-        triggerBuzz(hit.event.type);
+        triggerBuzz(hit.event.type, describeTap(hit));
         const endedAt = isFiller(hit) ? clockRef.current?.toPage(hit.event.end) : null;
         if (endedAt != null) {
           const ms = Math.max(0, performance.now() - endedAt);
@@ -153,6 +162,9 @@ export default function CueApp() {
       }
       if (u.decisions.length) setLog((l) => [...u.decisions.slice().reverse(), ...l].slice(0, 100));
       if (u.likeChecks.length) setChecks((c) => [...u.likeChecks.slice().reverse(), ...c].slice(0, 100));
+      if (u.outcomes.length)
+        setOutcomes((o) => ({ ...o, ...Object.fromEntries(u.outcomes.map((x) => [x.id, x.outcome])) }));
+      setSignals(u.signals);
       setWords(sessionRef.current.annotatedWords());
       setSpeakingSec(sessionRef.current.speakingSeconds());
     },
@@ -167,6 +179,8 @@ export default function CueApp() {
     setChecks([]);
     setWords([]);
     setLatency({});
+    setOutcomes({});
+    setSignals(null);
     setCorrections([]);
     setSpeakingSec(0);
     setPace(null);
@@ -303,9 +317,12 @@ export default function CueApp() {
   ].sort((a, b) => b.start - a.start);
 
   // "This session" numbers.
-  const fillerCues = log.filter((d) => d.delivered && isFiller(d)).length;
-  const paceCues = log.filter((d) => d.delivered && d.event.type === "rushing").length;
-  const quietCues = log.filter((d) => d.delivered && d.event.type === "too_quiet").length;
+  const tapped = log.filter((d) => d.delivered);
+  const worked = tapped.filter((d) => outcomes[d.event.id] === "worked").length;
+  const judged = tapped.filter((d) => outcomes[d.event.id]).length;
+  const noticed = log.filter(
+    (d) => isDisfluency(d.event.type) && d.withheldReason !== "low_confidence" && d.withheldReason !== "category_off",
+  ).length;
   const lat = Object.values(latency);
   const p50 = percentile(lat, 0.5);
   const p90 = percentile(lat, 0.9);
@@ -313,7 +330,8 @@ export default function CueApp() {
   const misses = corrections.filter((c) => c.label === "missed").length;
   const speakingMin = speakingSec / 60;
   const sps = pace?.sps ?? 0;
-  const paceFrac = Math.min(1, sps / (config.paceThreshold * 1.4));
+  const paceLimit = signals?.paceLimit ?? config.paceThreshold;
+  const paceFrac = Math.min(1, sps / (paceLimit * 1.4));
   const presetLabel = config.paceMode === "custom" ? "Custom" : PACE_PRESETS[config.paceMode].label;
 
   const live = status === "listening" || status === "connecting";
@@ -357,7 +375,7 @@ export default function CueApp() {
                 ? "Playing your practice sentence."
                 : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
 
-  const totalCues = fillerCues + paceCues + quietCues;
+  const totalCues = tapped.length;
   const reviewSummary = words.length
     ? `${speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`} of speaking, ${totalCues} ${totalCues === 1 ? "cue" : "cues"}`
     : "Nothing yet. Start listening or play a practice sentence.";
@@ -510,6 +528,28 @@ export default function CueApp() {
         {showTranscript && (
           <div className="mt-10 w-full rounded-lg border border-dashed border-line p-4 text-left">
             <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
+            {signals && (
+              <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
+                <div>
+                  <dt className="inline">Fillers in the last minute: </dt>
+                  <dd className="inline tabular-nums text-text">{signals.fillersLastMinute}</dd>
+                </div>
+                <div>
+                  <dt className="inline">Since your last pause: </dt>
+                  <dd className="inline tabular-nums text-text">{Math.round(signals.secondsSincePause)} s</dd>
+                </div>
+                <div>
+                  <dt className="inline">This turn: </dt>
+                  <dd className="inline tabular-nums text-text">{Math.round(signals.turnSeconds)} s</dd>
+                </div>
+                <div>
+                  <dt className="inline">Your normal pace: </dt>
+                  <dd className="inline tabular-nums text-text">
+                    {signals.paceBaseline === null ? "learning" : `${signals.paceBaseline.toFixed(1)} syllables/s`}
+                  </dd>
+                </div>
+              </dl>
+            )}
             <p className="mt-2 text-body">
               {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
               {words.map((w, k) => {
@@ -550,15 +590,24 @@ export default function CueApp() {
             </p>
           ) : (
             <div className="space-y-12">
-              <dl className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+              <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
                 <Stat
                   label="Speaking"
                   value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`}
                 />
                 <Stat
-                  label="Cues"
+                  label="Taps"
                   value={String(totalCues)}
-                  hint={`${fillerCues} filler, ${paceCues} pace, ${quietCues} quiet`}
+                  hint={judged ? `${worked} of ${judged} worked` : "none judged yet"}
+                />
+                <Stat
+                  label="Fillers noticed"
+                  value={String(noticed)}
+                  hint={
+                    speakingSec >= 30
+                      ? `${(noticed / (speakingSec / 60)).toFixed(1)} per minute`
+                      : "per minute after 30 s"
+                  }
                 />
                 <Stat
                   label="Cue delay"
@@ -651,7 +700,15 @@ export default function CueApp() {
                         <p className="font-medium">
                           {capitalize(LABEL[d.event.type])}{" "}
                           <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
-                            {d.delivered ? "cued" : `held back: ${WITHHELD[d.withheldReason!]}`}
+                            {d.delivered
+                              ? `tapped${d.trigger ? `: ${d.trigger}` : ""}${
+                                  outcomes[d.event.id] === "worked"
+                                    ? ", and it worked"
+                                    : outcomes[d.event.id] === "no_change"
+                                      ? ", no change after"
+                                      : ""
+                                }`
+                              : `held back: ${WITHHELD[d.withheldReason!]}${d.trigger ? ` (${d.trigger})` : ""}`}
                           </span>
                         </p>
                         <p className="mt-1 text-muted">{d.event.reason}</p>
@@ -773,20 +830,34 @@ export default function CueApp() {
                 What Cue coaches
               </legend>
               <div className="mt-3 flex flex-wrap gap-2">
-                {(["um", "uh", "like", "rushing", "quiet"] as const).map((k) => (
-                  <Chip
-                    key={k}
-                    on={config.categories[k]}
-                    onClick={() => setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))}
-                  >
-                    {k === "rushing" ? "Speaking fast" : k === "quiet" ? "Speaking quietly" : `“${k}”`}
-                  </Chip>
-                ))}
+                {(["um", "uh", "like", "lowkey", "repetition", "rushing", "pauses", "turns", "quiet"] as const).map(
+                  (k) => (
+                    <Chip
+                      key={k}
+                      on={config.categories[k]}
+                      onClick={() =>
+                        setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))
+                      }
+                    >
+                      {CHIP_LABEL[k] ?? `“${k}”`}
+                    </Chip>
+                  ),
+                )}
               </div>
             </fieldset>
 
             <div className="space-y-4">
               <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">How Cue taps</h3>
+              <Switch
+                label="Tap for patterns, not every filler"
+                hint={
+                  config.tapOn === "patterns"
+                    ? `A tap needs ${config.clusterCount} fillers within ${config.clusterWindowSec} s, or ${config.densityPerMin} in a minute. One “um” is normal.`
+                    : "Testing mode: every filler taps (with a short gap)."
+                }
+                on={config.tapOn === "patterns"}
+                onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
+              />
               <Switch
                 label="A different tap for each kind of cue"
                 hint="Off: one tap for everything, meaning make space."
@@ -863,11 +934,11 @@ export default function CueApp() {
                 onChange={(v) => setConfig((c) => ({ ...c, minConfidence: 1 - v / 100 }))}
               />
               <Slider
-                label="Quiet time between cues"
+                label="Quiet time between taps"
                 value={config.cooldownSec}
-                min={0.5}
-                max={10}
-                step={0.5}
+                min={5}
+                max={30}
+                step={1}
                 format={(v) => `${v} s`}
                 onChange={(v) => setConfig((c) => ({ ...c, cooldownSec: v }))}
               />
@@ -886,6 +957,23 @@ export default function CueApp() {
       </div>
     </main>
   );
+}
+
+const CHIP_LABEL: Partial<Record<keyof CueConfig["categories"], string>> = {
+  repetition: "Repeating words",
+  rushing: "Speaking fast",
+  pauses: "No pauses",
+  turns: "Long turns",
+  quiet: "Speaking quietly",
+};
+
+/** What the hero says under the cue word: why Cue tapped. */
+function describeTap(d: CueDecision): string {
+  const n = d.trigger?.match(/^(\d+) in (\d+) s$/);
+  if (d.tapReason === "filler_cluster" && n) return `${n[1]} fillers in ${n[2]} seconds`;
+  if (d.tapReason === "filler_density" && d.trigger) return `${d.trigger.replace(/^(\d+) in/, "$1 fillers in")}`;
+  if (d.event.type === "no_pause" || d.event.type === "long_turn") return capitalize(d.event.reason);
+  return capitalize(LABEL[d.event.type]);
 }
 
 const capitalize = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
