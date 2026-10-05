@@ -49,7 +49,7 @@ def main():
         w.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
         for r in csv.DictReader(f):
             ref = r["Ref"]
-            if ref.startswith(("TP", "FID")):
+            if ref.startswith(("TP", "FID", "E")):  # pads only, nothing to place
                 continue
             w.writerow([ref, r["PosX"] + "mm", r["PosY"] + "mm", "Top" if r["Side"] == "top" else "Bottom", r["Rot"]])
     os.remove(pos)
