@@ -106,9 +106,9 @@ part("U5", FP + "Package_SO.pretty", "VSSOP-10_3x3mm_P0.5mm", "DRV2605L", "TI DR
 part("J1", FP + "Connector_USB.pretty", "USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal", "USB-C (power)",
      "GCT USB4125-GF-A", {"A9": "VBUS", "B9": "VBUS", "A12": "GND", "B12": "GND", "A5": "CC1", "B5": "CC2", "S1": "GND"},
      note="Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.")
-part("J2", FP + "Connector_JST.pretty", "JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal", "BATT",
-     "JST SM02B-SRSS-TB", {"1": "VBAT", "2": "GND"}, nc=["MP"],
-     note="Li-ion/LiPo cell (coin cell on leads, or protected pouch cell). Check polarity: pin 1 = +.")
+part("J2", FP + "Connector_JST.pretty", "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", "BATT",
+     "JST S2B-PH-SM4-TB", {"1": "VBAT", "2": "GND"}, nc=["MP"],
+     note="JST-PH to fit the Adafruit #1570 100 mAh LiPo (built-in protection). Check polarity: pin 1 = +.")
 part("J3", FP + "Connector_JST.pretty", "JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal", "LRA",
      "JST SM02B-SRSS-TB", {"1": "LRA_P", "2": "LRA_N"}, nc=["MP"], note="Coin LRA on a pigtail (Vybronics VG0832013D).")
 part("J4", FP + "Connector_PinHeader_1.27mm.pretty", "PinHeader_2x05_P1.27mm_Vertical_SMD", "SWD",
