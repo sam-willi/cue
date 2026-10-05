@@ -392,7 +392,7 @@ export default function CueApp() {
       <section aria-label="Live coaching" className="flex flex-col items-center pt-14 text-center sm:pt-20">
         <CueRings buzz={buzz} confirm={confirm} />
         <p
-          className="mt-10 font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl"
+          className="mt-10 font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl text-balance"
           aria-live="polite"
         >
           {heroWord}
