@@ -253,8 +253,8 @@ Exact schedules such as “100% in week one, 70% in week two” were illustrativ
 - **[CONFIRMED]** It must not block the ear canal.
 - **[CONFIRMED]** It is a single-ear product.
 - **[CONFIRMED]** It should be small, discreet, elegant, and logically wearable.
-- **[CONFIRMED]** It should read more like jewelry/premium consumer hardware than a hearing aid or medical device. BTE is also a hearing-aid form factor, so finish, proportion, and styling carry this distinction.
-- **[CONFIRMED]** Metallic finishes are preferred.
+- **[CONFIRMED]** **Discreetness comes first** (decision 8, 2026-10-05): it should go unnoticed in conversation. When it is noticed, it should read as premium consumer hardware rather than a hearing aid or medical device; BTE is also a hearing-aid form factor, so finish, proportion, and styling carry this distinction.
+- **[CONFIRMED]** Matte, wearer-matched finishes, not metallic (decision 8): a frosted translucent ear hook and an opaque matte body in hair-matched tones. Metal only in small details, if at all.
 - **[CONFIRMED]** All concept imagery must depict one consistent product geometry across angles, on-ear views, case views, and colorways.
 
 ### Candidate physical arrangement
@@ -262,10 +262,11 @@ Exact schedules such as “100% in week one, 70% in week two” were illustrativ
 **[WORKING ASSUMPTION]** A plausible architecture is a BTE body resting in the groove behind the ear, held by an ear hook over the top of the ear (as in `hardware/rev0/democad.step` on the `hardware-rev0` branch), with:
 
 - a skin-contact face, against the skin behind the ear, for vibration sensing and/or haptic transfer;
-- a small outer jewelry-like shell containing electronics;
+- a small, opaque, matte shell containing electronics, in a hair-matched tone;
 - a compliant silicone or elastomer contact surface for comfort and grip;
+- an ear hook with a ~1 mm nitinol wire core in a frosted, faintly tinted silicone or aliphatic-TPU sleeve, sitting close to the head (decision 8);
 - an inward-facing or shielded microphone port if acoustic sensing is required;
-- a capacitive touch surface (e.g. the metal shell) **for controls only** (decision 2026-10-03): **long press (~1.5 s) = Cue on/off**, **double tap = switch Conversation / Presentation mode**; no touch gestures for coaching; other settings live in the app;
+- a capacitive touch surface (e.g. a small metal touch area on the shell) **for controls only** (decision 2026-10-03): **long press (~1.5 s) = Cue on/off**, **double tap = switch Conversation / Presentation mode**; no touch gestures for coaching; other settings live in the app;
 - charging contacts or a sealed wireless/contact charging interface;
 - no always-visible LED during wear; any status light should be subtle and disableable.
 
@@ -283,7 +284,7 @@ All components below are suggestions for prototyping, not a locked bill of mater
 - Small Li-Po cell, protected charging/power-management IC, battery gauge as needed, and thermal/current safeguards.
 - Flash sized for firmware, model assets, and a small encrypted event buffer—not indefinite raw-audio storage.
 
-**[OPEN QUESTION]** Whether a single compact BTE device can simultaneously achieve adequate microphone/contact-sensor signal quality, perceptible but private haptics, useful battery life, comfort, RF performance, and a jewelry-scale package.
+**[OPEN QUESTION]** Whether a single compact BTE device can simultaneously achieve adequate microphone/contact-sensor signal quality, perceptible but private haptics, useful battery life, comfort, RF performance, and a small, discreet package.
 
 ## 10. Charging case and colorways
 
@@ -292,7 +293,7 @@ All components below are suggestions for prototyping, not a locked bill of mater
 - **[CONFIRMED]** The retail system is expected to include one Cue device, not a left/right pair.
 - **[CONFIRMED]** Cue should have a dedicated charging case.
 - **[CONFIRMED]** Product storytelling should show the device itself prominently from multiple consistent angles, not let the case dominate.
-- **[CONFIRMED]** Offer metallic, jewelry-like color variants.
+- **[CONFIRMED]** Offer the body in a small range of matte, hair-matched tones; the standard ear hook is frosted translucent (decision 8).
 
 ### Working case concept
 
@@ -308,10 +309,10 @@ Potential details:
 
 ### Working colorways
 
-- **[WORKING ASSUMPTION]** Silver/chrome.
-- **[WORKING ASSUMPTION]** Warm gold/champagne.
-- **[WORKING ASSUMPTION]** Graphite/gunmetal.
-- **[OPEN QUESTION]** Whether to add one Gen Z–oriented accent finish (for example, iridescent, soft lilac, or enamel) without weakening the premium jewelry positioning.
+- **[WORKING ASSUMPTION]** Body, matte, matched to common hair colors: black, dark brown, light brown / dark blonde, and gray. (The earlier silver, champagne, and graphite metallic set is superseded by decision 8.)
+- **[WORKING ASSUMPTION]** Ear hook: frosted translucent with a faint neutral or smoke tint as the standard; matte skin- or hair-matched hooks as optional extras.
+- **[OPEN QUESTION]** Which body tones and hook tint disappear on the widest range of skin tones, hair colors, and hairstyles; test on people, not renders.
+- **[OPEN QUESTION]** Whether to offer any expressive accent finish (for example, iridescent or soft lilac) as an opt-in variant, given that discreetness comes first.
 
 Color names, finishes, coating processes, scratch resistance, skin compatibility, and manufacturing cost are not confirmed.
 
@@ -614,7 +615,7 @@ No numeric product claims should be published until measured in appropriate stud
 - **[CONFIRMED]** Name: **Cue**.
 - **[CONFIRMED]** Brand should be modern, creative, Gen Z–aware, and more than plain wordmark typography.
 - **[CONFIRMED]** Visual identity may incorporate a person speaking, a speech gesture, a subtle waveform, a pause, or a “cue” signal.
-- **[CONFIRMED]** Product aesthetic: discreet, elegant, premium, metallic, jewelry-like.
+- **[CONFIRMED]** Product aesthetic: discreet first (matte, wearer-matched, decision 8), then elegant and premium.
 - **[CONFIRMED]** Avoid medical-device, hearing-aid, surveillance, punishment, and corporate presentation-software aesthetics.
 
 ### Voice
@@ -732,7 +733,7 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 - Haptic transfer that is clearly felt by the wearer but inaudible nearby.
 - Realistic battery life and case recharge count at the required sensing duty cycle.
 - Water/sweat resistance, cleanability, skin-contact materials, and drop durability.
-- Antenna/RF performance within a metallic-looking shell.
+- Antenna/RF performance with the battery and any metal touch area close to the antenna.
 - Charging interface and manufacturing tolerances.
 
 ### Product and business
@@ -766,11 +767,21 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 
 ## 25. Concise agent handoff summary
 
-Cue is a **single, discreet, jewelry-like behind-the-ear (BTE) device**—not an ear cuff and not an earbud—that coaches speaking during real conversations. The hero loop is **true filler detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement**. It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use a three-rhythm haptic vocabulary (tap / double tap / long pulse), use the cuff's touch surface only for on/off and mode switching (not coaching), avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio. Start with a phone/watch or BLE-haptic behavioral prototype, then validate cuff sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is small, elegant, metallic, Gen Z–aware, and consistent across all angles, with one-device charging case and jewelry-like colorways. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
+Cue is a **single, discreet behind-the-ear (BTE) device** with matte, wearer-matched finishes and a thin frosted ear hook—not an ear cuff and not an earbud—that coaches speaking during real conversations. The hero loop is **true filler detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement**. It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use a three-rhythm haptic vocabulary (tap / double tap / long pulse), use the cuff's touch surface only for on/off and mode switching (not coaching), avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio. Start with a phone/watch or BLE-haptic behavioral prototype, then validate cuff sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is discreet first (matte, wearer-matched body tones, a thin frosted translucent ear hook, no metallic sheen), then small, elegant, Gen Z–aware, and consistent across all angles, with a one-device charging case. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
 
 ## 26. Decision log
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
+
+### 2026-10-05 — Discreetness first: matte, wearer-matched finishes
+
+8. **Discreetness is the top industrial-design priority, so finishes are matte and matched to the wearer, not metallic.** *Previously:* **[CONFIRMED]** "Metallic finishes are preferred" and "offer metallic, jewelry-like color variants." *Rationale:* shine is what draws the eye, more than color or shape, and the ear hook crossing the top of the ear is the part people see; the body mostly sits hidden behind the ear and in the hair. The spec:
+   - **Ear hook:** a nickel-titanium (nitinol) wire core of about 1 mm, in a thin **frosted (matte) translucent** sleeve of silicone or non-yellowing (aliphatic) TPU with a faint neutral or smoke tint that hides the core. Frosted, not glossy clear: glossy clear glints, and yellows and clouds with sweat, skin oil, and UV. The hook sits close to the head, curves only as far as it needs to grip, and nothing rises above the top of the ear. Nitinol springs back after bending to fit each ear and holds the device at this thickness.
+   - **Body:** opaque (a transparent body would show the electronics), matte, in a small range of hair-matched tones, and as small as the battery allows.
+   - **Later options:** matte skin- or hair-matched hooks as optional extras, using a separable snap-on hook.
+   - **Metal:** kept to small details, such as the touch area or the logo, if at all.
+
+   Still true: it should read as premium consumer hardware rather than a hearing aid when it is noticed. Materials, tints, and dimensions remain to be validated with prototypes on a range of skin tones, hair colors, and hairstyles.
 
 ### 2026-10-05 — Form factor: behind-the-ear, not an ear cuff
 
