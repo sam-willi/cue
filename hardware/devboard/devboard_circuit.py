@@ -42,20 +42,22 @@ def part(ref, lib, fp, value, mpn, pins, supply=(), i2c=None, note="", status="F
 # --- U1 radio module: Ezurio BL54L15u (453-00223, chip antenna). Pad map from Ezurio datasheet v1.1.
 u1 = {
     "2": "HAPTIC_EN",      # P2.00 (output; P2 is fine for outputs)
-    "3": "TDM_WCLK",       # P1.08 clock pin  -> I2S LRCK
+    "3": "TDM_BCLK",       # P1.08 clock pin  -> I2S SCK
     "5": "1V8",            # VDD_nRF
     "6": "HAPTIC_TRIG",    # P2.01
     "7": "TDM_DIN",        # P1.06 -> I2S SDIN
     "8": "IMU_INT1",       # P1.07 interrupt
     "13": "MIC_THSEL",     # P2.02
     "15": "MIC_WAKE",      # P1.05 interrupt
-    "17": "PMIC_INT",      # P1.04 interrupt
+    "9": "PDM_CLK",        # P1.03 clock pin
+    "17": "I2C_SCL",       # P1.04 clock pin
     "18": "PDM_DIN",       # P1.14
-    "19": "PDM_CLK",       # P1.12 clock pin
-    "20": "I2C_SCL",       # P1.13 clock pin
-    "21": "EXP_P1_10",     # P1.10 (clock-capable, spare to header)
-    "22": "I2C_SDA",       # P1.09
-    "23": "TDM_BCLK",      # P1.11 clock pin -> I2S SCK
+    # Ezurio Note 7: P1.09-P1.12 must toggle below 1 MHz with >=330 R series resistance.
+    # Only slow push-pull/input signals go there, each through a 330 R (R7-R9); no I2C.
+    "19": "U1_EXP_P1_12",  # P1.12 spare to header via R9 (<1 MHz)
+    "20": "I2C_SDA",       # P1.13
+    "21": "U1_PMIC_INT",   # P1.10 interrupt via R8
+    "23": "U1_TDM_WCLK",   # P1.11 -> I2S LRCK via R7 (8-48 kHz)
     "25": "SWDCLK", "27": "SWDIO", "32": "nRESET",
     "35": "EXP_P0_01",     # P0.01 spare to header
     "38": "BTN_USER",      # P0.00 user button (internal pull-up)
@@ -64,7 +66,7 @@ for g in ["4", "14", "24", "28", "31", "34", "36", "39", "G1", "G2", "G3", "G4",
     u1[g] = "GND"
 part("U1", CUE, "Ezurio_BL54L15u_453-00223", "BL54L15u", "Ezurio 453-00223", u1,
      supply=[("5", 1.7, 3.5)],
-     nc=["1", "9", "10", "11", "12", "16", "26", "29", "30", "33", "37", "40", "41", "42", "43", "44", "45"],
+     nc=["1", "10", "11", "12", "16", "22", "26", "29", "30", "33", "37", "40", "41", "42", "43", "44", "45"],
      note="Certified nRF54L15 module, chip antenna, 7.9x6.3x1.75 mm. Place on board edge; no copper under antenna.")
 
 # --- U2 PMIC: Nordic nPM1300 QFN32 (pin numbers from Nordic product spec). EP = AVSS.
@@ -114,7 +116,7 @@ part("J4", FP + "Connector_PinHeader_1.27mm.pretty", "PinHeader_2x05_P1.27mm_Ver
      nc=["6", "7", "8"], note="ARM Cortex 10-pin debug pinout. VTref = 1V8.")
 part("J5", FP + "Connector_PinHeader_2.54mm.pretty", "PinHeader_2x05_P2.54mm_Vertical", "EXP",
      "2x5 2.54 mm header", {"1": "VSYS", "2": "GND", "3": "1V8", "4": "3V0", "5": "I2C_SDA", "6": "I2C_SCL",
-                             "7": "PDM_CLK", "8": "PDM_DIN", "9": "EXP_P0_01", "10": "EXP_P1_10"},
+                             "7": "PDM_CLK", "8": "PDM_DIN", "9": "EXP_P0_01", "10": "EXP_P1_12"},
      note="Expansion: V2S200D eval (PDM left channel), IQS227 eval (3V0), scope probing.")
 
 # --- Protection, passives
@@ -154,6 +156,10 @@ res("R1", "4.7k", "I2C_SDA", "1V8"); res("R2", "4.7k", "I2C_SCL", "1V8")
 res("R3", "47k", "VSET1", "GND", note="VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table")
 res("R4", "150k", "VSET2", "GND", note="VSET2 per Nordic reference circuit (BUCK2 3.0 V) - confirm in PS table")
 res("R6", "0R", "QVAR1", "TOUCH_E", note="Qvar series element, value TBC with ST guidance")
+note7 = "Ezurio Note 7: >=330 R series on P1.09-P1.12; place at U1 pad"
+res("R7", "330R", "U1_TDM_WCLK", "TDM_WCLK", note=note7)
+res("R8", "330R", "U1_PMIC_INT", "PMIC_INT", note=note7)
+res("R9", "330R", "U1_EXP_P1_12", "EXP_P1_12", note=note7 + "; J5 pin 10 is <1 MHz only")
 
 part("E1", CUE, "Touch_Pad_4x3mm", "TOUCH", "Copper pad (shell contact)", {"1": "TOUCH_E"},
      note="Qvar touch electrode; solder a wire to the shell or touch directly.")
@@ -162,7 +168,7 @@ part("SW1", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "USER", "Omron
 part("SW2", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "SHIP/WAKE", "Omron B3U-1000P",
      {"1": "SHPHLD", "2": "GND"}, note="Hold to leave ship mode / power on.")
 
-for i, n in enumerate(["VBUS", "VBAT", "VSYS", "1V8", "3V0", "MIC_1V8", "GND", "PMIC_INT"], start=1):
+for i, n in enumerate(["VBUS", "VBAT", "VSYS", "1V8", "3V0", "MIC_1V8", "GND", "PMIC_INT", "I2C_SDA", "I2C_SCL"], start=1):
     part(f"TP{i}", FP + "TestPoint.pretty", "TestPoint_Pad_D1.0mm", f"TP {n}", "Test pad", {"1": n})
 for i in range(1, 4):
     part(f"FID{i}", FP + "Fiducial.pretty", "Fiducial_0.5mm_Mask1mm", "FID", "Fiducial", {})
@@ -203,18 +209,28 @@ def check():
     for a, refs in addrs.items():
         (problems if len(refs) > 1 else oks).append(f"I2C 0x{a:02X} -> {refs}")
     # nRF54L15 port rules (U1 pad -> port.pin from Ezurio map)
-    port = {"2": "P2.00", "3": "P1.08", "6": "P2.01", "7": "P1.06", "8": "P1.07", "13": "P2.02", "15": "P1.05",
+    port = {"2": "P2.00", "3": "P1.08", "9": "P1.03", "6": "P2.01", "7": "P1.06", "8": "P1.07", "13": "P2.02", "15": "P1.05",
             "17": "P1.04", "18": "P1.14", "19": "P1.12", "20": "P1.13", "21": "P1.10", "22": "P1.09", "23": "P1.11",
             "35": "P0.01", "38": "P0.00"}
-    clock_pins = {"P1.08", "P1.11", "P1.12", "P1.13"}
+    # Clock pins confirmed in the nRF54L15 pin table (via Flux review, Oct 2026).
+    # LRCK (TDM_WCLK) does not need a clock pin.
+    clock_pins = {"P1.03", "P1.04", "P1.08", "P1.11", "P1.12"}
+    note7 = {"P1.09", "P1.10", "P1.11", "P1.12"}
     u1 = PARTS["U1"]["pins"]
     for pad, net in u1.items():
         pp = port.get(pad)
         if not pp:
             continue
+        if pp in note7:
+            r = [ref for ref, q in PARTS.items() if q["value"] == "330R" and net in q["pins"].values()]
+            if not r:
+                problems.append(f"{net} on {pp}: Ezurio Note 7 needs a >=330 R series resistor")
+            if net.removeprefix("U1_") in ("I2C_SDA", "I2C_SCL", "PDM_CLK", "TDM_BCLK"):
+                problems.append(f"{net} on {pp}: Ezurio Note 7 pins must stay below 1 MHz and off I2C")
+        net = net.removeprefix("U1_")
         if net in ("IMU_INT1", "MIC_WAKE", "PMIC_INT", "BTN_USER") and pp.startswith("P2."):
             problems.append(f"{net} on {pp}: port 2 cannot raise interrupts")
-        if net in ("I2C_SCL", "PDM_CLK", "TDM_BCLK", "TDM_WCLK") and pp not in clock_pins:
+        if net in ("I2C_SCL", "PDM_CLK", "TDM_BCLK") and pp not in clock_pins:
             problems.append(f"{net} on {pp}: not a confirmed clock pin")
         if net in ("I2C_SDA", "PDM_DIN", "TDM_DIN") and not pp.startswith("P1."):
             problems.append(f"{net} on {pp}: serial data should stay on port 1")

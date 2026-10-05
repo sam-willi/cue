@@ -19,8 +19,8 @@ How to wire the off-the-shelf parts we have to test bone conduction before the c
 | --- | ----------------- | ------------------------------- | ------------------------------ |
 | 1   | XIAO 3V3          | V2S VDD, breakout 3V3           | 3V3 rail                       |
 | 2   | XIAO GND          | V2S GND, V2S SEL, breakout GND  | Ground rail                    |
-| 3   | XIAO D4 (P1.10)   | V2S CLK                         | Sensor clock (clock pin)       |
-| 4   | XIAO D0 (P1.04)   | V2S DATA                        | Sensor data                    |
+| 3   | XIAO D0 (P1.04)   | V2S CLK                         | Sensor clock (clock pin)       |
+| 4   | XIAO D4 (P1.10)   | V2S DATA                        | Sensor data                    |
 | 5   | XIAO D5 (P1.11)   | Breakout SCL                    | Motor I2C clock (clock pin)    |
 | 6   | XIAO D3 (P1.07)   | Breakout SDA                    | Motor I2C data                 |
 | 7   | Breakout          | LRA Wireling                    | 5-pin Wireling cable           |
@@ -29,8 +29,9 @@ How to wire the off-the-shelf parts we have to test bone conduction before the c
 
 ## Notes
 
-- **Why these pins:** the nRF54L15 needs clock signals on its clock pins. D4 and D5 are the two on the header, so the
-  sensor clock and the motor I2C clock take them. The motor's I2C data moves from D4 to D3 in firmware.
+- **Why these pins:** the nRF54L15 needs clock signals on its clock pins (P1.03, P1.04, P1.08, P1.11, P1.12 per the
+  nRF54L15 pin table). D0 (P1.04) and D5 (P1.11) are the two on the header, so the sensor clock and the motor I2C
+  clock take them. The motor's I2C data moves from D4 to D3 in firmware.
 - **Built-in mic still works:** the sensor uses the chip's second mic input (PDM21), so the XIAO's own air mic stays
   available as a side-by-side reference.
 - **Check first:** match the eval board's printed pin labels to VDD, GND, CLK, DATA, SEL before wiring. No battery yet?

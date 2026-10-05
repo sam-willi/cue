@@ -50,7 +50,7 @@ els_cards.append(f'<div style="position: absolute; left: 750px; top: 210px; widt
 note(742, 180, 100, '<span style="font-family: IBM Plex Mono, monospace">USB-C</span>', 12)
 left = [("D0", 330), ("D1", 390), ("D2", 450), ("D3", 510), ("D4", 570), ("D5", 630), ("D6", 690)]
 right = [("5V", 330), ("GND", 390), ("3V3", 450), ("D10", 510), ("D9", 570), ("D8", 630), ("D7", 690)]
-used = {"D0": ORNG, "D3": BLUE, "D4": PURP, "D5": YEL, "GND": "#ECEAE4", "3V3": RED}
+used = {"D0": PURP, "D3": BLUE, "D4": ORNG, "D5": YEL, "GND": "#ECEAE4", "3V3": RED}
 for n, y in left:
     pin(XL, y, n, "L", used.get(n, "#6E6C66"))
 for n, y in right:
@@ -83,8 +83,9 @@ path([(760, XB), (760, 1000)], RED, 3)
 path([(820, XB), (820, 1000)], GND_C, 3)
 
 # ---------------- signal wires (left channel)
-path([(VR, 430), (440, 430), (440, 330), (XL, 330)], ORNG)       # V2S DATA -> D0
-path([(VR, 470), (480, 470), (480, 570), (XL, 570)], PURP)       # V2S CLK  -> D4
+path([(VR, 470), (440, 470), (440, 330), (XL, 330)], PURP)       # V2S CLK  -> D0 (P1.04, clock pin)
+path([(VR, 430), (480, 430), (480, 570), (XL, 570)], ORNG)       # V2S DATA -> D4
+els_labels.append(f'<div style="position: absolute; left: 446px; top: 404px; width: 70px; font-size: 11px; line-height: 14px; color: #8E8B84">no join</div>')
 path([(BR, 760), (540, 760), (540, 510), (XL, 510)], BLUE)       # SDA -> D3
 path([(BR, 800), (590, 800), (590, 630), (XL, 630)], YEL)        # SCL -> D5
 # crossing note at (540, 540)
@@ -111,8 +112,8 @@ title = ('<div style="position: absolute; left: 64px; top: 48px; font-family: \'
 rows = [
     ("1", RED, "XIAO 3V3", "V2S VDD, breakout 3V3", "3V3 rail"),
     ("2", GND_C, "XIAO GND", "V2S GND, V2S SEL, breakout GND", "Ground rail"),
-    ("3", PURP, "XIAO D4 (P1.10)", "V2S CLK", "Sensor clock (clock pin)"),
-    ("4", ORNG, "XIAO D0 (P1.04)", "V2S DATA", "Sensor data"),
+    ("3", PURP, "XIAO D0 (P1.04)", "V2S CLK", "Sensor clock (clock pin)"),
+    ("4", ORNG, "XIAO D4 (P1.10)", "V2S DATA", "Sensor data"),
     ("5", YEL, "XIAO D5 (P1.11)", "Breakout SCL", "Motor I2C clock (clock pin)"),
     ("6", BLUE, "XIAO D3 (P1.07)", "Breakout SDA", "Motor I2C data"),
     ("7", CABLE, "Breakout", "LRA Wireling", "5-pin Wireling cable"),
@@ -133,7 +134,7 @@ table = (f'<div style="position: absolute; left: 1080px; top: 236px; width: 616p
          f'{trs}</table></div>')
 notes = [
     ("ALSO BUY", "TinyCircuits 5-pin Wireling cable and 0.1&quot; Breakout I2C Wireling, a mini breadboard and female-to-male jumpers."),
-    ("WHY THESE PINS", "The nRF54L15 needs clock signals on its clock pins. D4 and D5 are the two on the header, so the sensor clock and motor I2C clock take them. The motor's I2C data moves from D4 to D3 in firmware."),
+    ("WHY THESE PINS", "The nRF54L15 needs clock signals on its clock pins. D0 (P1.04) and D5 (P1.11) are the two on the header, so the sensor clock and motor I2C clock take them. The motor's I2C data moves from D4 to D3 in firmware."),
     ("BUILT-IN MIC", "The sensor uses the chip's second mic input, so the XIAO's own air mic keeps working: a side-by-side reference for every test."),
     ("CHECK FIRST", "Match the eval board's printed pin labels to VDD, GND, CLK, DATA, SEL before wiring. No battery yet? Power from USB-C instead and skip wires 8–9."),
 ]
