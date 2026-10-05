@@ -1,51 +1,51 @@
-# Cue hardware — rev 0
+# Cue hardware
 
-Production cuff electronics as a checked netlist, plus the parts list. This is a **draft for review**: nothing here has been laid out, built or measured, and items marked **TBC** still need a datasheet check (see [Still to confirm](#still-to-confirm)).
+Three stages of the same design, from what you can wire today to the finished cuff:
 
-## Files
+| Folder | What it is | Status |
+| --- | --- | --- |
+| [`kit/`](kit/) | Off-the-shelf parts (XIAO nRF54L15 Sense, V2S200D eval board, LRA Wireling, LiPo) wired on a breadboard to test bone conduction now. Wiring diagram and buy links. | Wiring final; firmware not written |
+| [`devboard/`](devboard/) | **Rev A dev board**: a 38 × 28 mm custom PCB with the cuff's real chips plus USB-C, battery and motor connectors, debug and expansion headers. KiCad schematic, layout and JLCPCB fab files. | **Pre-manufacturing**: DRC clean, ready for a human review and ordering |
+| [`rev0/`](rev0/) | The finished cuff's electronics as a checked netlist and parts list (coin cell, pogo-pin charging, no connectors). | Netlist only; not laid out |
 
-| File                            | What it is                                                                     |
-| ------------------------------- | ------------------------------------------------------------------------------ |
-| `rev0/cue_netlist.py`           | Single source of truth: every part, pin and net. Edit here, then rerun.        |
-| `rev0/cue_rev0.net`             | KiCad netlist (s-expression). Import in the KiCad PCB editor.                  |
-| `rev0/cue_rev0_bom.csv`         | Bill of materials grouped by value, with part numbers, footprints and FIT/DNP. |
-| `rev0/cue_rev0_connections.csv` | Every pin of every part and the net it is on.                                  |
-| `rev0/SENSORS.md`               | Where to buy each sensor chip, plus eval boards for testing.                   |
-| `kit/`                          | Wiring for the off-the-shelf bone-conduction test kit (XIAO nRF54L15 Sense).   |
+The dev board and the cuff use the same chips and the same pin map, so firmware written for the dev board carries over.
 
-Regenerate and recheck:
+## The chips
 
-```bash
-python3 hardware/rev0/cue_netlist.py
-```
+| Job | Part |
+| --- | --- |
+| Bluetooth + processor | Ezurio BL54L15µ module (Nordic nRF54L15, chip antenna, pre-certified) |
+| Power: charger, 1.8 V and 3.0 V rails | Nordic nPM1300 |
+| Hearing words | TDK T5838 PDM microphone |
+| Bone conduction + touch | ST LSM6DSV16BX (TDM audio-band accelerometer, Qvar touch) |
+| Tap | TI DRV2605L driver + LRA vibration motor |
+| Optional bone-conduction comparison | Knowles V2S200D (eval board on the dev board's expansion header) |
 
-The script fails loudly (`PROBLEMS: n`) on floating pins, pins on two nets, a supply outside a chip's rated range, I2C address clashes, interrupts on port 2, and serial buses off port 1.
+Where to buy each sensor: [`rev0/SENSORS.md`](rev0/SENSORS.md).
 
-## Current state
+## Design decisions (both boards)
 
-- **43 parts** (35 fitted, 8 DNP options), **35 nets**, **157 pins**, 18 deliberately unconnected. **0 problems.**
-- Rails: 5 V from the case pogo pins → nPM1300 → VSYS (3.0–4.2 V, haptic driver), **1V8** (all logic), 3V0 (fallback touch chip only).
-- I2C on 1.8 V: DRV2605L `0x5A`, LSM6DSV16BX `0x6A`, nPM1300 `0x6B`.
+- **1.8 V logic.** The T5838 mic is rated 1.62–1.98 V, so all logic shares one 1.8 V rail. The mic sits behind the
+  nPM1300's load switch 1, which is off at reset, so it is only powered once firmware confirms the rail.
+- **nPM1300 per Nordic's reference** (PS v1.2.1, Configuration 1): VSET1 47k = 1.8 V, VSET2 150k = 3.0 V,
+  3 × 10 µF on VSYS, 100 nF on VDDIO, 10k B3380 thermistor on NTC, unused load switch 2 tied to GND.
+- **Certified radio module.** The BL54L15µ includes the crystal and antenna, so there is no RF layout or certification
+  work. It sits edge-centred with a 3 × 5 mm antenna keep-out on all layers (Ezurio datasheet p.25).
+- **nRF54L15 pin map.** Clock signals on clock pins (P1.03 PDM, P1.08 TDM BCLK, P1.04 I2C SCL); interrupts off port 2;
+  Ezurio Note 7: P1.09–P1.12 carry only slow signals (< 1 MHz) behind 330 Ω, unused ones left open.
+- **I2C at 1.8 V, 400 kHz, 4.7k pull-ups**: DRV2605L `0x5A`, LSM6DSV16BX `0x6A`, nPM1300 `0x6B`.
 
-## Key design decisions
+## Still open
 
-- **1.8 V logic.** The TDK T5838 mic only runs on 1.62–1.98 V, so all logic sits on one 1.8 V rail.
-- **Certified radio module for rev A.** The Ezurio BL54L15µ (7.9 × 6.3 × 1.75 mm, FCC/CE/ISED/MIC/RCM) contains the nRF54L15, 32 MHz crystal and chip antenna. Nordic requires the RF section to copy their reference design exactly; the module removes that risk and the certification work.
-- **Larger packages first.** nPM1300 in QFN32 and DRV2605L in VSSOP-10, so rev A avoids the 0.3 mm-pitch HDI board process. Shrink to chip-scale packages later.
-- **Touch via Qvar.** The LSM6DSV16BX's Qvar input reads the shell as a touch electrode. The Azoteq IQS227 stays on the board as a DNP fallback.
-- **nRF54L15 pin rules.** I2C, PDM and I2S live on port 1, with clocks on port 1 clock pins. Interrupt inputs stay off port 2, which cannot raise pin interrupts.
-
-## Prototype (engineering mule) pin fix
-
-The XIAO nRF54L15 Sense harness was corrected for the same pin rules: the sensor interrupt and bone-conduction TDM audio moved from port 2 to port 1 (D0–D3), and the touch chip moved to the back pads (D11/D12). The XIAO exposes only six port 1 pins, so the bone-conduction sensor (setup A) and the Knowles V2S / extra mic (setup B) take turns on D0–D2.
-
-## Still to confirm
-
-- Pad numbers for the BL54L15µ module, nPM1300, DRV2605L and V2S200D (pins are keyed by name until then).
-- Which port 1 pins are clock pins (Nordic pin-assignment table).
-- nPM1300 VSET1/VSET2 resistor values for 1.8 V and 3.0 V; PVDD tie to VSYS; handling of the unused CC1/CC2, NTC and load-switch pins.
-- ESD diode part; whether the coin cell needs its own protection circuit; DRV2605L logic thresholds at 1.8 V.
+- **Cuff battery protection.** The VARTA CP1254 coin cell needs an external protection circuit; not in `rev0/` yet.
+  (The dev board uses an Adafruit LiPo with protection built in.)
+- **Sourcing.** JLCPCB doesn't stock the BL54L15µ, and its nPM1300 and LSM6DSV16BX listings show no stock: use JLCPCB
+  global sourcing or consign them (see `devboard/README.md`).
+- **Bench checks on the first dev boards:** I2C low level at 400 kHz (nPM1300 DC limits aren't tabulated), and the
+  shared PDM bus (T5838 right channel, V2S200D left).
+- **ESD diode** part for the cuff's charging pads.
 
 ## Sources
 
-Nordic nPM1300 product spec and reference circuitry · Nordic nRF54L15 docs and DevZone pin guidance · Ezurio BL54L15µ datasheet · ST AN5845 (LSM6DSV16BX) · TDK DS-000383 (T5838) · TI DRV2605L datasheet · Azoteq IQS227D datasheet v1.17 · Syntiant V2S200D (Mouser) · Seeed XIAO nRF54L15 wiki.
+Nordic nPM1300 Product Specification v1.2.1 · Ezurio BL54L15µ datasheet (453-00223) · Nordic nRF54L15 pin assignments ·
+ST AN5845 (LSM6DSV16BX) · TDK DS-000383 (T5838) · TI DRV2605L datasheet · Syntiant V2S200D · Seeed XIAO nRF54L15 wiki.

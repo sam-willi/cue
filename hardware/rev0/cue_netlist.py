@@ -103,7 +103,7 @@ part("U7", "IQS227B", "Azoteq IQS227B-00000000-DNR", "DFN-6_2x2mm",
 part("M1", "LRA 8 mm", "Vybronics VG0832013D", "LRA_Coin_8mm_Pads", ["1", "2"],
      note="Alt: VG0640001D (6 mm). Mounted on flex, pressed toward skin.")
 part("BT1", "CP1254 A4X", "VARTA CoinPower CP 1254 A4X", "VARTA_CP1254_Tabs", ["+", "-"],
-     note="3.7 V, 74 mAh, 12.1 mm dia. Alt CP1240 A4X (50 mAh, thinner). Confirm whether cell needs external protection.")
+     note="3.7 V, 74 mAh, 12.1 mm dia. Alt CP1240 A4X (50 mAh, thinner). Needs an external protection circuit (not on rev0 yet).")
 part("J1", "Pogo pads", "Gold pads for case pogo pins", "Pads_2x1.5mm", ["1:5V", "2:GND"])
 part("D1", "TVS 5V", "TBC (0201/0402 ESD diode, 5 V working)", "D_0201", ["1:K", "2:A"], note="Part TBC.")
 part("L1", "2.2uH", "DCR<400mOhm, +/-20%", "L_0806", ["1", "2"], note="BUCK1 (nPM1300 ref).")

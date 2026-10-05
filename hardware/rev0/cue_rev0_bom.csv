@@ -1,5 +1,5 @@
 Refs,Qty,Value,Manufacturer part,Footprint,Status,Notes
-BT1,1,CP1254 A4X,VARTA CoinPower CP 1254 A4X,VARTA_CP1254_Tabs,FIT,"3.7 V, 74 mAh, 12.1 mm dia. Alt CP1240 A4X (50 mAh, thinner). Confirm whether cell needs external protection."
+BT1,1,CP1254 A4X,VARTA CoinPower CP 1254 A4X,VARTA_CP1254_Tabs,FIT,"3.7 V, 74 mAh, 12.1 mm dia. Alt CP1240 A4X (50 mAh, thinner). Needs an external protection circuit (not on rev0 yet)."
 C1 C4 C11 C12 C20,5,1uF,X5R/X7R ceramic,C_0402,FIT,U5 REG | U5 VDD (VBAT) | VBUS | VSYS | nPM1300 VBUSOUT (ref C5)
 C2 C5 C6 C7 C17 C18,6,10uF,X5R/X7R ceramic,C_0603,FIT,1V8 out | 3V0 out | VBUS | VSYS (nPM1300 ref C3) | VSYS (nPM1300 ref C4) | VSYS / PVDD (nPM1300 ref C2)
 C3,1,2.2uF,X5R/X7R ceramic,C_0603,FIT,VBAT (nPM1300 ref C6)

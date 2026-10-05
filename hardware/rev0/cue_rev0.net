@@ -4,7 +4,7 @@
       (title_block (title "Cue ear cuff") (company "Cue") (rev "0"))))
   (components
     (comp (ref "BT1") (value "CP1254 A4X") (footprint "VARTA_CP1254_Tabs")
-      (fields (field (name "MPN") "VARTA CoinPower CP 1254 A4X") (field (name "Status") "FIT")) (libsource (lib "cue") (part "CP1254 A4X") (description "3.7 V, 74 mAh, 12.1 mm dia. Alt CP1240 A4X (50 mAh, thinner). Confirm whether cell needs external protection.")))
+      (fields (field (name "MPN") "VARTA CoinPower CP 1254 A4X") (field (name "Status") "FIT")) (libsource (lib "cue") (part "CP1254 A4X") (description "3.7 V, 74 mAh, 12.1 mm dia. Alt CP1240 A4X (50 mAh, thinner). Needs an external protection circuit (not on rev0 yet).")))
     (comp (ref "C1") (value "1uF") (footprint "C_0402")
       (fields (field (name "MPN") "X5R/X7R ceramic") (field (name "Status") "FIT")) (libsource (lib "cue") (part "1uF") (description "VBUS")))
     (comp (ref "C2") (value "10uF") (footprint "C_0603")
