@@ -32,7 +32,7 @@ RADIO MODULE: Ezurio BL54L15µ 453-00223 (chip antenna)
     pad 20 P1.13  I2C_SDA
     pad 23 P1.11  TDM_WCLK    via 330 Ω (I2S LRCK, 8–48 kHz)
     pad 21 P1.10  PMIC_INT    via 330 Ω
-    pad 19 P1.12  EXP spare   via 330 Ω -> J5 pin 10, silkscreen "<1 MHz"
+    pad 19 P1.12  no connect (spare dropped; Note 7: leave unused pins open)
     pad 22 P1.09  no connect
     pad 18 P1.14  PDM_DIN | pad 7 P1.06 TDM_DIN | pad 8 P1.07 IMU_INT1
     pad 15 P1.05  MIC_WAKE | pad 2 P2.00 HAPTIC_EN | pad 6 P2.01 HAPTIC_TRIG
@@ -68,7 +68,7 @@ SENSORS
 
 HEADERS
 - J5 EXP 2x5 2.54 mm: 1 VSYS, 2 GND, 3 1V8, 4 3V0, 5 SDA, 6 SCL, 7 PDM_CLK, 8 PDM_DIN,
-  9 P0.01, 10 P1.12 via 330 Ω (<1 MHz).
+  9 P0.01, 10 no connect.
 - J4 SWD 2x5 1.27 mm: 1 1V8, 2 SWDIO, 3 GND, 4 SWDCLK, 5 GND, 9 GND, 10 nRESET.
 
 STILL OPEN: BUCK1 start-up voltage with VSET1 = 47k (confirm in the PS table),

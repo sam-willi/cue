@@ -22,8 +22,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 PCB = os.path.join(HERE, "cue_devboard.kicad_pcb")
 CUE_LIB = os.path.join(HERE, "Cue.pretty")
 MM = pcbnew.FromMM
-W, H = 34.0, 24.0                   # board outline, mm
-ANT_KEEPOUT = (14.0, 0.0, 20.0, 3.0)  # x1, y1, x2, y2: no copper on any layer (provisional until Ezurio land pattern)
+W, H = 38.0, 28.0                   # board outline, mm
+# BL54L15u on the top edge (inset 0.1 mm so its edge pads keep 0.3 mm copper-to-edge; Ezurio note 5), centred: Ezurio p.25 wants the module on the board edge, preferably edge-centre,
+# with >= 15 mm of board edge on each side (19.0 - 3.15 = 15.85 mm).
+U1_X, U1_Y = W / 2, 4.05             # module centre; footprint rotated 90 so its antenna end (+X) faces the top edge
+# antenna keep-out (Ezurio p.25: 3.0 x 5.0 mm, all layers) = footprint BL54_KEEPOUT rotated 90 deg
+ANT_KEEPOUT = (U1_X - 2.5, 0.0, U1_X + 2.5, U1_Y - 0.95)   # runs out to the board edge
 
 
 def V(x, y):
@@ -32,43 +36,47 @@ def V(x, y):
 
 # ------------------------------------------------------------------ fixed placement: ref -> (x, y, rot, side)
 FIXED = {
-    "U1": (17.0, 4.2, 0, "F"),     # module on top edge, antenna end (-Y) at the edge
-    "J4": (27.5, 4.2, 0, "F"),     # SWD
-    "J1": (3.4, 7.3, -90, "F"),    # USB-C, mouth to the left edge
-    "SW2": (3.6, 14.6, 0, "F"),    # ship/wake, beside the nPM1300 SHPHLD pin side
-    "U2": (11.1, 14.0, 180, "F"),  # nPM1300: USB/charger pins face J1, buck pins face the open middle
-    "J2": (4.0, H - 3.2, 0, "F"),  # battery, mouth to bottom edge
-    "SW1": (11.0, 22.0, 0, "F"),   # user button
-    "U5": (20.0, 12.6, 90, "F"),    # DRV2605L
-    "J3": (18.5, H - 3.2, 0, "F"),  # LRA, mouth to bottom edge
-    "J5": (29.5, 11.0, 0, "F"),    # expansion 2x5 2.54 (origin = pin 1)
-    "C5": (14.85, 14.25, 90, "F"),  # PVDD input cap tight against pin 4 (buck input loop)
-    "C17": (7.2, 14.9, 90, "F"),   # VBUSOUT cap beside pin 22
-    "L1": (16.6, 15.6, 90, "F"),  # BUCK1 inductor beside SW1 (pin 3)
-    "L2": (16.6, 11.9, 90, "F"),  # BUCK2 inductor beside SW2 (pin 5)
-    "U3": (25.2, 11.2, 0, "F"),    # LSM6DSV16BX
-    "U4": (25.2, 15.6, 90, "F"),   # T5838 (bottom port hole in footprint)
-    "E1": (25.2, 21.2, 0, "F"),    # touch pad
-    "FID1": (7.7, 23.2, 0, "F"),
-    "FID2": (33.0, 1.2, 0, "F"),
-    "FID3": (1.0, 0.75, 0, "F"),
+    "U1": (U1_X, U1_Y, 90, "F"),   # module on top edge centre, antenna end at the edge
+    "J4": (30.0, 4.4, 0, "F"),     # SWD, >4 mm clear of the module
+    "J1": (3.4, 7.8, -90, "F"),    # USB-C, mouth to the left edge
+    "SW2": (10.4, 7.4, 0, "F"),    # ship/wake, just above the nPM1300 SHPHLD pin (pin 15, top side)
+    "U2": (12.6, 14.4, 180, "F"),  # nPM1300: USB/charger pins face J1, buck pins face the open middle
+    "J2": (4.6, H - 4.9, 0, "F"),  # battery (JST-PH), mouth to bottom edge
+    "SW1": (11.5, 2.6, 0, "F"),    # user button, top-left beside the module it talks to
+    "U5": (24.0, 13.6, 90, "F"),   # DRV2605L
+    "J3": (21.0, H - 3.2, 0, "F"),  # LRA, mouth to bottom edge
+    "J5": (33.2, 12.0, 0, "F"),    # expansion 2x5 2.54 (origin = pin 1)
+    "C5": (17.7, 14.65, 0, "F"),   # PVDD input cap straight out of pin 4; SW1/SW2 (pins 3, 5) fan out past it
+    "C17": (8.4, 15.3, 90, "F"),   # VBUSOUT cap beside pin 22
+    "L1": (20.3, 16.5, 90, "F"),   # BUCK1 inductor beside SW1 (pin 3)
+    "L2": (20.3, 11.8, 90, "F"),   # BUCK2 inductor beside SW2 (pin 5)
+    "U3": (29.0, 12.2, 0, "F"),    # LSM6DSV16BX
+    "U4": (29.0, 16.6, 90, "F"),   # T5838 (bottom port hole in footprint)
+    "E1": (28.5, H - 3.0, 0, "F"),  # touch pad
+    # nPM1300 VSET resistors and VDDIO cap beside (not in front of) the top pin row, which needs escape room
+    "R4": (8.9, 9.6, 0, "F"),      # VSET2 (pin 16)
+    "R3": (8.9, 10.6, 0, "F"),      # VSET1 (pin 17)
+    "C22": (16.3, 10.3, 90, "F"),  # VDDIO (pin 12)
+    "FID1": (W - 1.0, H - 1.0, 0, "F"),
+    "FID2": (W - 1.0, 1.2, 0, "F"),
+    "FID3": (1.0, 0.8, 0, "F"),
 }
 # which pin each small part should sit next to: ref -> (anchor ref, anchor pad)
-ANCHOR = {   # placed in this order: buck loop, rail caps, then the rest
+ANCHOR = {   # placed in this order: Note 7 resistors (must hug the module), buck loop, rail caps, then the rest
+    "R7": ("U1", "23"), "R8": ("U1", "21"),
     "C6": ("U2", "1"), "C7": ("U2", "32"),
     "C4": ("U2", "20"), "C1": ("U2", "21"), "C3": ("U2", "19"), "C19": ("U2", "29"),
-    "R3": ("U2", "17"), "R4": ("U2", "16"), "R1": ("U2", "13"), "R2": ("U2", "14"), "C2": ("U2", "21"),
+    "R1": ("J5", "5"), "R2": ("J5", "6"), "C2": ("U2", "21"),
     "D1": ("J1", "A9"), "C18": ("U1", "5"), "C16": ("U1", "5"),
     "C8": ("U3", "8"), "C9": ("U3", "5"), "R6": ("U3", "6"),
     "C10": ("U4", "7"),
     "C11": ("U5", "10"), "C12": ("U5", "1"),
-    "C20": ("U2", "20"), "C21": ("U2", "4"), "C22": ("U2", "12"), "RT1": ("J2", "1"),
-    "R7": ("U1", "23"), "R8": ("U1", "21"), "R9": ("U1", "19"),  # Ezurio Note 7: at the module pads
+    "C20": ("U2", "4"), "C21": ("U2", "4"), "RT1": ("U2", "18"),
 }
 UNPLACED = []
 # plain silkscreen labels (text, x, y) - placed in clear areas, checked by DRC
-SILK_LABELS = [("BATT+", 4.0, 16.9), ("LRA", 18.5, 16.9), ("SWD", 27.5, 8.9), ("EXP", 30.8, 9.1)]
-BOTTOM_LABELS = [("SHIP", 3.6, 14.6), ("USER", 11.0, 22.0)]  # under each button
+SILK_LABELS = [("BATT+", 11.2, H - 1.0), ("LRA", 21.0, 18.9), ("SWD", 30.0, 9.1), ("EXP", 34.5, 10.1)]
+BOTTOM_LABELS = [("SHIP", 10.4, 7.4), ("USER", 11.5, 2.6)]  # under each button
 USED_LIBS = set()
 PASSES = 100
 POWER_NETS = {"VBUS", "VBAT", "VSYS", "SW1", "SW2", "1V8", "3V0", "MIC_1V8", "LRA_P", "LRA_N", "VBUSOUT"}
@@ -190,9 +198,28 @@ def build(place_only=False):
         if any(pd.GetAttribute() == pcbnew.PAD_ATTRIB_PTH for pd in fps[ref].Pads()):
             bot_boxes.append((ref, box))  # its pins come through to the bottom
 
+    # escape lanes in front of crowded fine-pitch pins: reserved before the small parts are placed
+    for ref, pads in LANES.items():
+        fp = fps[ref]
+        c = fp.GetPosition()
+        cx, cy = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y)
+        for pad in fp.Pads():
+            if pad.GetNumber() not in pads:
+                continue
+            px, py = pcbnew.ToMM(pad.GetPosition().x), pcbnew.ToMM(pad.GetPosition().y)
+            half = max(pcbnew.ToMM(pad.GetSize().x), pcbnew.ToMM(pad.GetSize().y)) / 2
+            if abs(px - cx) > abs(py - cy):
+                sx = 1 if px > cx else -1
+                x1, x2 = sorted((px + sx * half, px + sx * (half + 1.8)))
+                top_boxes.append(("lane", (x1, py - 0.25, x2, py + 0.25)))
+            else:
+                sy = 1 if py > cy else -1
+                y1, y2 = sorted((py + sy * half, py + sy * (half + 1.8)))
+                top_boxes.append(("lane", (px - 0.25, y1, px + 0.25, y2)))
+
     # anchored small parts: spiral search around the anchor pad
-    def place_near(ref, ax, ay, side, boxes, avoid_keepout=True):
-        for r in [i * 0.1 for i in range(0, 120)]:
+    def place_near(ref, ax, ay, side, boxes, avoid_keepout=True, rmin=0.0):
+        for r in [rmin + i * 0.1 for i in range(0, 120)]:
             steps = max(1, int(2 * math.pi * r / 0.25)) if r > 0 else 1
             for k in range(steps):
                 t = 2 * math.pi * k / steps
@@ -212,11 +239,13 @@ def build(place_only=False):
     for ref, (aref, apad) in ANCHOR.items():
         pad = [p for p in fps[aref].Pads() if p.GetNumber() == apad][0]
         pos = pad.GetPosition()
-        if not place_near(ref, pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), "F", top_boxes):
+        # leave an escape channel around fine-pitch ICs so the router can fan their pins out
+        rmin = {"U2": 2.2, "U3": 1.2}.get(aref, 0.0)
+        if not place_near(ref, pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), "F", top_boxes, rmin=rmin):
             UNPLACED.append(ref)
     # test points on the bottom, spread along the lower half
-    tp_spots = [(2.0, 11.0), (6.0, 17.0), (14.0, 18.5), (21.0, 9.0), (21.5, 6.0), (26.5, 18.5), (2.0, 4.0), (14.5, 21.5),
-                (30.0, 20.0), (30.0, 16.5)]
+    tp_spots = [(2.0, 11.5), (7.0, 18.5), (15.0, 19.5), (24.0, 9.5), (25.0, 6.0), (26.0, 19.5), (2.5, 4.0),
+                (16.0, 23.5), (31.5, 23.5), (36.0, 6.5)]
     for i, ref in enumerate(sorted(r for r in C.PARTS if r.startswith("TP"))):
         x, y = tp_spots[i]
         if not place_near(ref, x, y, "B", bot_boxes, avoid_keepout=True):
@@ -290,8 +319,8 @@ def build(place_only=False):
         text(lbl, x, y, 0.8)
     for lbl, x, y in BOTTOM_LABELS:
         text(lbl, x, y, 0.8, pcbnew.B_SilkS, True)
-    text("CUE rev A dev", 17.0, 22.9, 0.8, pcbnew.B_SilkS, True)
-    text("2026-10", 27.0, 22.9, 0.8, pcbnew.B_SilkS, True)
+    text("CUE rev A dev", 19.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
+    text("2026-10", 30.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
 
     pcbnew.SaveBoard(PCB, board)
     return board
@@ -569,7 +598,47 @@ def track_fits(board, x1, y1, x2, y2, w, clr, net_code, steps=8):
     return True
 
 
+# fine-pitch pins that get boxed in by routed copper: give each a locked stub straight out of the package
+# (and a plane via for plane nets) before the autorouter runs, so a channel stays open
+ESCAPES = {"U2": ["13", "14", "15", "29"]}
+LANES = {"U2": ["12", "13", "14", "15", "28", "29"]}   # kept free of small parts at placement
+
+
+def escape_stubs(board, length=0.9):
+    n = 0
+    for ref, pads in ESCAPES.items():
+        fp = board.FindFootprintByReference(ref)
+        c = fp.GetPosition()
+        cx, cy = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y)
+        for pad in fp.Pads():
+            if pad.GetNumber() not in pads:
+                continue
+            p = pad.GetPosition()
+            px, py = pcbnew.ToMM(p.x), pcbnew.ToMM(p.y)
+            dx, dy = px - cx, py - cy
+            if abs(dx) > abs(dy):
+                ux, uy = (1 if dx > 0 else -1), 0
+            else:
+                ux, uy = 0, (1 if dy > 0 else -1)
+            sz = pad.GetSize()
+            half = max(pcbnew.ToMM(sz.x), pcbnew.ToMM(sz.y)) / 2
+            ex, ey = px + ux * (half + length), py + uy * (half + length)
+            t = pcbnew.PCB_TRACK(board)
+            t.SetStart(V(px, py))
+            t.SetEnd(V(ex, ey))
+            t.SetWidth(MM(0.127))
+            t.SetLayer(pcbnew.F_Cu)
+            t.SetNet(pad.GetNet())
+            t.SetLocked(True)
+            board.Add(t)
+            if pad.GetNetname() in ("GND", "1V8") and via_fits(board, ex, ey, 0.45, 0.13, pad.GetNetCode(), ignore=pad):
+                add_via(board, pad.GetNet(), ex, ey, 0.45, 0.2, locked=True)
+            n += 1
+    print("escape stubs:", n)
+
+
 def route(board):
+    escape_stubs(board)
     fanout_planes(board)
     dsn = PCB.replace(".kicad_pcb", ".dsn")
     ses = PCB.replace(".kicad_pcb", ".ses")
@@ -680,9 +749,18 @@ def import_ses(board, ses):
 
 
 def finish(board):
-    outer_pours_and_stitching(board)
+    import maze_patch
     write_lib_table()
     # Zone fill crashes on an in-memory CreateEmptyBoard(); save and reload (sets up project settings) first.
+    pcbnew.SaveBoard(PCB, board)
+    board = pcbnew.LoadBoard(PCB)
+    # finish what the autorouter left open while the outer layers are still free of pours and stitching
+    rpt = os.path.join(HERE, "drc.rpt")
+    board.BuildConnectivity()
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())  # inner planes, so plane pads count as connected
+    pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    print("maze-patched:", maze_patch.patch(board, rpt))
+    outer_pours_and_stitching(board)
     pcbnew.SaveBoard(PCB, board)
     board = pcbnew.LoadBoard(PCB)
     board.BuildConnectivity()
@@ -692,13 +770,53 @@ def finish(board):
     if added:
         filler.Fill(board.Zones())
     pcbnew.SaveBoard(PCB, board)
-    rpt = os.path.join(HERE, "drc.rpt")
     pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
     if patch_unconnected(board, rpt):
         filler.Fill(board.Zones())
         pcbnew.SaveBoard(PCB, board)
         pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    if remove_dangling_stubs(rpt):
+        # a removed stub can expose a pin it was the only link for: route those with the grid router
+        board = pcbnew.LoadBoard(PCB)
+        board.BuildConnectivity()
+        pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+        pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+        print("maze-patched after cleanup:", maze_patch.patch(board, rpt))
+        pcbnew.SaveBoard(PCB, board)
+        board = pcbnew.LoadBoard(PCB)
+        board.BuildConnectivity()
+        pcbnew.ZONE_FILLER(board).Fill(board.Zones())
+        pcbnew.SaveBoard(PCB, board)
+        pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
     summarize_drc(rpt)
+
+
+def remove_dangling_stubs(rpt):
+    """Delete escape stubs the router ended up not using (DRC 'track_dangling'), by uuid in the board file."""
+    import re
+    txt = open(rpt).read()
+    spots = [(float(x), float(y)) for x, y in
+             re.findall(r"\[track_dangling\][^\n]*\n[^\n]*\n\s*@\(([\d.]+) mm, ([\d.]+) mm\)", txt)]
+    if not spots:
+        return 0
+    board = pcbnew.LoadBoard(PCB)
+    uuids = []
+    for t in board.GetTracks():
+        if t.GetClass() != "PCB_TRACK":
+            continue
+        for x, y in spots:
+            if t.HitTest(V(x, y), MM(0.01)):
+                uuids.append(t.m_Uuid.AsString())
+    text = open(PCB).read()
+    n = 0
+    for u in set(uuids):
+        m = re.search(r"\n\s*\(segment [^\n]*?\((?:tstamp|uuid) \"?" + re.escape(u) + r"\"?\)\)", text)
+        if m:
+            text = text[:m.start()] + text[m.end():]
+            n += 1
+    open(PCB, "w").write(text)
+    print("removed dangling stubs:", n)
+    return n
 
 
 def _seg_seg(a1, a2, b1, b2):

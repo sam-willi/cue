@@ -1,24 +1,69 @@
-# Cue rev A dev board — work in progress
+# Cue rev A dev board
 
-**Status: not ready to order.** The radio module footprint (`Cue.pretty/Ezurio_BL54L15u_453-00223`) is a stand-in with
-the right pad numbers but invented pad positions, until Ezurio's land pattern is imported. Scope may also narrow to the
-bone-conduction feature only.
+A 38 × 28 mm, 4-layer board (signal / GND / 1V8 / signal) with the cuff circuits plus bench conveniences: USB-C
+charging, JST-PH battery and JST-SH motor connectors, SWD debug and an expansion header for the V2S200D eval board.
+P1.12 (the old J5 pin 10 spare) is left unconnected per Ezurio Note 7.
 
-A ~34 × 24 mm, 4-layer (signal / GND / 1V8 / signal) board carrying the cuff circuits plus USB-C charging, JST battery
-and motor connectors, SWD debug and an expansion header.
+**Status: pre-manufacturing.** Schematic, layout and JLCPCB fab files are generated and checked: DRC 0 violations / 0 unconnected, schematic = circuit = PCB pad for pad. Before
+ordering, open the board in KiCad and review it by eye, and confirm sourcing for the three parts JLCPCB doesn't stock.
 
-| File                  | What it does                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------- |
-| `devboard_circuit.py` | Parts, pad-level nets and electrical checks (supply ranges, I2C addresses, pin rules) |
-| `make_footprints.py`  | Writes `Cue.pretty`: TDK T5838 (from DS-000383 Fig. 34), touch pad, module stand-in   |
-| `build_board.py`      | KiCad 7 board: placement, plane fan-out, Freerouting, pours, stitching, DRC           |
-| `export_fab.py`       | Gerbers, drill, BOM, pick-and-place, assembly PDF                                     |
-| `render.py`           | PNG renders of each layer                                                             |
+## Open it
 
-Needs KiCad 7, Freerouting 1.9 (`FREEROUTING=/path/to/freerouting-1.9.0.jar`) and `xvfb-run`.
+Install KiCad (free, kicad.org) and open `cue_devboard.kicad_pro`. The schematic is `cue_devboard.kicad_sch`; the
+board is `cue_devboard.kicad_pcb`. A PDF of the schematic is in `fab/schematic.pdf`.
+
+## Order it (JLCPCB)
+
+| File | Upload as |
+| --- | --- |
+| `fab/cue_devboard_gerbers.zip` | Gerber files (4 layers, 1.6 mm) |
+| `fab/bom.csv` | BOM (has an `LCSC Part #` column) |
+| `fab/cpl.csv` | CPL / pick-and-place |
+
+Not stocked at JLCPCB, so use their **global sourcing** or buy them and send them in (consigned parts):
+
+| Ref | Part | Where |
+| --- | --- | --- |
+| U1 | Ezurio BL54L15µ 453-00223 (radio module) | Not on LCSC; Digi-Key / Mouser / Ezurio |
+| U2 | Nordic nPM1300-QEAA-R (power) | LCSC C7466043, out of stock |
+| U3 | ST LSM6DSV16BXTR (bone conduction + touch) | LCSC C5381401, 0 stock |
+
+Everything else has an LCSC number in `fab/bom.csv` (from `devboard_circuit.SOURCING`).
+
+## Design notes
+
+- **Radio module** (BL54L15µ, Ezurio datasheet 2026, p.25): footprint from the recommended land pattern. Module on
+  the top edge, centred, so there is ≥ 15 mm of board edge each side; inset 0.1 mm for copper-to-edge clearance.
+  3.0 × 5.0 mm antenna keep-out on all layers out to the edge.
+- **Ezurio Note 7**: P1.09–P1.12 toggle below 1 MHz behind ≥ 330 Ω. Only slow signals use them, through R7–R8 at the
+  module pads; fast clocks are on clock pins P1.03 (PDM), P1.08 (TDM BCLK), P1.04 (I2C SCL).
+- **nPM1300** matches Nordic's PS v1.2.1 Configuration 1: VSET1 47k = 1.8 V, VSET2 150k = 3.0 V, 3 × 10 µF on VSYS,
+  100 nF on VDDIO, 10k B3380 thermistor RT1 on NTC, unused LOADSW2 tied to GND.
+- **Mic safety**: the T5838 (1.98 V max) is behind load switch 1, which is off at reset.
+
+Firmware must: select the 10k NTC and a 32 mA charge current before enabling charging; enable LOADSW1 only after
+BUCK1 is confirmed at 1.8 V; keep P1.09–P1.12 below 1 MHz.
+
+## Rebuild
+
+Needs KiCad 7, Java, `xvfb-run`, and Freerouting 1.9 at `tools/freerouting-1.9.0.jar` (or `FREEROUTING=`).
 
 ```bash
-python3 devboard_circuit.py   # electrical checks
-python3 make_footprints.py
-python3 build_board.py        # ~5-8 min, writes cue_devboard.kicad_pcb and drc.rpt
+export KICAD7_FOOTPRINT_DIR=/usr/share/kicad/footprints
+python3 devboard_circuit.py      # electrical checks
+python3 make_footprints.py       # Cue.pretty footprints
+python3 make_schematic.py        # cue_devboard.kicad_sch
+kicad-cli sch export netlist --format kicadsexpr -o sch.net cue_devboard.kicad_sch
+python3 check_schematic.py sch.net   # schematic == circuit, pad for pad
+python3 build_board.py           # place, autoroute, pour, DRC (~10 min)
+python3 export_fab.py            # fab/
 ```
+
+| File | What it does |
+| --- | --- |
+| `devboard_circuit.py` | Parts, pad-level nets, sourcing, electrical checks (rails, I2C, clock pins, Note 7) |
+| `make_footprints.py` | `Cue.pretty`: BL54L15µ, TDK T5838, touch pad |
+| `make_schematic.py` / `check_schematic.py` | Schematic generator and netlist cross-check |
+| `build_board.py` | Placement, plane fan-out, Freerouting, pours, stitching, DRC |
+| `export_fab.py` | Gerbers, drill, JLCPCB BOM and CPL, assembly and schematic PDFs |
+| `render.py` | PNG renders of each layer |

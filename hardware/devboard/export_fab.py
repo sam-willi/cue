@@ -5,9 +5,10 @@ Export fabrication and assembly files for the Cue rev A dev board (KiCad 7 kicad
 
 fab/gerbers/            Gerber X2 for all 4 copper layers, mask, paste, silk, outline + Excellon drill
 fab/cue_devboard_gerbers.zip
-fab/bom.csv             grouped BOM (value, MPN, footprint, refs, qty, FIT/DNP)
+fab/bom.csv             JLCPCB BOM (Comment, Designator, Footprint, LCSC Part #) + MPN, qty, sourcing notes
 fab/cpl.csv             pick-and-place (JLCPCB column names)
 fab/assembly_top.pdf    assembly drawing (reference designators, outlines)
+fab/schematic.pdf       schematic (from cue_devboard.kicad_sch)
 """
 import csv
 import os
@@ -66,14 +67,23 @@ def main():
 
     with open(os.path.join(FAB, "bom.csv"), "w", newline="") as g:
         w = csv.writer(g, lineterminator="\n")
-        w.writerow(["Comment", "Designator", "Footprint", "Manufacturer Part", "Qty", "Status", "Notes"])
-        for (val, mpn, fp, st), refs in sorted(groups.items(), key=lambda kv: key(kv[1])):
+        w.writerow(["Comment", "Designator", "Footprint", "LCSC Part #", "Manufacturer Part", "Qty", "Status",
+                    "Sourcing", "Notes"])
+        groups2 = defaultdict(list)
+        for (val, mpn, fp, st), refs in groups.items():
+            for r in refs:
+                smpn, lcsc, snote = C.SOURCING[r]
+                groups2[(val, fp, st, smpn, lcsc, snote)].append(r)
+        for (val, fp, st, smpn, lcsc, snote), refs in sorted(groups2.items(), key=lambda kv: key(kv[1])):
             refs = sorted(refs, key=lambda r: key([r]))
             notes = " | ".join(sorted({C.PARTS[r]["note"] for r in refs if C.PARTS[r]["note"]}))
-            w.writerow([val, ",".join(refs), fp, mpn, len(refs), st, notes])
+            w.writerow([val, ",".join(refs), fp, lcsc, smpn, len(refs), st, snote, notes])
 
     run("pcb", "export", "pdf", "--layers", "F.Fab,F.CrtYd,Edge.Cuts", "--include-border-title",
         "-o", os.path.join(FAB, "assembly_top.pdf"), PCB)
+    sch = os.path.join(HERE, "cue_devboard.kicad_sch")
+    if os.path.exists(sch):
+        run("sch", "export", "pdf", "-o", os.path.join(FAB, "schematic.pdf"), sch)
     print("fab outputs in", FAB)
     for f in sorted(os.listdir(FAB)):
         print("  ", f)
