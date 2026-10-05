@@ -510,9 +510,12 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 
 - Cue is always depicted as a **single behind-the-ear (BTE) device**: the body sits behind the ear on an ear hook. Never an ear cuff, never an earbud.
 - It must not enter or block the ear canal.
-- The form should appear small, elegant, discreet, and physically plausible.
-- It should resemble jewelry/premium consumer hardware rather than a hearing aid.
-- Favor metallic silver, graphite, champagne, or controlled enamel finishes.
+- **Discreetness comes first** (`CUE_CONTEXT.md` §26, decision 8): the form should go unnoticed, and appear small, elegant, and physically plausible.
+- When noticed, it should read as premium consumer hardware rather than a hearing aid.
+- Matte finishes only on visible surfaces; avoid gloss, chrome, and metallic sheen, because shine draws the eye.
+- Body: opaque, matte, in hair-matched tones (black, dark brown, light brown / dark blonde, gray).
+- Ear hook: thin (about 1 mm), frosted translucent with a faint neutral or smoke tint, sitting close to the head; never glossy clear. Matched-color hooks are optional extras.
+- Metal only in small details, such as the touch area or the logo, if at all.
 - Product geometry must remain consistent across every angle and colorway.
 - The case holds one BTE device and must not resemble a two-earbud case with one device missing.
 - Renders must preserve consistent seams, sensors, openings, contacts, thickness, and scale.
@@ -532,7 +535,8 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - Favor warm natural light or restrained studio lighting.
 - Show correct outer-ear placement clearly in at least one image per product story.
 - Use close detail selectively; maintain truthful scale.
-- Pair metallic surfaces with warm, tactile backgrounds rather than sci-fi environments.
+- Pair matte surfaces with warm, tactile backgrounds rather than sci-fi environments.
+- Show the device worn, in hair and in conversation, to tell the discreetness story truthfully; never retouch it smaller or fainter than it is.
 
 ### Avoid
 
@@ -742,6 +746,7 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ### 2026-10-05
 
+- **Discreetness first: matte, wearer-matched finishes replace metallic** (`CUE_CONTEXT.md` §26, decision 8). §14 now specifies an opaque matte body in hair-matched tones and a thin frosted translucent ear hook, with metal only in small details. Product photography pairs matte surfaces with warm backgrounds and shows the device worn.
 - **Form factor wording: behind-the-ear (BTE), not an ear cuff.** The hardware CAD puts the body behind the ear on an ear hook, so §3, §4, §13, §14, the checklists and the final summary now say BTE device where they said ear cuff (`CUE_CONTEXT.md` §26, decision 7). Unchanged: one device, never an earbud, nothing in the ear canal, and it should read as premium consumer hardware rather than a hearing aid.
 
 ### 2026-10-03 (after the expanded brand standards)
