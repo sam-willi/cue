@@ -84,8 +84,9 @@ points labelled on the bottom, button labels on top); L1 output now joins C6 dir
 was isolated on one routing pass; it is now tied to C9's ground. Left as-is (fine at these currents): some
 VSYS / VBAT / VBUS segments are 0.127 mm where the router had no room.
 
-Not checked: Ezurio's own CAD footprint (behind a free sign-in on ezurio.com); ours is from the datasheet drawing and
-was checked against it by two reviewers.
+Checked against Ezurio's own CAD footprint (BL54L10/BL54L15 PCB footprint rev 4.0, May 2026: DXF, Altium PcbLib and
+PDF): all 39 pads match in number, position and size (largest difference 0.003 mm, the left column at x = 0.503 vs
+0.50 mm). Ezurio's files are not committed (their licence prohibits redistribution).
 
 ## Review (2026-10-05, first pass)
 
