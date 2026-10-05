@@ -280,7 +280,7 @@ for refs, mpn, lcsc, note in [
     ("SW1 SW2", "Omron B3U-1000P", "C231329", "Extended"),
     ("U1", "Ezurio 453-00223", "", "Not on LCSC: JLCPCB global sourcing or consign"),
     ("U2", "Nordic NPM1300-QEAA-R", "C7466043", "Listed, out of stock: pre-order / global sourcing"),
-    ("U3", "ST LSM6DSV16BXTR", "C5381401", "Listed, 0 stock: pre-order / global sourcing"),
+    ("U3", "ST LSM6DSV16BXTR", "C5267394", "Extended; in stock at LCSC (2nd listing; C5381401 is the dead one)"),
     ("U4", "TDK MMICT5838-00-012", "C7230692", "Extended"),
     ("U5", "TI DRV2605LDGSR", "C527464", "Extended"),
 ]:

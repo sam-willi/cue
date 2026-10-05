@@ -5,7 +5,7 @@ charging, JST-PH battery and JST-SH motor connectors, SWD debug and an expansion
 P1.12 (the old J5 pin 10 spare) is left unconnected per Ezurio Note 7.
 
 **Status: pre-manufacturing.** Schematic, layout and JLCPCB fab files are generated and checked: DRC 0 violations / 0 unconnected, schematic = circuit = PCB pad for pad. Before
-ordering, open the board in KiCad and review it by eye, and confirm sourcing for the three parts JLCPCB doesn't stock.
+ordering, open the board in KiCad and review it by eye, and confirm sourcing for the two parts LCSC doesn't stock.
 
 ## Open it
 
@@ -20,15 +20,23 @@ board is `cue_devboard.kicad_pcb`. A PDF of the schematic is in `fab/schematic.p
 | `fab/bom.csv` | BOM (has an `LCSC Part #` column) |
 | `fab/cpl.csv` | CPL / pick-and-place |
 
-Not stocked at JLCPCB, so use their **global sourcing** or buy them and send them in (consigned parts):
+Not stocked at LCSC (checked 2026-10-05), so use JLCPCB **global sourcing** or buy them and send them in (consigned parts):
 
 | Ref | Part | Where |
 | --- | --- | --- |
 | U1 | Ezurio BL54L15µ 453-00223 (radio module) | Not on LCSC; Digi-Key / Mouser / Ezurio |
 | U2 | Nordic nPM1300-QEAA-R (power) | LCSC C7466043, out of stock |
-| U3 | ST LSM6DSV16BXTR (bone conduction + touch) | LCSC C5381401, 0 stock |
 
-Everything else has an LCSC number in `fab/bom.csv` (from `devboard_circuit.SOURCING`).
+
+Everything else has an LCSC number in `fab/bom.csv` (from `devboard_circuit.SOURCING`). The LSM6DSV16BX is in stock
+under its second LCSC listing, C5267394 (the older C5381401 listing is dead).
+
+LCSC-stocked alternatives, if you want everything sourced through JLCPCB (each needs a redesign):
+
+| Instead of | Alternative | LCSC | What changes |
+| --- | --- | --- | --- |
+| BL54L15µ module | u-blox BMD-340 (nRF52840) | C5456944 (19 in stock) | New footprint and pin map, nRF52 firmware port, more current. No nRF54L15 module is stocked at LCSC. |
+| nPM1300 | TI BQ25180 charger + TPS62840 1.8 V buck + TPS7A0230 3.0 V LDO | C3682423, C2071859, C3747031 | Three chips instead of one; new power section. |
 
 ## Design notes
 
