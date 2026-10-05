@@ -1,5 +1,5 @@
 /**
- * Convert the cuff CAD (a zoo.dev STEP export) into a web model: public/cad/cue-cuff.glb,
+ * Convert the behind-the-ear (BTE) device's CAD (a zoo.dev STEP export) into a web model: public/cad/cue-bte.glb,
  * which the page renders with three.js. The STEP lives on the hardware-rev0 branch
  * (hardware/rev0/democad.step); by default this reads it from there with git.
  *
@@ -18,7 +18,7 @@ import occtImport from "occt-import-js";
 const ROOT = path.dirname(path.dirname(new URL(import.meta.url).pathname));
 const CAD_REF = "origin/hardware-rev0:hardware/rev0/democad.step";
 const IN = process.argv[2] ?? CAD_REF;
-const OUT = process.argv[3] ?? path.join(ROOT, "public/cad/cue-cuff.glb");
+const OUT = process.argv[3] ?? path.join(ROOT, "public/cad/cue-bte.glb");
 
 /** The motor: an ~8 mm round part. Its center in the CAD's XY plane (mm). */
 const MOTOR_DIAMETER = [7, 10];

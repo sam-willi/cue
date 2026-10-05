@@ -38,7 +38,7 @@ describe("TouchGestures", () => {
     g.down(0);
     g.up(100); // tap
     g.down(300);
-    expect(g.up(900)).toBeNull(); // 600 ms hold: adjusting the cuff
+    expect(g.up(900)).toBeNull(); // 600 ms hold: adjusting the device
     g.down(1000);
     expect(g.up(1100)).toBeNull(); // a fresh first tap, not a double
   });

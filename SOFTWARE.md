@@ -7,7 +7,7 @@
 > **Where this document conflicts with a later owner decision**, the decision wins and is recorded in `CUE_CONTEXT.md` §26:
 >
 > - **§18 Haptic language:** the owner chose **three rhythms** (one tap = pause, two taps = slow down, long pulse = speak up), not a single universal tap. A one-tap mode remains a setting and a test condition.
-> - **§4 Speaker identification:** resolved by hardware (`CUE_CONTEXT.md` §26, decision 6). The cuff's **bone-conduction sensor** verifies when the wearer is speaking, the **microphone** captures audio for speech-to-text, and a **vibration motor behind the ear** delivers taps. There is no software voice detection and no voice profile.
+> - **§4 Speaker identification:** resolved by hardware (`CUE_CONTEXT.md` §26, decision 6). The device's **bone-conduction sensor** verifies when the wearer is speaking, the **microphone** captures audio for speech-to-text, and a **vibration motor behind the ear** delivers taps. There is no software voice detection and no voice profile.
 > - **§21–23 Processing and privacy:** the software MVP streams audio to Deepgram for transcription; on-device processing is the long-term direction.
 
 Cue should not be designed as a simple filler-word detector.
@@ -548,7 +548,7 @@ That could eventually become a powerful system. For the MVP, however, a generic 
 
 ## 21. On-device vs phone processing
 
-For the first version of Cue, it probably does not make sense to put an entire AI speech model inside the ear cuff. The hardware should stay small, lightweight, and power-efficient.
+For the first version of Cue, it probably does not make sense to put an entire AI speech model inside the behind-the-ear (BTE) device. The hardware should stay small, lightweight, and power-efficient.
 
 A practical architecture could be:
 

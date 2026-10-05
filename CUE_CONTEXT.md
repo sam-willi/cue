@@ -17,7 +17,7 @@ Every material statement should be interpreted using these labels:
 
 ## 2. Product in one paragraph
 
-**[CONFIRMED]** Cue is a discreet, single-ear **ear-cuff wearable speech coach** that helps people reduce habitual filler words such as “like,” “um,” and “uh,” slow rushed speech, use better pauses, and build speaking confidence. Its defining experience is real-time, subtle haptic feedback during actual speech: Cue notices a relevant speech behavior, privately taps the wearer, and helps them replace the habit with a calm pause or slower delivery. Cue is not meant to make people sound scripted or eliminate every natural disfluency. It should help users keep their personality while sounding more intentional.
+**[CONFIRMED]** Cue is a discreet, single-ear **behind-the-ear (BTE) wearable speech coach** that helps people reduce habitual filler words such as “like,” “um,” and “uh,” slow rushed speech, use better pauses, and build speaking confidence. Its defining experience is real-time, subtle haptic feedback during actual speech: Cue notices a relevant speech behavior, privately taps the wearer, and helps them replace the habit with a calm pause or slower delivery. Cue is not meant to make people sound scripted or eliminate every natural disfluency. It should help users keep their personality while sounding more intentional.
 
 **Core promise:** Notice the habit while it is happening, practice a better response, and gradually need less help.
 
@@ -74,7 +74,7 @@ Likely early adopter segments:
 - **Practice session:** Deliberately record a short speech, review detected events, and train context recognition.
 - **Baseline/calibration:** Speak naturally for several minutes so the system can estimate pace, pause patterns, common fillers, and usable sensor thresholds.
 - **Retention assessment:** Receive no or very little feedback during selected windows so Cue can measure whether improvement persists.
-- **Self-caught event:** The user notices and corrects their own filler, rushing, or near-miss before Cue intervenes. The cuff's touch surface is reserved for controls, not coaching (see Decision log, 2026-10-03), so self-catches must be inferred from speech; how to do that reliably is an **[OPEN QUESTION]**.
+- **Self-caught event:** The user notices and corrects their own filler, rushing, or near-miss before Cue intervenes. The device's touch surface is reserved for controls, not coaching (see Decision log, 2026-10-03), so self-catches must be inferred from speech; how to do that reliably is an **[OPEN QUESTION]**.
 
 ### Accessibility and clinical boundary
 
@@ -162,7 +162,7 @@ These are **[WORKING ASSUMPTION]** features, not guaranteed feasible on final ha
 
 ### Modes and safety valves
 
-- Easy pause/mute from the cuff or app.
+- Easy pause/mute from the device or app.
 - Configurable training intensity and target categories.
 - A meeting/presentation mode with a higher intervention threshold.
 - A visible explanation in the app of what Cue believed happened.
@@ -249,19 +249,19 @@ Exact schedules such as “100% in week one, 70% in week two” were illustrativ
 
 ### Confirmed industrial-design direction
 
-- **[CONFIRMED]** Cue is an **ear cuff**, not an earbud.
+- **[CONFIRMED]** Cue is a **behind-the-ear (BTE)** device: the body rests behind the ear and hangs from an **ear hook** over the top of the ear. It is not an ear cuff (which clips around the rim of the ear) and not an earbud (decision 7, 2026-10-05).
 - **[CONFIRMED]** It must not block the ear canal.
 - **[CONFIRMED]** It is a single-ear product.
 - **[CONFIRMED]** It should be small, discreet, elegant, and logically wearable.
-- **[CONFIRMED]** It should read more like jewelry/premium consumer hardware than a hearing aid or medical device.
+- **[CONFIRMED]** It should read more like jewelry/premium consumer hardware than a hearing aid or medical device. BTE is also a hearing-aid form factor, so finish, proportion, and styling carry this distinction.
 - **[CONFIRMED]** Metallic finishes are preferred.
 - **[CONFIRMED]** All concept imagery must depict one consistent product geometry across angles, on-ear views, case views, and colorways.
 
 ### Candidate physical arrangement
 
-**[WORKING ASSUMPTION]** A plausible architecture is a spring/compliant cuff that grips a stable part of the outer ear, with:
+**[WORKING ASSUMPTION]** A plausible architecture is a BTE body resting in the groove behind the ear, held by an ear hook over the top of the ear (as in `hardware/rev0/democad.step` on the `hardware-rev0` branch), with:
 
-- a skin-contact face for vibration sensing and/or haptic transfer;
+- a skin-contact face, against the skin behind the ear, for vibration sensing and/or haptic transfer;
 - a small outer jewelry-like shell containing electronics;
 - a compliant silicone or elastomer contact surface for comfort and grip;
 - an inward-facing or shielded microphone port if acoustic sensing is required;
@@ -283,7 +283,7 @@ All components below are suggestions for prototyping, not a locked bill of mater
 - Small Li-Po cell, protected charging/power-management IC, battery gauge as needed, and thermal/current safeguards.
 - Flash sized for firmware, model assets, and a small encrypted event buffer—not indefinite raw-audio storage.
 
-**[OPEN QUESTION]** Whether a single compact ear cuff can simultaneously achieve adequate microphone/contact-sensor signal quality, perceptible but private haptics, useful battery life, comfort, RF performance, and a jewelry-scale package.
+**[OPEN QUESTION]** Whether a single compact BTE device can simultaneously achieve adequate microphone/contact-sensor signal quality, perceptible but private haptics, useful battery life, comfort, RF performance, and a jewelry-scale package.
 
 ## 10. Charging case and colorways
 
@@ -296,7 +296,7 @@ All components below are suggestions for prototyping, not a locked bill of mater
 
 ### Working case concept
 
-**[WORKING ASSUMPTION]** A compact pocketable case cradles the cuff in only one obvious orientation, protects the contact surfaces, aligns charging reliably, and communicates case/device charge without looking like an earbud case containing a missing second earbud.
+**[WORKING ASSUMPTION]** A compact pocketable case cradles the BTE device in only one obvious orientation, protects the contact surfaces, aligns charging reliably, and communicates case/device charge without looking like an earbud case containing a missing second earbud.
 
 Potential details:
 
@@ -320,7 +320,7 @@ Color names, finishes, coating processes, scratch resistance, skin compatibility
 ### Reference system
 
 ```text
-Ear cuff
+BTE device
   sensors → signal conditioning → wearer-speech/activity features
       ↓ BLE
 Phone
@@ -332,7 +332,7 @@ Phone
       ↓
   intervention policy + personalization
       ↓ BLE command
-Ear cuff
+BTE device
   subtle haptic cue
 
 App storage
@@ -342,15 +342,15 @@ App storage
 
 ### MVP architecture recommendation
 
-- **[WORKING ASSUMPTION]** Begin phone-centric. The cuff acts as sensor, haptic endpoint, touch controls, and BLE peripheral.
-- Use the phone’s microphone or an off-the-shelf headset first to validate behavior before relying on unproven cuff acoustics.
+- **[WORKING ASSUMPTION]** Begin phone-centric. The BTE device acts as sensor, haptic endpoint, touch controls, and BLE peripheral.
+- Use the phone’s microphone or an off-the-shelf headset first to validate behavior before relying on unproven BTE acoustics.
 - Run streaming ASR and contextual classification on the phone where platform support allows.
 - Use cloud processing only for experiments that cannot run locally, with explicit consent and clear indication.
 - Keep device firmware simple and deterministic during early behavioral trials.
 
 ### Potential production evolution
 
-- On-cuff voice-activity/contact-quality features.
+- On-device voice-activity/contact-quality features.
 - On-device keyword or acoustic filler detection for a small vocabulary.
 - Phone-side contextual disambiguation and intervention policy.
 - Optional server-side model improvement using consented, de-identified research data.
@@ -361,7 +361,7 @@ This hybrid path is a hypothesis. Model size, thermals, battery life, microphone
 
 ### Option A — Phone/earphone microphone
 
-Best for behavioral MVP speed. It avoids custom acoustic hardware but is less private-looking, may capture other speakers, and may not prove the dedicated cuff’s value.
+Best for behavioral MVP speed. It avoids custom acoustic hardware but is less private-looking, may capture other speakers, and may not prove the dedicated BTE device’s value.
 
 ### Option B — Air microphone on Cue
 
@@ -369,7 +369,7 @@ Could support lexical ASR, but may capture bystanders, wind, clothing/hair noise
 
 ### Option C — Contact/body-conducted sensing
 
-A contact mic, piezo sensor, accelerometer, or related transducer could preferentially measure the wearer’s own voicing and cadence. This may help with wearer attribution and privacy, but **[IMPORTANT]** it is not yet proven that an elegant ear cuff at a comfortable location will yield sufficient signal quality for robust lexical recognition.
+A contact mic, piezo sensor, accelerometer, or related transducer could preferentially measure the wearer’s own voicing and cadence. This may help with wearer attribution and privacy, but **[IMPORTANT]** it is not yet proven that an elegant BTE device at a comfortable location will yield sufficient signal quality for robust lexical recognition.
 
 ### Option D — Sensor fusion
 
@@ -383,7 +383,7 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
 
 | Location | Best suited for | Advantages | Constraints |
 |---|---|---|---|
-| Ear cuff edge | Voice activity, contact quality, simple features, haptic control | Lowest latency, privacy, offline | Very limited power, memory, heat, model capacity |
+| BTE device edge | Voice activity, contact quality, simple features, haptic control | Lowest latency, privacy, offline | Very limited power, memory, heat, model capacity |
 | Phone | Streaming ASR, contextual classification, personalization, event storage | More compute, updateable, existing radios/UI | OS background rules, phone proximity, battery use |
 | Cloud | Large-model experiments, opt-in post-session analysis, aggregate research | Highest compute, rapid iteration | Privacy, connectivity, latency, cost, trust |
 
@@ -423,7 +423,7 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
 - “Like” is especially difficult because semantic, quotative, approximative, and discourse-marker uses overlap.
 - Accents, code-switching, overlapping speakers, music, wind, and informal speech will affect performance.
 - Predicting a filler or planning breakdown before it occurs is an interesting research direction, **not a promised feature**.
-- Measuring “self-correction” automatically is ambiguous, and the cuff's touch input is reserved for controls, so there is no physical self-caught label; any automatic measure must be validated before it drives progress metrics.
+- Measuring “self-correction” automatically is ambiguous, and the device's touch input is reserved for controls, so there is no physical self-caught label; any automatic measure must be validated before it drives progress metrics.
 
 ## 15. Data model and events
 
@@ -448,7 +448,7 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
   "session_id": "uuid",
   "occurred_at_ms": 0,
   "event_type": "speech_candidate|cue|self_caught|outcome",
-  "source": "cuff|phone|user",
+  "source": "device|phone|user",
   "model_version": "string|null",
   "policy_version": "string|null",
   "confidence": 0.0,
@@ -523,14 +523,14 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
 
 **Goal:** Determine whether correctly timed taps are understandable, tolerable, and behaviorally useful. Do not wait for custom hardware.
 
-### Phase 2 — Ear-cuff electronics proof of concept (2–4 weeks)
+### Phase 2 — BTE electronics proof of concept (2–4 weeks)
 
-- Rapid ergonomic shells in several cuff geometries.
+- Rapid ergonomic shells in several BTE body and ear-hook geometries.
 - BLE MCU, haptic actuator, touch sensing for controls, battery, and one or more candidate sensors.
 - Benchmark air mic, contact sensor, and fused sensing against phone audio.
 - Measure contact stability, wearer-activity gating, BLE latency, battery draw, temperature, and haptic audibility.
 
-**Goal:** Establish which functions the cuff can credibly perform. A bulky engineering mule is acceptable; do not confuse it with the final industrial design.
+**Goal:** Establish which functions the BTE device can credibly perform. A bulky engineering mule is acceptable; do not confuse it with the final industrial design.
 
 ### Phase 3 — Seven-day pilot
 
@@ -639,7 +639,7 @@ Avoid:
 
 ### Logo/icon considerations
 
-The identity should be distinctive at small app-icon and product-mark sizes. A speaking profile, quotation/pause form, or signal motif can be explored, but avoid a literal microphone icon if it makes Cue resemble a recording app. Any speaking-person motif should feel inclusive and abstract rather than gendered. Logo work must remain visually coherent with the physical cuff.
+The identity should be distinctive at small app-icon and product-mark sizes. A speaking profile, quotation/pause form, or signal motif can be explored, but avoid a literal microphone icon if it makes Cue resemble a recording app. Any speaking-person motif should feel inclusive and abstract rather than gendered. Logo work must remain visually coherent with the physical BTE device.
 
 ## 21. Patent and IP context
 
@@ -710,7 +710,7 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 
 - What precision and latency are achievable for filler-use “like” in spontaneous speech?
 - Which languages and filler vocabularies are in the first release?
-- Can a contact sensor at an acceptable cuff location reliably attribute wearer speech? Can it support lexical recognition or only timing features?
+- Can a contact sensor at an acceptable spot behind the ear reliably attribute wearer speech? Can it support lexical recognition or only timing features?
 - What is the best microphone/contact-sensor geometry under hair, motion, traffic, wind, and overlapping speech?
 - What false-cue rate remains acceptable in interviews or presentations?
 - How should Cue detect and score rushing across different natural speech styles?
@@ -727,7 +727,7 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 
 ### Hardware
 
-- Exact cuff placement, fit range, clamp force, mass, and all-day comfort.
+- Exact BTE placement, ear-hook fit range, clamp force, mass, and all-day comfort.
 - Left/right ear strategy and compatibility with glasses, earrings, hair, and headwear.
 - Haptic transfer that is clearly felt by the wearer but inaudible nearby.
 - Realistic battery life and case recharge count at the required sensing duty cycle.
@@ -766,15 +766,19 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 
 ## 25. Concise agent handoff summary
 
-Cue is a **single, discreet, jewelry-like ear cuff**—not an earbud—that coaches speaking during real conversations. The hero loop is **true filler detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement**. It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use a three-rhythm haptic vocabulary (tap / double tap / long pulse), use the cuff's touch surface only for on/off and mode switching (not coaching), avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio. Start with a phone/watch or BLE-haptic behavioral prototype, then validate cuff sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is small, elegant, metallic, Gen Z–aware, and consistent across all angles, with one-device charging case and jewelry-like colorways. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
+Cue is a **single, discreet, jewelry-like behind-the-ear (BTE) device**—not an ear cuff and not an earbud—that coaches speaking during real conversations. The hero loop is **true filler detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement**. It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use a three-rhythm haptic vocabulary (tap / double tap / long pulse), use the cuff's touch surface only for on/off and mode switching (not coaching), avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio. Start with a phone/watch or BLE-haptic behavioral prototype, then validate cuff sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is small, elegant, metallic, Gen Z–aware, and consistent across all angles, with one-device charging case and jewelry-like colorways. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
 
 ## 26. Decision log
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
+### 2026-10-05 — Form factor: behind-the-ear, not an ear cuff
+
+7. **Cue is a behind-the-ear (BTE) device, not an ear cuff.** The hardware CAD (`hardware/rev0/democad.step`) has the body behind the ear on an ear hook, the hearing-aid BTE form factor, and the LRA motor on the skin side behind the ear. *Previously:* **[CONFIRMED]** "Cue is an ear cuff." *Rationale:* the documents and app now describe the hardware being built. Still true: single ear, nothing in or blocking the ear canal, never an earbud, and it should read as premium consumer hardware rather than a hearing aid. Earlier entries and source documents that say "cuff" refer to this same device.
+
 ### 2026-10-04 — Hardware roles for wearer verification
 
-6. **The cuff's bone-conduction sensor verifies who is speaking; there is no software voice detection.** Roles: the **bone-conduction sensor** confirms when the wearer's own voice is vibrating through the skull (wearer voice activity); the **microphone** captures audio for speech-to-text, which hears everyone; a **vibration motor behind the ear** delivers the taps. The software coaches only words the bone sensor confirms. Removed from the software: speaker labels (diarization), loudness-based attribution, voice calibration, and any voice profile, so `SOFTWARE.md` §4's open question is closed: **no voiceprint**. *Rationale:* physical coupling identifies the wearer more reliably and privately than voice matching. *Consequences:* the bone sensor (e.g. rev 0's V2S200D, currently DNP) becomes a required part; whether a comfortable cuff position gives a clean enough bone signal remains to be validated on hardware (§12 Option C/D); the web prototype has no bone sensor, so it treats all speech as the wearer's.
+6. **The device's bone-conduction sensor verifies who is speaking; there is no software voice detection.** Roles: the **bone-conduction sensor** confirms when the wearer's own voice is vibrating through the skull (wearer voice activity); the **microphone** captures audio for speech-to-text, which hears everyone; a **vibration motor behind the ear** delivers the taps. The software coaches only words the bone sensor confirms. Removed from the software: speaker labels (diarization), loudness-based attribution, voice calibration, and any voice profile, so `SOFTWARE.md` §4's open question is closed: **no voiceprint**. *Rationale:* physical coupling identifies the wearer more reliably and privately than voice matching. *Consequences:* the bone sensor (e.g. rev 0's V2S200D, currently DNP) becomes a required part; whether a comfortable spot behind the ear gives a clean enough bone signal remains to be validated on hardware (§12 Option C/D); the web prototype has no bone sensor, so it treats all speech as the wearer's.
 
 ### 2026-10-04 — Software system spec adopted
 
@@ -782,10 +786,10 @@ Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
 ### 2026-10-03 (later) — Touch for controls
 
-4. **Touch input returns, for controls only.** Amends decision 2 below. The cuff gets a touch surface for **on/off (long press)** and **switching Conversation / Presentation mode (double tap)**, confirmed by vibration *ramps* that can't be confused with coaching taps. Touch is still **not** used mid-conversation for coaching (e.g. no self-catch tap). *Rationale:* these are occasional controls between conversations, not something the wearer must do while talking; gestures are deliberately few and hard to trigger by accident (people touch their ears often). The rev 0 hardware's Qvar shell-electrode touch (with IQS227 fallback) fits this.
+4. **Touch input returns, for controls only.** Amends decision 2 below. The device gets a touch surface for **on/off (long press)** and **switching Conversation / Presentation mode (double tap)**, confirmed by vibration *ramps* that can't be confused with coaching taps. Touch is still **not** used mid-conversation for coaching (e.g. no self-catch tap). *Rationale:* these are occasional controls between conversations, not something the wearer must do while talking; gestures are deliberately few and hard to trigger by accident (people touch their ears often). The rev 0 hardware's Qvar shell-electrode touch (with IQS227 fallback) fits this.
 
 ### 2026-10-03 — Owner decisions during software MVP development
 
 1. **Three haptic rhythms instead of one tap.** Previously **[CONFIRMED]** "Tap = make space" as the single default cue. Now: one tap = filler (pause), two quick taps = too fast (slow down), one long pulse = too quiet (speak up). *Rationale:* each behavior asks for a different action, and a single tap can't say which; rhythm is the most reliably distinguished vibrotactile dimension. Kept as a **[WORKING ASSUMPTION]** to validate with users; the single-tap mode stays available as a setting and test condition.
-2. **No button or touch input on the cuff.** *(Amended by decision 4: touch is back for controls only.)* Previously a **[WORKING ASSUMPTION]** of capacitive touch for self-caught events and pause/mute. *Rationale:* the wearer won't have anything to press mid-conversation; controls live in the app. *Consequence:* the **[CONFIRMED]** goal "device-caught events fall while self-caught events rise" still stands, but self-catches must be inferred from speech (**[OPEN QUESTION]**). The software MVP's "I caught it" button was removed for the same reason.
+2. **No button or touch input on the device.** *(Amended by decision 4: touch is back for controls only.)* Previously a **[WORKING ASSUMPTION]** of capacitive touch for self-caught events and pause/mute. *Rationale:* the wearer won't have anything to press mid-conversation; controls live in the app. *Consequence:* the **[CONFIRMED]** goal "device-caught events fall while self-caught events rise" still stands, but self-catches must be inferred from speech (**[OPEN QUESTION]**). The software MVP's "I caught it" button was removed for the same reason.
 3. **Detect speaking too quietly.** New **[CONFIRMED]** target behavior, measured against the wearer's own normal level. Speaking too loudly is out of scope.

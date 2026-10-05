@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CONFIRMS, PATTERNS, type ConfirmPattern, type CuePattern } from "@/lib/cue/patterns";
 
 /**
- * The cuff, from its CAD (hardware/rev0/democad.step on the hardware-rev0 branch → public/cad/cue-cuff.glb via
+ * The behind-the-ear (BTE) device, from its CAD (hardware/rev0/democad.step on the hardware-rev0 branch → public/cad/cue-bte.glb via
  * scripts/cad-to-glb.mjs),
  * with each haptic drawn where it really happens: rings leave the LRA motor's skin-side face in
  * the cue's rhythm (one, two, or one long), and the motor glows while it's driven. Confirmations
@@ -30,7 +30,7 @@ interface Pulse {
   strength: number;
 }
 
-const MODEL_URL = "/cad/cue-cuff.glb";
+const MODEL_URL = "/cad/cue-bte.glb";
 
 /** A vibrate array ([on, off, on, …] ms) as the start and length of each on-segment. */
 function segments(vibrate: number[]) {
@@ -84,7 +84,7 @@ function pulsesFor(
   return [];
 }
 
-export default function CuffModel({
+export default function DeviceModel({
   buzz,
   confirm,
   noticed,
@@ -362,11 +362,11 @@ export default function CuffModel({
     <div className={`relative ${className}`}>
       <div ref={mountRef} className="absolute inset-0" />
       {state === "loading" && (
-        <p className="absolute inset-0 grid place-items-center text-body-sm text-muted">Loading the cuff…</p>
+        <p className="absolute inset-0 grid place-items-center text-body-sm text-muted">Loading the device…</p>
       )}
       {state === "unavailable" && (
         <p className="absolute inset-0 grid place-items-center px-6 text-center text-body-sm text-muted">
-          The 3D cuff can’t be shown in this browser.
+          The 3D device can’t be shown in this browser.
         </p>
       )}
     </div>

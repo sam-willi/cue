@@ -78,9 +78,9 @@ body {
   color: var(--text);
 }
 
-/* Haptic cues are drawn on the 3D cuff (src/app/CuffModel.tsx), leaving the motor in their rhythm. */
+/* Haptic cues are drawn on the 3D device (src/app/DeviceModel.tsx), leaving the motor in their rhythm. */
 
-/* Simulated cuff touch pad: a ring fills while held, reaching full at the 1.5 s long press. */
+/* Simulated touch pad on the device: a ring fills while held, reaching full at the 1.5 s long press. */
 @keyframes press-fill {
   from {
     stroke-dashoffset: 100;
@@ -89,11 +89,11 @@ body {
     stroke-dashoffset: 0;
   }
 }
-.cuff-pad .press-ring {
+.touch-pad .press-ring {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
 }
-.cuff-pad.pressing .press-ring {
+.touch-pad.pressing .press-ring {
   animation: press-fill 1.5s linear forwards;
 }
 
@@ -117,10 +117,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .cue-playing .beat,
-  .cuff-pad.pressing .press-ring {
+  .touch-pad.pressing .press-ring {
     animation: none !important;
   }
-  .cuff-pad.pressing .press-ring {
+  .touch-pad.pressing .press-ring {
     stroke-dashoffset: 0;
   }
 }

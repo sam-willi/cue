@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import CuffModel from "./CuffModel";
+import DeviceModel from "./DeviceModel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
@@ -144,7 +144,7 @@ export default function CueApp() {
     buzzTimer.current = window.setTimeout(() => setConfirm(null), CONFIRMS[pattern].durationMs + 600);
   }, []);
 
-  /** A cuff touch gesture: long press = Cue on/off, double tap = switch mode. */
+  /** A touch gesture on the device: long press = Cue on/off, double tap = switch mode. */
   const onTouch = useCallback(
     (action: TouchAction) => {
       const c = configRef.current;
@@ -310,7 +310,7 @@ export default function CueApp() {
     const demoStart = performance.now();
     clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
     let sim: Word[] = simulateWords(text, { wpm: demoWpm });
-    // "A friend cuts in": the microphone hears them, but the cuff's bone sensor doesn't,
+    // "A friend cuts in": the microphone hears them, but the device's bone sensor doesn't,
     // so their fillers shouldn't tap.
     let friend: Word[] = [];
     if (demoFriend && sim.length > 4) {
@@ -487,7 +487,7 @@ export default function CueApp() {
         : status === "error"
           ? (error ?? "")
           : config.muted
-            ? "Long-press the cuff, or switch Cue on below."
+            ? "Long-press the device, or switch Cue on below."
             : calibrating
               ? "Talk normally for a few seconds so Cue learns your usual volume."
               : live
@@ -528,23 +528,23 @@ export default function CueApp() {
       </header>
 
       <div className="lg:flex lg:flex-row-reverse lg:items-start lg:gap-12">
-        {/* The cuff, from its CAD: each cue leaves the motor on the skin side. Beside the page on wide
+        {/* The behind-the-ear device, from its CAD: each cue leaves the motor on the skin side. Beside the page on wide
           screens, above it on phones. */}
-        <aside aria-label="The cuff" className="mt-6 lg:sticky lg:top-8 lg:mt-8 lg:w-[44%] lg:shrink-0">
+        <aside aria-label="The device" className="mt-6 lg:sticky lg:top-8 lg:mt-8 lg:w-[44%] lg:shrink-0">
           <figure
             role="img"
             aria-label={
               confirm
-                ? `Confirmation on the cuff: ${CONFIRMS[confirm.pattern].label}`
+                ? `Confirmation on the device: ${CONFIRMS[confirm.pattern].label}`
                 : buzz
-                  ? `The cuff buzzes: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
+                  ? `The device buzzes: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
                   : heard
                     ? `Noticed ${heard.label}, no buzz yet`
-                    : "The Cue ear cuff, no cue right now"
+                    : "The Cue behind-the-ear device, no cue right now"
             }
             className="overflow-hidden rounded-2xl bg-surface-2"
           >
-            <CuffModel
+            <DeviceModel
               buzz={buzz}
               confirm={confirm}
               noticed={heard}
@@ -552,7 +552,7 @@ export default function CueApp() {
             />
           </figure>
           <p className="mt-3 text-caption text-muted">
-            The cuff from its CAD. Taps leave the motor behind your ear; drag to turn it.
+            Cue’s behind-the-ear (BTE) device, from its CAD. Taps leave the motor behind your ear; drag to turn it.
           </p>
         </aside>
 
@@ -924,7 +924,7 @@ export default function CueApp() {
 
             <Disclosure
               title="Practice"
-              summary="Try a sentence without a mic, or try the cuff’s touch controls"
+              summary="Try a sentence without a mic, or try the device’s touch controls"
               open={open.practice}
               onToggle={() => toggle("practice")}
             >
@@ -969,7 +969,7 @@ export default function CueApp() {
                     <Switch label="Trail off quietly at the end" on={demoQuiet} onChange={setDemoQuiet} />
                     <Switch
                       label="A friend cuts in with “um… like went”"
-                      hint="The mic hears them; the cuff’s bone sensor doesn’t, so Cue ignores them."
+                      hint="The mic hears them; the device’s bone sensor doesn’t, so Cue ignores them."
                       on={demoFriend}
                       onChange={setDemoFriend}
                     />
@@ -985,14 +985,14 @@ export default function CueApp() {
 
                 <div>
                   <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                    Try the cuff’s touch controls
+                    Try the device’s touch controls
                   </h3>
                   <p className="mt-1 text-body-sm text-muted">
-                    On the cuff, touch is only for controls. A single tap does nothing, so fixing your hair won’t
+                    On the device, touch is only for controls. A single tap does nothing, so fixing your hair won’t
                     trigger it.
                   </p>
                   <div className="mt-4">
-                    <CuffTouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
+                    <TouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
                   </div>
                 </div>
               </div>
@@ -1203,7 +1203,7 @@ export default function CueApp() {
                     While you listen, audio streams to Deepgram to be transcribed. If you add your own Deepgram key, it
                     stays in this browser and goes straight to Deepgram. Cue keeps nothing on its own. A session is only
                     saved if you choose Download session, and that file has words and timing, never audio. Cue never
-                    builds a voiceprint: on the cuff, a bone-conduction sensor hears only your own voice. In this web
+                    builds a voiceprint: on the device, a bone-conduction sensor hears only your own voice. In this web
                     prototype the microphone hears everyone, so other people’s fillers can tap too.
                   </p>
                 </div>
@@ -1626,10 +1626,10 @@ function TranscriptKey() {
 }
 
 /**
- * Stand-in for the cuff's touch surface (controls only). Hold 1.5 s = on/off,
- * double-tap = switch mode; a single tap does nothing, as on the real cuff.
+ * Stand-in for the device's touch surface (controls only). Hold 1.5 s = on/off,
+ * double-tap = switch mode; a single tap does nothing, as on the real device.
  */
-function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => void; mode: string; on: boolean }) {
+function TouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => void; mode: string; on: boolean }) {
   const gestures = useRef(new TouchGestures());
   const holdTimer = useRef<number | undefined>(undefined);
   const hintTimer = useRef<number | undefined>(undefined);
@@ -1666,8 +1666,8 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
     <div className="flex items-center gap-5">
       <button
         type="button"
-        aria-label="Simulated cuff touch surface: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
-        className={`cuff-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-body-sm font-medium ${pressing ? "pressing" : ""}`}
+        aria-label="Simulated touch surface on the device: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
+        className={`touch-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-body-sm font-medium ${pressing ? "pressing" : ""}`}
         onPointerDown={(e) => {
           try {
             e.currentTarget.setPointerCapture(e.pointerId); // keep the press if the finger drifts
@@ -1709,7 +1709,7 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
             transform="rotate(-90 18 18)"
           />
         </svg>
-        Cuff
+        Device
       </button>
       <div className="text-body">
         <p>Hold for 1.5 seconds to turn Cue {on ? "off" : "on"}.</p>
