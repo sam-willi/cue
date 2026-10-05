@@ -10,6 +10,8 @@ Production cuff electronics as a checked netlist, plus the parts list. This is a
 | `rev0/cue_rev0.net`             | KiCad netlist (s-expression). Import in the KiCad PCB editor.                  |
 | `rev0/cue_rev0_bom.csv`         | Bill of materials grouped by value, with part numbers, footprints and FIT/DNP. |
 | `rev0/cue_rev0_connections.csv` | Every pin of every part and the net it is on.                                  |
+| `rev0/SENSORS.md`               | Where to buy each sensor chip, plus eval boards for testing.                   |
+| `kit/`                          | Wiring for the off-the-shelf bone-conduction test kit (XIAO nRF54L15 Sense).   |
 
 Regenerate and recheck:
 
