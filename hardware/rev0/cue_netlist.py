@@ -33,7 +33,7 @@ OUT = os.path.dirname(os.path.abspath(__file__))
 RAILS = {
     "5V_IN": (4.75, 5.25),   # from the charging case pogo pins
     "VBAT":  (3.0, 4.2),     # Li-ion coin cell
-    "VSYS":  (3.0, 4.2),     # nPM1300 system rail, follows battery when unplugged
+    "VSYS":  (3.0, 5.25),    # nPM1300 system rail; may follow VBUS while charging
     "1V8":   (1.8, 1.8),     # nPM1300 BUCK1
     "3V0":   (3.0, 3.0),     # nPM1300 BUCK2, only used by the IQS227 fallback
 }
@@ -120,7 +120,7 @@ cap("C7", "10uF", fp="C_0603", note="3V0 out")
 cap("C8", "100nF", fp="C_0201", note="U3 VDD (typ.)")
 cap("C9", "100nF", fp="C_0201", note="U3 VDD_IO (typ.)")
 cap("C10", "100nF", fp="C_0201", note="U4 VDD, X7R, closest part to pin 7")
-cap("C11", "1uF", note="U5 VDD")
+cap("C11", "1uF", note="U5 VDD (VBAT)")
 cap("C12", "1uF", note="U5 REG")
 cap("C13", "1uF", status="DNP", note="U7 VDDHI")
 cap("C14", "1uF", status="DNP", note="U7 VREG")
@@ -160,9 +160,9 @@ def nc(ref, *pins):
 
 # Power input and battery
 net("5V_IN", ("J1", "1:5V"), ("D1", "1:K"), ("U2", "VBUS"), ("C1", "1"), ("C2", "1"))
-net("VBAT", ("BT1", "+"), ("U2", "VBAT"), ("C3", "1"))
-net("VSYS", ("U2", "VSYS"), ("U2", "PVDD"), ("C4", "1"), ("C5", "1"),
-    ("U5", "VDD"), ("U5", "VDD_NC"), ("C11", "1"))
+net("VBAT", ("BT1", "+"), ("U2", "VBAT"), ("C3", "1"),
+    ("U5", "VDD"), ("U5", "VDD_NC"), ("C11", "1"))  # DRV2605L max 5.2 V: VSYS can follow VBUS while charging
+net("VSYS", ("U2", "VSYS"), ("U2", "PVDD"), ("C4", "1"), ("C5", "1"))
 net("SW1", ("U2", "SW1"), ("L1", "1"))
 net("SW2", ("U2", "SW2"), ("L2", "1"))
 net("1V8", ("L1", "2"), ("U2", "VOUT1"), ("C6", "1"), ("U2", "VDDIO"),

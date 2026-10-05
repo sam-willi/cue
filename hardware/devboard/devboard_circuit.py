@@ -1,0 +1,233 @@
+"""
+Cue rev A dev board - circuit definition.
+
+Same circuits as the production cuff (hardware/rev0), on a ~32 x 22 mm flat board with
+bench conveniences: USB-C charging, JST battery and motor connectors, SWD debug
+header, expansion header, buttons and test points.
+
+Differences from the rev0 cuff netlist:
+  - USB-C (J1) replaces the case pogo pads; nPM1300 CC1/CC2 detect the charger.
+  - JST-SH battery (J2) and LRA (J3) connectors replace soldered cell and motor.
+  - Knowles V2S200D and Azoteq IQS227 are not on this board; their signals
+    (PDM, I2C, 3V0) come out on the expansion header (J5) for eval boards.
+  - The T5838 mic is powered through nPM1300 load switch 1 (MIC_1V8). Firmware sets
+    BUCK1 to 1.8 V before closing the switch, so the 1.98 V-max mic is protected
+    even if the BUCK1 start-up voltage were wrong.
+  - nRF54L15 pins re-chosen on the BL54L15u pad map: clock signals only on P1.08,
+    P1.11, P1.12, P1.13 (clock pins used by Nordic's own nRF54L boards), interrupts
+    on P0/P1 only.
+
+Every pin is keyed by its footprint pad number.
+"""
+from collections import defaultdict
+
+FP = "/usr/share/kicad/footprints/"
+CUE = "CUE_LOCAL"  # replaced with the project footprint library path at build time
+
+# rail -> (vmin, vmax)
+RAILS = {
+    "VBUS": (4.75, 5.25), "VBAT": (3.0, 4.2), "VSYS": (3.0, 5.25),  # VSYS may follow VBUS while charging
+    "1V8": (1.8, 1.8), "3V0": (3.0, 3.0), "MIC_1V8": (1.8, 1.8),
+}
+
+# ref: dict(lib, fp, value, mpn, pins{pad: net}, supply[(pad, vmin, vmax)], i2c, note, status)
+PARTS = {}
+
+
+def part(ref, lib, fp, value, mpn, pins, supply=(), i2c=None, note="", status="FIT", nc=()):
+    PARTS[ref] = dict(lib=lib, fp=fp, value=value, mpn=mpn, pins=dict(pins), supply=list(supply),
+                      i2c=i2c, note=note, status=status, nc=set(nc))
+
+
+# --- U1 radio module: Ezurio BL54L15u (453-00223, chip antenna). Pad map from Ezurio datasheet v1.1.
+u1 = {
+    "2": "HAPTIC_EN",      # P2.00 (output; P2 is fine for outputs)
+    "3": "TDM_WCLK",       # P1.08 clock pin  -> I2S LRCK
+    "5": "1V8",            # VDD_nRF
+    "6": "HAPTIC_TRIG",    # P2.01
+    "7": "TDM_DIN",        # P1.06 -> I2S SDIN
+    "8": "IMU_INT1",       # P1.07 interrupt
+    "13": "MIC_THSEL",     # P2.02
+    "15": "MIC_WAKE",      # P1.05 interrupt
+    "17": "PMIC_INT",      # P1.04 interrupt
+    "18": "PDM_DIN",       # P1.14
+    "19": "PDM_CLK",       # P1.12 clock pin
+    "20": "I2C_SCL",       # P1.13 clock pin
+    "21": "EXP_P1_10",     # P1.10 (clock-capable, spare to header)
+    "22": "I2C_SDA",       # P1.09
+    "23": "TDM_BCLK",      # P1.11 clock pin -> I2S SCK
+    "25": "SWDCLK", "27": "SWDIO", "32": "nRESET",
+    "35": "EXP_P0_01",     # P0.01 spare to header
+    "38": "BTN_USER",      # P0.00 user button (internal pull-up)
+}
+for g in ["4", "14", "24", "28", "31", "34", "36", "39", "G1", "G2", "G3", "G4", "G5", "G6"]:
+    u1[g] = "GND"
+part("U1", CUE, "Ezurio_BL54L15u_453-00223", "BL54L15u", "Ezurio 453-00223", u1,
+     supply=[("5", 1.7, 3.5)],
+     nc=["1", "9", "10", "11", "12", "16", "26", "29", "30", "33", "37", "40", "41", "42", "43", "44", "45"],
+     note="Certified nRF54L15 module, chip antenna, 7.9x6.3x1.75 mm. Place on board edge; no copper under antenna.")
+
+# --- U2 PMIC: Nordic nPM1300 QFN32 (pin numbers from Nordic product spec). EP = AVSS.
+part("U2", FP + "Package_DFN_QFN.pretty", "QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm", "nPM1300",
+     "Nordic NPM1300-QEAA-R", {
+         "1": "1V8", "2": "GND", "3": "SW1", "4": "VSYS", "5": "SW2", "6": "GND",
+         "7": "PMIC_INT", "12": "1V8", "13": "I2C_SDA", "14": "I2C_SCL", "15": "SHPHLD",
+         "16": "VSET2", "17": "VSET1", "19": "VBAT", "20": "VSYS", "21": "VBUS", "22": "VBUSOUT",
+         "23": "CC1", "24": "CC2", "28": "1V8", "29": "MIC_1V8", "32": "3V0", "33": "GND"},
+     supply=[("21", 4.0, 5.5)], i2c=0x6B,
+     nc=["8", "9", "10", "11", "18", "25", "26", "27", "30", "31"],
+     note="I2C 0x6B. BUCK1=1V8 (VSET1), BUCK2=3V0 (VSET2), LS1 gates MIC_1V8. "
+          "NTC unused (disable in firmware). EP size: KiCad 3.45 mm vs 3.5 mm nominal on sister nPM1304 - confirm.")
+
+# --- U3 IMU + bone conduction: ST LSM6DSV16BX LGA-14 (pins from ST AN5845)
+part("U3", FP + "Package_LGA.pretty", "LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y", "LSM6DSV16BX",
+     "ST LSM6DSV16BXTR", {
+         "1": "GND", "2": "TDM_DIN", "3": "TDM_BCLK", "4": "IMU_INT1", "5": "1V8", "6": "QVAR1",
+         "7": "GND", "8": "1V8", "11": "TDM_WCLK", "12": "1V8", "13": "I2C_SCL", "14": "I2C_SDA"},
+     supply=[("8", 1.71, 3.6), ("5", 1.08, 3.6)], i2c=0x6A, nc=["9", "10"],
+     note="SA0=GND -> 0x6A. CS=1V8 -> I2C mode. Confirm ST land pattern matches KiCad LGA-14 3x2.5.")
+
+# --- U4 mic: TDK T5838 (pins from TDK DS-000383), bottom port -> board hole
+part("U4", CUE, "TDK_T5838", "T5838", "TDK InvenSense T5838", {
+    "1": "PDM_DIN", "2": "GND", "3": "GND", "4": "MIC_WAKE", "5": "MIC_THSEL", "6": "PDM_CLK", "7": "MIC_1V8"},
+    supply=[("7", 1.62, 1.98)], note="SELECT=GND -> right channel. Bottom port: 0.8 mm board hole.")
+
+# --- U5 haptic driver: TI DRV2605L VSSOP-10 (DGS). Pin order from TI datasheet.
+part("U5", FP + "Package_SO.pretty", "VSSOP-10_3x3mm_P0.5mm", "DRV2605L", "TI DRV2605LDGSR", {
+    "1": "U5_REG", "2": "I2C_SCL", "3": "I2C_SDA", "4": "HAPTIC_TRIG", "5": "HAPTIC_EN",
+    "6": "VBAT", "7": "LRA_P", "8": "GND", "9": "LRA_N", "10": "VBAT"},
+    supply=[("10", 2.0, 5.2)], i2c=0x5A,
+    note="I2C 0x5A, 1.8 V logic thresholds (VIH 1.3 V min). EN high before register writes. "
+          "Supplied from VBAT (3.0-4.2 V): VSYS can approach VBUS while charging, above the 5.2 V max.")
+
+# --- Connectors
+part("J1", FP + "Connector_USB.pretty", "USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal", "USB-C (power)",
+     "GCT USB4125-GF-A", {"A9": "VBUS", "B9": "VBUS", "A12": "GND", "B12": "GND", "A5": "CC1", "B5": "CC2", "S1": "GND"},
+     note="Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.")
+part("J2", FP + "Connector_JST.pretty", "JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal", "BATT",
+     "JST SM02B-SRSS-TB", {"1": "VBAT", "2": "GND"}, nc=["MP"],
+     note="Li-ion/LiPo cell (coin cell on leads, or protected pouch cell). Check polarity: pin 1 = +.")
+part("J3", FP + "Connector_JST.pretty", "JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal", "LRA",
+     "JST SM02B-SRSS-TB", {"1": "LRA_P", "2": "LRA_N"}, nc=["MP"], note="Coin LRA on a pigtail (Vybronics VG0832013D).")
+part("J4", FP + "Connector_PinHeader_1.27mm.pretty", "PinHeader_2x05_P1.27mm_Vertical_SMD", "SWD",
+     "2x5 1.27 mm SMD header", {"1": "1V8", "2": "SWDIO", "3": "GND", "4": "SWDCLK", "5": "GND", "9": "GND", "10": "nRESET"},
+     nc=["6", "7", "8"], note="ARM Cortex 10-pin debug pinout. VTref = 1V8.")
+part("J5", FP + "Connector_PinHeader_2.54mm.pretty", "PinHeader_2x05_P2.54mm_Vertical", "EXP",
+     "2x5 2.54 mm header", {"1": "VSYS", "2": "GND", "3": "1V8", "4": "3V0", "5": "I2C_SDA", "6": "I2C_SCL",
+                             "7": "PDM_CLK", "8": "PDM_DIN", "9": "EXP_P0_01", "10": "EXP_P1_10"},
+     note="Expansion: V2S200D eval (PDM left channel), IQS227 eval (3V0), scope probing.")
+
+# --- Protection, passives
+part("D1", FP + "Diode_SMD.pretty", "D_SOD-523", "TVS 5V", "onsemi ESD5Z5.0T1G", {"1": "VBUS", "2": "GND"},
+     note="Pad 1 = cathode to VBUS.")
+part("L1", FP + "Inductor_SMD.pretty", "L_0805_2012Metric", "2.2uH", "Murata DFE201210U-2R2M=P2", {"1": "SW1", "2": "1V8"},
+     note="BUCK1. Nordic ref: 2.2 uH, DCR < 400 mOhm. Confirm Murata land pattern vs 0805.")
+part("L2", FP + "Inductor_SMD.pretty", "L_0805_2012Metric", "2.2uH", "Murata DFE201210U-2R2M=P2", {"1": "SW2", "2": "3V0"},
+     note="BUCK2.")
+
+C0402, C0603, R0402 = (FP + "Capacitor_SMD.pretty", "C_0402_1005Metric"), (FP + "Capacitor_SMD.pretty", "C_0603_1608Metric"), \
+    (FP + "Resistor_SMD.pretty", "R_0402_1005Metric")
+
+
+def cap(ref, val, net, pkg=C0402, note=""):
+    part(ref, pkg[0], pkg[1], val, "X5R/X7R ceramic, >=10 V", {"1": net, "2": "GND"}, note=note)
+
+
+cap("C1", "1uF", "VBUS"); cap("C2", "10uF", "VBUS", C0603)
+cap("C3", "10uF", "VBAT", C0603)
+cap("C4", "1uF", "VSYS"); cap("C5", "2.2uF", "VSYS")
+cap("C6", "10uF", "1V8", C0603); cap("C18", "10uF", "1V8", C0603)
+cap("C7", "10uF", "3V0", C0603)
+cap("C8", "100nF", "1V8", note="U3 VDD"); cap("C9", "100nF", "1V8", note="U3 VDD_IO")
+cap("C10", "100nF", "MIC_1V8", note="U4 VDD, X7R, closest part to pin 7")
+cap("C19", "1uF", "MIC_1V8", note="Load switch 1 output")
+cap("C11", "1uF", "VBAT", note="U5 VDD"); cap("C12", "1uF", "U5_REG", note="U5 REG")
+cap("C16", "4.7uF", "1V8", note="U1 VDD bulk")
+cap("C17", "1uF", "VBUSOUT", note="nPM1300 VBUSOUT must be decoupled")
+
+
+def res(ref, val, a, b, note=""):
+    part(ref, R0402[0], R0402[1], val, "1% thick film", {"1": a, "2": b}, note=note)
+
+
+res("R1", "4.7k", "I2C_SDA", "1V8"); res("R2", "4.7k", "I2C_SCL", "1V8")
+res("R3", "47k", "VSET1", "GND", note="VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table")
+res("R4", "150k", "VSET2", "GND", note="VSET2 per Nordic reference circuit (BUCK2 3.0 V) - confirm in PS table")
+res("R6", "0R", "QVAR1", "TOUCH_E", note="Qvar series element, value TBC with ST guidance")
+
+part("E1", CUE, "Touch_Pad_4x3mm", "TOUCH", "Copper pad (shell contact)", {"1": "TOUCH_E"},
+     note="Qvar touch electrode; solder a wire to the shell or touch directly.")
+part("SW1", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "USER", "Omron B3U-1000P",
+     {"1": "BTN_USER", "2": "GND"})
+part("SW2", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "SHIP/WAKE", "Omron B3U-1000P",
+     {"1": "SHPHLD", "2": "GND"}, note="Hold to leave ship mode / power on.")
+
+for i, n in enumerate(["VBUS", "VBAT", "VSYS", "1V8", "3V0", "MIC_1V8", "GND", "PMIC_INT"], start=1):
+    part(f"TP{i}", FP + "TestPoint.pretty", "TestPoint_Pad_D1.0mm", f"TP {n}", "Test pad", {"1": n})
+for i in range(1, 4):
+    part(f"FID{i}", FP + "Fiducial.pretty", "Fiducial_0.5mm_Mask1mm", "FID", "Fiducial", {})
+
+
+# --------------------------------------------------------------------------- checks
+def nets():
+    n = defaultdict(list)
+    for ref, p in PARTS.items():
+        for pad, net in p["pins"].items():
+            n[net].append((ref, pad))
+    return n
+
+
+def check():
+    problems, oks = [], []
+    N = nets()
+    for name, nodes in N.items():
+        if len(nodes) < 2:
+            problems.append(f"net {name} has a single node {nodes}")
+    for ref, p in PARTS.items():
+        for pad, lo_hi in [(s[0], s[1:]) for s in p["supply"]]:
+            rail = p["pins"].get(pad)
+            if rail not in RAILS:
+                problems.append(f"{ref}.{pad} supply on non-rail net {rail}")
+                continue
+            lo, hi = RAILS[rail]
+            vmin, vmax = lo_hi
+            (problems if (lo < vmin or hi > vmax) else oks).append(
+                f"{ref}.{pad} on {rail} {lo}-{hi} V vs rating {vmin}-{vmax} V")
+        both = set(p["pins"]) & p["nc"]
+        if both:
+            problems.append(f"{ref} pads both connected and NC: {both}")
+    addrs = defaultdict(list)
+    for ref, p in PARTS.items():
+        if p["i2c"] is not None:
+            addrs[p["i2c"]].append(ref)
+    for a, refs in addrs.items():
+        (problems if len(refs) > 1 else oks).append(f"I2C 0x{a:02X} -> {refs}")
+    # nRF54L15 port rules (U1 pad -> port.pin from Ezurio map)
+    port = {"2": "P2.00", "3": "P1.08", "6": "P2.01", "7": "P1.06", "8": "P1.07", "13": "P2.02", "15": "P1.05",
+            "17": "P1.04", "18": "P1.14", "19": "P1.12", "20": "P1.13", "21": "P1.10", "22": "P1.09", "23": "P1.11",
+            "35": "P0.01", "38": "P0.00"}
+    clock_pins = {"P1.08", "P1.11", "P1.12", "P1.13"}
+    u1 = PARTS["U1"]["pins"]
+    for pad, net in u1.items():
+        pp = port.get(pad)
+        if not pp:
+            continue
+        if net in ("IMU_INT1", "MIC_WAKE", "PMIC_INT", "BTN_USER") and pp.startswith("P2."):
+            problems.append(f"{net} on {pp}: port 2 cannot raise interrupts")
+        if net in ("I2C_SCL", "PDM_CLK", "TDM_BCLK", "TDM_WCLK") and pp not in clock_pins:
+            problems.append(f"{net} on {pp}: not a confirmed clock pin")
+        if net in ("I2C_SDA", "PDM_DIN", "TDM_DIN") and not pp.startswith("P1."):
+            problems.append(f"{net} on {pp}: serial data should stay on port 1")
+    return problems, oks
+
+
+if __name__ == "__main__":
+    pr, ok = check()
+    N = nets()
+    print(f"parts {len(PARTS)} | nets {len(N)} | pads {sum(len(p['pins']) for p in PARTS.values())}")
+    for o in ok:
+        print("  OK ", o)
+    print("PROBLEMS:", len(pr))
+    for p in pr:
+        print("  !!", p)
+    raise SystemExit(1 if pr else 0)
