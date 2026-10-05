@@ -2,9 +2,9 @@ import { DEFAULT_CONFIG, type CueConfig } from "./config";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
 import { DecisionEngine, type Moment, type Outcome } from "./engine";
+import { PATTERNS, patternFor } from "./patterns";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
 import { FRAME_SEC, median, noiseFloor, speechLevels, type LevelFrame } from "./loudness";
-import { OTHER_DROP_DB, WearerModel, wordLevel } from "./wearer";
 import { measurePace, type Pace } from "./pace";
 import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word } from "./types";
 
@@ -19,8 +19,6 @@ import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word }
  */
 const SAME_EVENT_CLOSE = 0.3;
 const SAME_EVENT_FAR = 1.5;
-/** A word with gaps shorter than this (s) on both sides belongs to the surrounding speaker. */
-const CONTINUITY_GAP = 0.6;
 /** Words an interim word must be followed by before we trust it. */
 const INTERIM_STABILITY = 2;
 /** Interim "um"/"uh" at or above this ASR confidence cue immediately (no context needed). */
@@ -55,7 +53,19 @@ const PACE_RISE = { conversation: 1.2, presentation: 1.1 };
 const PACE_FLOOR = 3.6;
 /** A gap (s) between the wearer's words that counts as a meaningful pause (SOFTWARE.md §9). */
 const MEANINGFUL_PAUSE = 0.6;
-/** Silence (s) that ends the wearer's speaking turn even if nobody else spoke. */
+/** Bone frames this close (s) around a word still count toward it (sensor and audio timing differ slightly). */
+const BONE_SLACK = 0.1;
+/** Share of a word's bone frames that must be active for it to be the wearer's. */
+const BONE_SHARE = 0.5;
+/**
+ * The vibration motor shakes the bone sensor, which would read as the wearer speaking.
+ * Bone frames from just before a tap until the motor has settled are ignored.
+ */
+const HAPTIC_MASK_BEFORE = 0.05;
+const HAPTIC_MASK_AFTER = 0.15;
+/** If a word's bone frames are all masked, judge it by the unmasked frames this close (s). */
+const MASK_FALLBACK = 0.3;
+/** Silence (s) that ends the wearer's speaking turn. */
 const TURN_GAP = 2.5;
 
 export interface VolumeStatus {
@@ -129,10 +139,10 @@ export class CueSession {
   private calibratedUpTo = -Infinity;
   private baselineDb: number | null = null;
   private baselineNoiseDb: number | null = null;
-  private wearer = new WearerModel();
-  /** Settled wearer/other decisions by word start, so a word never flips. */
-  private attribution = new Map<number, boolean>();
   private quietSince: number | null = null;
+  private bone: { t: number; active: boolean }[] = [];
+  /** Audio-time intervals when the vibration motor was running. */
+  private hapticMasks: [number, number][] = [];
   private nextId = 1;
   /** All decisions so far, newest last. */
   readonly history: CueDecision[] = [];
@@ -147,58 +157,57 @@ export class CueSession {
     return this.engine.taps;
   }
 
+  /**
+   * Add one frame of the cuff's bone-conduction voice activity: whether the wearer's own
+   * voice was vibrating through the sensor at engine-clock time `t` (one frame per ~50 ms).
+   * Frames must arrive in time order.
+   */
+  ingestBone(t: number, active: boolean) {
+    this.bone.push({ t, active });
+    if (this.bone.length > 2400) this.bone.splice(0, 1200);
+  }
+
+  /** True if the bone sensor confirms the wearer said `w` (always true with no bone signal). */
+  isWearerWord(w: Word): boolean {
+    if (this.bone.length === 0) return true;
+    const near = (slack: number) =>
+      this.bone.filter((f) => f.t >= w.start - slack && f.t <= w.end + slack && !this.masked(f.t));
+    const all = this.bone.filter((f) => f.t >= w.start - BONE_SLACK && f.t <= w.end + BONE_SLACK);
+    // Not heard yet by the bone stream: count it for now; it's re-checked on later updates.
+    if (all.length === 0) return this.bone[this.bone.length - 1].t < w.end;
+    // Ignore frames while the motor was vibrating; if that hides the whole word, judge it
+    // by the frames just around it, and if there are none, give the wearer the benefit.
+    let frames = near(BONE_SLACK);
+    if (frames.length === 0) frames = near(MASK_FALLBACK);
+    if (frames.length === 0) return true;
+    return frames.filter((f) => f.active).length / frames.length >= BONE_SHARE;
+  }
+
+  /**
+   * The motor just played a pattern lasting `durationSec` (a tap the app chose to play,
+   * e.g. a touch-control confirmation or a preview). Bone frames during it are ignored.
+   * Taps from the decision engine are recorded automatically.
+   */
+  hapticPlayed(durationSec: number, at = this.audioNow()) {
+    this.hapticMasks.push([at - HAPTIC_MASK_BEFORE, at + durationSec + HAPTIC_MASK_AFTER]);
+    if (this.hapticMasks.length > 200) this.hapticMasks.splice(0, 100);
+  }
+
+  /** The latest audio time heard on any stream: the bone sensor and mic run ahead of transcription. */
+  private audioNow(): number {
+    return Math.max(
+      this.bone[this.bone.length - 1]?.t ?? -Infinity,
+      this.levels[this.levels.length - 1]?.t ?? -Infinity,
+      this.words[this.words.length - 1]?.end ?? 0,
+    );
+  }
+
+  private masked(t: number): boolean {
+    return this.hapticMasks.some(([a, b]) => t >= a && t <= b);
+  }
+
   get words(): Word[] {
     return [...this.finalWords, ...this.interimWords];
-  }
-
-  /** All words, each marked with whether Cue attributes it to the wearer. */
-  annotatedWords(): (Word & { wearer: boolean })[] {
-    return this.words.map((w) => ({ ...w, wearer: this.isWearerWord(w) }));
-  }
-
-  /** Whether a word is the wearer's (always true with `onlyWearer` off). */
-  isWearerWord(w: Word): boolean {
-    if (!this.config.onlyWearer) return true;
-    const key = Math.round(w.start * 100);
-    const settled = this.attribution.get(key);
-    if (settled !== undefined) return settled;
-    const all = this.words;
-    const k = all.findIndex((x) => x.start === w.start);
-    const before = all[k - 1];
-    const after = all[k + 1];
-    const closeBefore = before && w.start - before.end < CONTINUITY_GAP ? before : undefined;
-    const closeAfter = after && after.start - w.end < CONTINUITY_GAP ? after : undefined;
-    let mine: boolean;
-    if (isHesitation(w)) {
-      // "um"/"uh" belong to whoever is speaking around them: people say them softly, so
-      // loudness alone can't tell a quiet "um" from someone else's. Only an isolated one
-      // falls back to loudness (with extra room for being soft).
-      const context = [closeAfter, closeBefore].find((x) => x && !isHesitation(x));
-      const labeled = w.speaker !== undefined && this.wearer.learnedLabel !== null;
-      if (context) mine = this.rawIsWearer(context);
-      else if (labeled || this.baselineDb === null)
-        mine = this.rawIsWearer(w); // speaker labels decide
-      else {
-        // No words around it yet. The mic runs ahead of transcription, so listen to the
-        // audio right after the "um": if someone keeps talking, their loudness says who
-        // it is; if it goes quiet, it's an isolated "um" and gets the lenient check.
-        const follow = this.levels.filter((f) => f.t > w.end && f.t <= w.end + CONTINUITY_GAP);
-        if (follow.length * FRAME_SEC < CONTINUITY_GAP * 0.8) return false; // not heard yet; re-checked next update
-        const voicedLine = (this.baselineNoiseDb ?? -60) + 10;
-        const voiced = follow.map((f) => f.db).filter((db) => db > voicedLine);
-        mine =
-          voiced.length * FRAME_SEC >= 0.2 ? median(voiced) >= this.baselineDb - OTHER_DROP_DB : this.rawIsWearer(w);
-      }
-    } else {
-      mine = this.rawIsWearer(w);
-      // Continuity: a word in the middle of the wearer's own sentence, with no real pause
-      // on either side, is the wearer's even if it came out softly.
-      if (!mine && closeBefore && closeAfter) mine = this.rawIsWearer(closeBefore) && this.rawIsWearer(closeAfter);
-    }
-    // Settle once calibrated and the word's audio has been measured.
-    const measured = this.levels.length === 0 || this.levels[this.levels.length - 1].t >= w.end;
-    if (this.baselineDb !== null && measured) this.attribution.set(key, mine);
-    return mine;
   }
 
   ingest(words: Word[], isFinal: boolean): SessionUpdate {
@@ -234,14 +243,11 @@ export class CueSession {
     return total;
   }
 
-  private rawIsWearer(w: Word): boolean {
-    return this.wearer.isWearer(w, wordLevel(this.levels, w), this.baselineDb, isHesitation(w));
-  }
-
   private process(rightClosed: boolean): SessionUpdate {
+    // The microphone hears everyone; the cuff's bone-conduction sensor confirms when the
+    // wearer is the one speaking (CUE_CONTEXT §26, decision 6). Only confirmed words are
+    // coached. With no bone signal (the web prototype), every word counts as the wearer's.
     const all = this.words;
-    // Coach only the wearer: other people's words are dropped before detection. The gap
-    // they leave reads as a pause, which is how a turn change should look to the rules.
     const finalStarts = new Set(this.finalWords.map((w) => w.start));
     const words = all.filter((w) => this.isWearerWord(w));
     const interim = words.map((w) => !finalStarts.has(w.start));
@@ -374,7 +380,7 @@ export class CueSession {
       ),
     );
 
-    const turn = words.length ? moment.now - turnStart(all, words, (w) => this.isWearerWord(w)) : 0;
+    const turn = words.length ? moment.now - turnStart(all, (w) => this.isWearerWord(w)) : 0;
     sustained("long_turn", turn >= this.config.longTurnSec, () =>
       this.event(
         "long_turn",
@@ -405,6 +411,12 @@ export class CueSession {
       outcomes.push({ id: tap.id, outcome });
     }
 
+    // The motor vibrates the moment a tap is delivered: mask the bone sensor for it.
+    for (const d of decisions) {
+      if (!d.delivered) continue;
+      const pattern = PATTERNS[patternFor(d.event.type, this.config.distinctCues)];
+      this.hapticPlayed(pattern.vibrate.reduce((a, b) => a + b, 0) / 1000);
+    }
     this.history.push(...decisions);
     this.likeChecks.push(...likeChecks);
     const signals: Signals = {
@@ -469,17 +481,14 @@ export class CueSession {
     const now = all[all.length - 1].end;
     const none = { db: null, baselineDb: null, expectedDb: null, noiseDb: null };
 
-    // Calibration: the wearer talks alone, so every word heard is theirs; learn their
-    // normal level, their speaker label, and the room's noise at the time.
+    // Calibration: learn the wearer's normal speaking level and the room's noise at the time.
     if (this.baselineDb === null) {
       this.calibrationLevels.push(...speechLevels(this.levels, all, this.calibratedUpTo, now));
-      for (const w of all) if (w.end > this.calibratedUpTo && w.end <= now) this.wearer.observeCalibration(w);
       this.calibratedUpTo = now + 1e-6;
       const learned = this.calibrationLevels.length * FRAME_SEC;
       if (learned < c.calibrationSec) return { status: { ...none, calibration: learned / c.calibrationSec } };
       this.baselineDb = median(this.calibrationLevels);
       this.baselineNoiseDb = noiseFloor(this.levels, -Infinity, now);
-      this.wearer.finishCalibration();
     }
     const baselineDb = this.baselineDb!;
 
@@ -587,15 +596,13 @@ function lastPauseEnd(words: Word[]): number {
   return words[0]?.start ?? 0;
 }
 
-/** Start of the wearer's current speaking turn: after someone else spoke, or a long silence. */
-function turnStart(all: Word[], mine: Word[], isWearer: (w: Word) => boolean): number {
-  let start = mine[mine.length - 1]?.start ?? 0;
+/** Start of the wearer's current speaking turn: since someone else spoke, or a long silence. */
+function turnStart(all: Word[], isWearer: (w: Word) => boolean): number {
+  let start = all[all.length - 1]?.start ?? 0;
   for (let k = all.length - 1; k >= 0; k--) {
-    const w = all[k];
-    if (!isWearer(w)) break;
-    const prev = all[k - 1];
-    start = w.start;
-    if (prev && w.start - prev.end >= TURN_GAP) break;
+    if (!isWearer(all[k])) break;
+    start = all[k].start;
+    if (k > 0 && all[k].start - all[k - 1].end >= TURN_GAP) break;
   }
   return start;
 }

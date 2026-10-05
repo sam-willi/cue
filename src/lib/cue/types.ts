@@ -8,8 +8,6 @@ export interface Word {
   end: number;
   /** ASR confidence 0..1. */
   confidence: number;
-  /** Diarization label from the speech engine, when available (session-only, not an identity). */
-  speaker?: number;
 }
 
 export type BehaviorType =

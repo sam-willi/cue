@@ -12,36 +12,18 @@ export interface TranscriberHandlers {
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string) => void;
 }
 
-export type Engine = "flux" | "nova-2";
-
-const AUDIO = { encoding: "linear16", sample_rate: "16000" };
-
 /**
- * Deepgram endpoints. Measured on the same clip (22 s, 5 fillers):
- *  - flux:   updates every ~0.2 s; fillers arrived 0.5–0.9 s after they ended; no speaker labels.
- *  - nova-2: updates every ~1 s; fillers arrived 0.9–2.0 s after; speaker labels (diarize).
- *  - nova-3 isn't offered: in live streaming it dropped 4–5 of the 5 fillers.
+ * Deepgram Flux. Measured on the same clip (22 s, 5 fillers), streaming in real time:
+ *  - flux:   updates every ~0.2 s; fillers arrived 0.5–0.9 s after they ended; kept 5/5.
+ *  - nova-2: updates every ~1 s; fillers arrived 0.9–2.0 s after (its speaker labels are
+ *            no longer needed: the cuff's bone sensor hears only the wearer).
+ *  - nova-3: dropped 4–5 of the 5 fillers in live streaming.
  */
-function listenUrl(engine: Engine): string {
-  if (engine === "flux")
-    return `wss://api.deepgram.com/v2/listen?${new URLSearchParams({ model: "flux-general-en", ...AUDIO })}`;
-  const params = new URLSearchParams({
-    model: "nova-2",
-    language: "en",
-    filler_words: "true", // keep "um"/"uh" — stripped by default
-    diarize: "true", // speaker labels per word, used to coach only the wearer
-    interim_results: "true",
-    punctuate: "true",
-    endpointing: "300",
-    // Utterance ends come from UtteranceEnd, not speech_final: a ~300 ms endpointing pause
-    // after "like" is evidence of a filler, so we keep listening for what follows.
-    utterance_end_ms: "1000",
-    vad_events: "true",
-    channels: "1",
-    ...AUDIO,
-  });
-  return `wss://api.deepgram.com/v1/listen?${params}`;
-}
+const LISTEN_URL = `wss://api.deepgram.com/v2/listen?${new URLSearchParams({
+  model: "flux-general-en",
+  encoding: "linear16",
+  sample_rate: "16000",
+})}`;
 
 /** Streams the microphone to Deepgram and reports its messages. */
 export class LiveTranscriber {
@@ -53,10 +35,7 @@ export class LiveTranscriber {
   private sentSec = 0;
   private clockZero = Infinity;
 
-  constructor(
-    private h: TranscriberHandlers,
-    private engine: Engine = "flux",
-  ) {}
+  constructor(private h: TranscriberHandlers) {}
 
   async start() {
     this.stopped = false;
@@ -79,7 +58,7 @@ export class LiveTranscriber {
       this.node = new AudioWorkletNode(this.ctx, "pcm-worklet");
       src.connect(this.node);
 
-      const ws = new WebSocket(listenUrl(this.engine), ["bearer", body.token]);
+      const ws = new WebSocket(LISTEN_URL, ["bearer", body.token]);
       ws.binaryType = "arraybuffer";
       this.ws = ws;
       ws.onopen = () => {

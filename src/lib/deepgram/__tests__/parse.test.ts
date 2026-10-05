@@ -35,14 +35,12 @@ describe("parseResults", () => {
       type: "Results",
       is_final: true,
       channel: {
-        alternatives: [
-          { words: [{ word: "like", punctuated_word: "like,", start: 2, end: 2.2, confidence: 0.9, speaker: 0 }] },
-        ],
+        alternatives: [{ words: [{ word: "like", punctuated_word: "like,", start: 2, end: 2.2, confidence: 0.9 }] }],
       },
     });
     expect(u).toEqual({
       isFinal: true,
-      words: [{ text: "like,", norm: "like", start: 2, end: 2.2, confidence: 0.9, speaker: 0 }],
+      words: [{ text: "like,", norm: "like", start: 2, end: 2.2, confidence: 0.9 }],
     });
   });
 });

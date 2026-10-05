@@ -772,6 +772,10 @@ Cue is a **single, discreet, jewelry-like ear cuff**—not an earbud—that coac
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
+### 2026-10-04 — Hardware roles for wearer verification
+
+6. **The cuff's bone-conduction sensor verifies who is speaking; there is no software voice detection.** Roles: the **bone-conduction sensor** confirms when the wearer's own voice is vibrating through the skull (wearer voice activity); the **microphone** captures audio for speech-to-text, which hears everyone; a **vibration motor behind the ear** delivers the taps. The software coaches only words the bone sensor confirms. Removed from the software: speaker labels (diarization), loudness-based attribution, voice calibration, and any voice profile, so `SOFTWARE.md` §4's open question is closed: **no voiceprint**. *Rationale:* physical coupling identifies the wearer more reliably and privately than voice matching. *Consequences:* the bone sensor (e.g. rev 0's V2S200D, currently DNP) becomes a required part; whether a comfortable cuff position gives a clean enough bone signal remains to be validated on hardware (§12 Option C/D); the web prototype has no bone sensor, so it treats all speech as the wearer's.
+
 ### 2026-10-04 — Software system spec adopted
 
 5. **`SOFTWARE.md` is canonical for software behavior.** Cue is a behavioral coaching system, not a filler detector: a decision engine asks "would a tap help right now?" using filler density and clusters, pace against the wearer's own baseline, time without a pause, repetition, and speaking-turn length, with 10–20 s cooldowns, high confidence, and checks on whether a tap worked. *Where it conflicts with earlier decisions:* the three-rhythm haptic vocabulary (decision 1) stands over `SOFTWARE.md` §18's single universal tap; whether to add an opt-in stored voice profile (`SOFTWARE.md` §4) is an **[OPEN QUESTION]**; no voiceprint is stored today.
