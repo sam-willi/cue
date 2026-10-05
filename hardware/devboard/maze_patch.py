@@ -231,7 +231,7 @@ def patch(board, rpt):
             ci, cj = cell(hx, hy)
             for i in range(ci - 7, ci + 8):
                 for j in range(cj - 7, cj + 8):
-                    if math.hypot(i * G - hx, j * G - hy) < VD + 0.25:
+                    if math.hypot(i * G - hx, j * G - hy) < VDRILL + 0.3:  # drill-to-drill >= 0.3 mm edge gap
                         near_hole.add((i, j))
         via_ok = {(i, j) for i in range(NX) for j in range(NY)
                   if (i, j) not in vblock[LAYERS[0]] and (i, j) not in vblock[LAYERS[1]] and (i, j) not in near_hole}

@@ -46,10 +46,12 @@ FIXED = {
     "U5": (24.0, 13.6, 90, "F"),   # DRV2605L
     "J3": (21.0, H - 3.2, 0, "F"),  # LRA, mouth to bottom edge
     "J5": (33.2, 12.0, 0, "F"),    # expansion 2x5 2.54 (origin = pin 1)
-    "C5": (17.7, 14.65, 0, "F"),   # PVDD input cap straight out of pin 4; SW1/SW2 (pins 3, 5) fan out past it
+    "C5": (17.35, 14.65, 0, "F"),  # PVDD input cap straight out of pin 4; SW1/SW2 (pins 3, 5) fan out past it
     "C17": (8.4, 15.3, 90, "F"),   # VBUSOUT cap beside pin 22
-    "L1": (20.3, 16.5, 90, "F"),   # BUCK1 inductor beside SW1 (pin 3)
-    "L2": (20.3, 11.8, 90, "F"),   # BUCK2 inductor beside SW2 (pin 5)
+    "L1": (17.95, 16.45, 0, "F"),  # BUCK1 inductor: pad 1 ~1.7 mm from SW1 (pin 3)   # BUCK1 inductor beside SW1 (pin 3)
+    "L2": (17.95, 12.85, 0, "F"),  # BUCK2 inductor: pad 1 ~1.7 mm from SW2 (pin 5)
+    "C6": (20.5, 17.55, 90, "F"),   # BUCK1 output cap at the inductor output
+    "C7": (20.5, 11.75, 90, "F"),   # BUCK2 output cap at the inductor output   # BUCK2 inductor beside SW2 (pin 5)
     "U3": (29.0, 12.2, 0, "F"),    # LSM6DSV16BX
     "U4": (29.0, 16.6, 90, "F"),   # T5838 (bottom port hole in footprint)
     "E1": (28.5, H - 3.0, 0, "F"),  # touch pad
@@ -64,26 +66,25 @@ FIXED = {
 # which pin each small part should sit next to: ref -> (anchor ref, anchor pad)
 ANCHOR = {   # placed in this order: Note 7 resistors (must hug the module), buck loop, rail caps, then the rest
     "R7": ("U1", "23"), "R8": ("U1", "21"),
-    "C6": ("U2", "1"), "C7": ("U2", "32"),
+
     "C4": ("U2", "20"), "C1": ("U2", "21"), "C3": ("U2", "19"), "C19": ("U2", "29"),
     "R1": ("J5", "5"), "R2": ("J5", "6"), "C2": ("U2", "21"),
     "D1": ("J1", "A9"), "C18": ("U1", "5"), "C16": ("U1", "5"),
     "C8": ("U3", "8"), "C9": ("U3", "5"), "R6": ("U3", "6"),
     "C10": ("U4", "7"),
     "C11": ("U5", "10"), "C12": ("U5", "1"),
-    "C20": ("U2", "4"), "C21": ("U2", "4"), "RT1": ("U2", "18"),
+    "C20": ("C5", "1"), "C21": ("U2", "4"), "RT1": ("U2", "18"),
 }
 UNPLACED = []
 # plain silkscreen labels (text, x, y) - placed in clear areas, checked by DRC
-SILK_LABELS = [("BATT+", 11.2, H - 1.0), ("LRA", 21.0, 18.9), ("SWD", 30.0, 9.1), ("EXP", 34.5, 10.1)]
+SILK_LABELS = [("BATT+", 11.2, H - 1.0), ("LRA", 21.0, 20.4), ("SWD", 26.9, 8.9), ("EXP", 34.5, 10.1)]
 BOTTOM_LABELS = [("SHIP", 10.4, 7.4), ("USER", 11.5, 2.6)]  # under each button
 USED_LIBS = set()
 PASSES = 100
 POWER_NETS = {"VBUS", "VBAT", "VSYS", "SW1", "SW2", "1V8", "3V0", "MIC_1V8", "LRA_P", "LRA_N", "VBUSOUT"}
 
 
-MODEL_OVERRIDES = {"VSSOP-10_3x3mm_P0.5mm": "VSSOP-10_3x3mm_P0.5mm",
-                   "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal": "JST_PH_S2B-PH-SM4-TB"}
+MODEL_OVERRIDES = {}  # U5 / J2 now use Cue.pretty copies that carry project-local 3D models
 
 
 def load_fp(p):
@@ -540,10 +541,13 @@ def fanout_planes(board):
                 n_inpad += 1
                 continue
             if min(sx, sy) >= 0.65 and fp.GetReference() in ("U1", "U2"):
-                k = 2 if min(sx, sy) >= 2.0 else 1
-                offs = [(-0.6, -0.6), (0.6, -0.6), (-0.6, 0.6), (0.6, 0.6)] if k == 2 else [(0, 0)]
-                for dx, dy in offs:
-                    add_via(board, ni, px + dx, py + dy, vd, drill, locked=True)
+                if min(sx, sy) >= 2.0:  # QFN exposed pad: 3 x 3 grid like Nordic's reference layout
+                    offs = [(dx, dy) for dx in (-1.0, 0, 1.0) for dy in (-1.0, 0, 1.0)]
+                    for dx, dy in offs:
+                        add_via(board, ni, px + dx, py + dy, 0.4, drill, locked=True)
+                        n_inpad += 1
+                else:
+                    add_via(board, ni, px, py, vd, drill, locked=True)
                     n_inpad += 1
                 continue
             r_pad = max(sx, sy) / 2
@@ -609,8 +613,8 @@ def track_fits(board, x1, y1, x2, y2, w, clr, net_code, steps=8):
 
 # fine-pitch pins that get boxed in by routed copper: give each a locked stub straight out of the package
 # (and a plane via for plane nets) before the autorouter runs, so a channel stays open
-ESCAPES = {"U2": ["13", "14", "15", "29"]}
-LANES = {"U2": ["12", "13", "14", "15", "28", "29"]}   # kept free of small parts at placement
+ESCAPES = {"U2": ["13", "14", "15", "29"], "U3": ["12"]}
+LANES = {"U2": ["12", "13", "14", "15", "28", "29"], "U3": ["12"]}   # kept free of small parts at placement
 
 
 def escape_stubs(board, length=0.9):
@@ -646,7 +650,62 @@ def escape_stubs(board, length=0.9):
     print("escape stubs:", n)
 
 
+def buck_routes(board, w=0.3):
+    """Short, wide, locked SW1/SW2/PVDD connections on F.Cu from the nPM1300 pins to L1/L2/C5 (Nordic PS 9.3.4)."""
+    def pad(ref, num):
+        fp = board.FindFootprintByReference(ref)
+        p = [q for q in fp.Pads() if q.GetNumber() == num][0]
+        return pcbnew.ToMM(p.GetPosition().x), pcbnew.ToMM(p.GetPosition().y), p.GetNet()
+
+    def seg(pts, net, width):
+        for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+            if math.hypot(x2 - x1, y2 - y1) < 1e-3:
+                continue
+            t = pcbnew.PCB_TRACK(board)
+            t.SetStart(V(x1, y1))
+            t.SetEnd(V(x2, y2))
+            t.SetWidth(MM(width))
+            t.SetLayer(pcbnew.F_Cu)
+            t.SetNet(net)
+            t.SetLocked(True)
+            board.Add(t)
+
+    for upin, lref in (("3", "L1"), ("5", "L2")):
+        px, py, net = pad("U2", upin)
+        lx, ly, _ = pad(lref, "1")
+        ex = px + 0.75                       # straight out of the pin, then 45 degrees to the inductor
+        dy = ly - py
+        mx = lx - abs(dy) + 0.0
+        mx = max(mx, ex)
+        seg([(px, py), (ex, py), (mx, py), (lx, ly if abs(lx - mx) < 1e-6 else py + (1 if dy > 0 else -1) * (lx - mx)), (lx, ly)], net, w)
+    px, py, net = pad("U2", "4")
+    cx, cy, _ = pad("C5", "1")
+    seg([(px, py), (cx, cy)], net, 0.25)
+    print("buck routes: SW1, SW2, PVDD")
+
+
+def widen_power(board, nets=("SW1", "SW2", "VSYS", "VBUS", "VBAT", "1V8", "3V0", "MIC_1V8", "VBUSOUT",
+                             "LRA_P", "LRA_N", "U5_REG", "GND"), widths=(0.4, 0.3, 0.25, 0.2), clr=0.135):
+    """Widen autorouted power tracks as far as clearance allows (the router uses one thin width everywhere)."""
+    n = 0
+    tracks = [t for t in board.GetTracks() if t.GetClass() == "PCB_TRACK" and t.GetNetname() in nets
+              and not t.IsLocked()]
+    for t in tracks:
+        p1 = (pcbnew.ToMM(t.GetStart().x), pcbnew.ToMM(t.GetStart().y))
+        p2 = (pcbnew.ToMM(t.GetEnd().x), pcbnew.ToMM(t.GetEnd().y))
+        cur = pcbnew.ToMM(t.GetWidth())
+        for w in widths:
+            if w <= cur + 1e-6:
+                break
+            if straight_track_ok(board, p1, p2, t.GetLayer(), w, t.GetNetCode(), clr=clr):
+                t.SetWidth(MM(w))
+                n += 1
+                break
+    print("widened power tracks:", n, "of", len(tracks))
+
+
 def route(board):
+    buck_routes(board)
     escape_stubs(board)
     fanout_planes(board)
     dsn = PCB.replace(".kicad_pcb", ".dsn")
@@ -769,6 +828,7 @@ def finish(board):
     pcbnew.ZONE_FILLER(board).Fill(board.Zones())  # inner planes, so plane pads count as connected
     pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
     print("maze-patched:", maze_patch.patch(board, rpt))
+    widen_power(board)
     outer_pours_and_stitching(board)
     pcbnew.SaveBoard(PCB, board)
     board = pcbnew.LoadBoard(PCB)
@@ -784,13 +844,18 @@ def finish(board):
         filler.Fill(board.Zones())
         pcbnew.SaveBoard(PCB, board)
         pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
-    if remove_dangling_stubs(rpt):
-        # a removed stub can expose a pin it was the only link for: route those with the grid router
+    # cleanup loop: drop unused escape stubs, then route anything a removal (or the router) left open
+    import re
+    for _ in range(3):
+        removed = remove_dangling_stubs(rpt)
+        unconn = int((re.search(r"Found (\d+) unconnected", open(rpt).read()) or [0, 0])[1])
+        if not removed and not unconn:
+            break
         board = pcbnew.LoadBoard(PCB)
         board.BuildConnectivity()
         pcbnew.ZONE_FILLER(board).Fill(board.Zones())
         pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
-        print("maze-patched after cleanup:", maze_patch.patch(board, rpt))
+        print("maze-patched in cleanup:", maze_patch.patch(board, rpt))
         pcbnew.SaveBoard(PCB, board)
         board = pcbnew.LoadBoard(PCB)
         board.BuildConnectivity()

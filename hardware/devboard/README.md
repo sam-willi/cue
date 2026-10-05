@@ -41,8 +41,27 @@ Everything else has an LCSC number in `fab/bom.csv` (from `devboard_circuit.SOUR
   100 nF on VDDIO, 10k B3380 thermistor RT1 on NTC, unused LOADSW2 tied to GND.
 - **Mic safety**: the T5838 (1.98 V max) is behind load switch 1, which is off at reset.
 
-Firmware must: select the 10k NTC and a 32 mA charge current before enabling charging; enable LOADSW1 only after
-BUCK1 is confirmed at 1.8 V; keep P1.09–P1.12 below 1 MHz.
+- **Regulator layout** (nPM1300 PS 9.3.4 / Fig. 62–65): SW1/SW2 run 2.5 mm at 0.3 mm straight to L1/L2 with no vias,
+  PVDD cap C5 1.5 mm from pin 4, output caps at the inductor outputs, 3 × 3 vias in the exposed pad. Other power
+  traces are widened to 0.2–0.4 mm where clearance allows; keep the charge current at or below ~200 mA.
+
+## Review (2026-10-05)
+
+Every footprint and pin map was checked against the manufacturer's drawing (BL54L15µ, nPM1300, T5838 from the PDFs;
+LSM6DSV16BX, DRV2605L, USB4125, FTSH-105, JST PH/SH, DFE201210U, B3U-1000P, ESD5Z, NCP15 from the web): no errors.
+DRC: 0 errors, 0 unconnected (2 warnings: the J2/U5 board footprints differ cosmetically from their library copies).
+
+Firmware must:
+- select the 10k NTC and a 32 mA charge current before enabling charging;
+- enable LOADSW1 (mic supply) only after BUCK1 is confirmed at 1.8 V;
+- keep P1.09–P1.12 below 1 MHz;
+- configure the NFC pins as GPIO (UICR NFCPINS): PDM_CLK is on P1.03/NFC2;
+- read the T5838 as the PDM channel sampled on the rising edge (SELECT = GND);
+- enable Qvar on the LSM6DSV16BX (else tie-off is recommended) and drive/pull the TDM pins before use;
+- enable pulls on inputs that can float (BTN_USER, EXP_P0_01).
+
+Optional improvements for a rev B: T5838 paste openings 0.05 mm smaller with a vented ground ring; move C10 closer
+to the mic; GCT USB4125-GF-A-0190 (longer stakes) for a 1.6 mm board; add the antenna keep-out as a footprint rule area.
 
 ## Rebuild
 

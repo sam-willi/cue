@@ -92,10 +92,10 @@ part("U3", FP + "Package_LGA.pretty", "LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y", 
 # --- U4 mic: TDK T5838 (pins from TDK DS-000383), bottom port -> board hole
 part("U4", CUE, "TDK_T5838", "T5838", "TDK InvenSense T5838", {
     "1": "PDM_DIN", "2": "GND", "3": "GND", "4": "MIC_WAKE", "5": "MIC_THSEL", "6": "PDM_CLK", "7": "MIC_1V8"},
-    supply=[("7", 1.62, 1.98)], note="SELECT=GND -> right channel. Bottom port: 0.8 mm board hole.")
+    supply=[("7", 1.62, 1.98)], note="SELECT=GND -> right channel (data after the falling clock edge). Bottom port: 0.6 mm board hole (TDK: 0.5-1.0).")
 
 # --- U5 haptic driver: TI DRV2605L VSSOP-10 (DGS). Pin order from TI datasheet.
-part("U5", FP + "Package_SO.pretty", "VSSOP-10_3x3mm_P0.5mm", "DRV2605L", "TI DRV2605LDGSR", {
+part("U5", CUE, "VSSOP-10_3x3mm_P0.5mm", "DRV2605L", "TI DRV2605LDGSR", {
     "1": "U5_REG", "2": "I2C_SCL", "3": "I2C_SDA", "4": "HAPTIC_TRIG", "5": "HAPTIC_EN",
     "6": "VBAT", "7": "LRA_P", "8": "GND", "9": "LRA_N", "10": "VBAT"},
     supply=[("10", 2.0, 5.2)], i2c=0x5A,
@@ -106,7 +106,7 @@ part("U5", FP + "Package_SO.pretty", "VSSOP-10_3x3mm_P0.5mm", "DRV2605L", "TI DR
 part("J1", FP + "Connector_USB.pretty", "USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal", "USB-C (power)",
      "GCT USB4125-GF-A", {"A9": "VBUS", "B9": "VBUS", "A12": "GND", "B12": "GND", "A5": "CC1", "B5": "CC2", "S1": "GND"},
      note="Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.")
-part("J2", FP + "Connector_JST.pretty", "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", "BATT",
+part("J2", CUE, "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", "BATT",
      "JST S2B-PH-SM4-TB", {"1": "VBAT", "2": "GND"}, nc=["MP"],
      note="JST-PH to fit the Adafruit #1570 100 mAh LiPo (built-in protection). Check polarity: pin 1 = +.")
 part("J3", FP + "Connector_JST.pretty", "JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal", "LRA",

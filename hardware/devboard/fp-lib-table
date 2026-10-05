@@ -12,7 +12,6 @@
   (lib (name "Inductor_SMD")(type "KiCad")(uri "${KICAD7_FOOTPRINT_DIR}/Inductor_SMD.pretty")(options "")(descr ""))
   (lib (name "Package_DFN_QFN")(type "KiCad")(uri "${KICAD7_FOOTPRINT_DIR}/Package_DFN_QFN.pretty")(options "")(descr ""))
   (lib (name "Package_LGA")(type "KiCad")(uri "${KICAD7_FOOTPRINT_DIR}/Package_LGA.pretty")(options "")(descr ""))
-  (lib (name "Package_SO")(type "KiCad")(uri "${KICAD7_FOOTPRINT_DIR}/Package_SO.pretty")(options "")(descr ""))
   (lib (name "Resistor_SMD")(type "KiCad")(uri "${KICAD7_FOOTPRINT_DIR}/Resistor_SMD.pretty")(options "")(descr ""))
   (lib (name "TestPoint")(type "KiCad")(uri "${KICAD7_FOOTPRINT_DIR}/TestPoint.pretty")(options "")(descr ""))
 )

@@ -197,6 +197,22 @@ def bl54l15u():
     save(fp, "Ezurio_BL54L15u_453-00223")
 
 
+# KiCad library footprints re-homed in Cue.pretty so they can carry project-local 3D models (Cue.3dshapes)
+STOCK_COPIES = {
+    "VSSOP-10_3x3mm_P0.5mm": ("Package_SO", "VSSOP-10_3x3mm_P0.5mm"),
+    "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal": ("Connector_JST", "JST_PH_S2B-PH-SM4-TB"),
+}
+
+
+def stock_copies():
+    import re
+    for name, (lib, model) in STOCK_COPIES.items():
+        t = open(f"/usr/share/kicad/footprints/{lib}.pretty/{name}.kicad_mod").read()
+        t = re.sub(r'\(model "[^"]+"', f'(model "${{KIPRJMOD}}/Cue.3dshapes/{model}.wrl"', t)
+        open(os.path.join(LIB, name + ".kicad_mod"), "w").write(t)
+        print("wrote", os.path.join(LIB, name + ".kicad_mod"))
+
+
 if __name__ == "__main__":
     which = sys.argv[1:] or ["t5838", "touch", "bl54"]
     if "t5838" in which:
@@ -205,3 +221,5 @@ if __name__ == "__main__":
         touch_pad()
     if "bl54" in which:
         bl54l15u()
+    if "stock" in which or not sys.argv[1:]:
+        stock_copies()
