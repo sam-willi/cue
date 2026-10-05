@@ -1,6 +1,6 @@
 # Cue
 
-**Speak with intention.** Cue is a discreet ear-cuff speech coach that gives a private haptic tap when you use a filler word or start rushing, so you notice the habit in the moment and replace it with a pause.
+**Speak with intention.** Cue is a discreet behind-the-ear (BTE) speech coach that gives a private haptic tap when you use a filler word or start rushing, so you notice the habit in the moment and replace it with a pause.
 
 This repository is the **software MVP**: a web app that listens through the microphone, detects fillers and fast speech in real time, and shows an on-screen haptic cue in place of the hardware. Product context, confirmed decisions, and open questions live in [`CUE_CONTEXT.md`](CUE_CONTEXT.md). Read it before proposing changes.
 
@@ -29,9 +29,9 @@ Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). 
 
 Each alert has its own haptic rhythm: **one tap** = filler (pause), **two taps** = too fast (slow down), **long pulse** = too quiet (speak up). A setting switches to one tap for everything. Cues are fast: "um"/"uh" cue on the first confident result, and a clear filler "like" cues as soon as the next word is heard. Ambiguous cases wait for more words. Each cue's measured delay appears in the app.
 
-**Cuff touch controls (simulated in the app).** The cuff's touch surface is for controls only: **hold 1.5 s** = Cue on/off, **double-tap** = switch Conversation / Presentation mode. A single tap or a lingering touch does nothing, so adjusting your hair or glasses won't trigger it. Confirmations are swelling or fading _ramps_, never taps, so they can't be mistaken for a coaching cue.
+**Touch controls (simulated in the app).** The device's touch surface is for controls only: **hold 1.5 s** = Cue on/off, **double-tap** = switch Conversation / Presentation mode. A single tap or a lingering touch does nothing, so adjusting your hair or glasses won't trigger it. Confirmations are swelling or fading _ramps_, never taps, so they can't be mistaken for a coaching cue.
 
-**Only the wearer is coached, by hardware.** On the cuff, a bone-conduction sensor confirms when you're the one speaking; the microphone (which hears everyone) feeds speech-to-text; a vibration motor behind the ear taps. Cue coaches only words the bone sensor confirms. This web prototype has no bone sensor, so it treats all speech as yours; Practice can simulate a friend cutting in.
+**Only the wearer is coached, by hardware.** On the device, a bone-conduction sensor confirms when you're the one speaking; the microphone (which hears everyone) feeds speech-to-text; a vibration motor behind the ear taps. Cue coaches only words the bone sensor confirms. This web prototype has no bone sensor, so it treats all speech as yours; Practice can simulate a friend cutting in.
 
 A cue is withheld when confidence is too low, within the cooldown after the last cue, while muted, or when its category is off. Withheld detections still show in the app's "Why Cue acted" log.
 
@@ -48,21 +48,21 @@ npm run dev
 Open http://localhost:3000.
 
 - **Try a sentence** plays typed text through the same detector. It doesn't need a key.
-- **Start listening** streams your mic to Deepgram for live detection.
+- **Start listening** streams your mic to Deepgram for live detection. With no `DEEPGRAM_API_KEY` on the server (e.g. a public demo), visitors can choose **Use your own Deepgram key**: the key stays in their browser (this tab, or this device if they choose) and connects straight to Deepgram, never through Cue's server.
 - **Mark mistakes**: click a word in the transcript, or use the buttons in "Why Cue acted", to flag a wrong buzz or a missed filler.
 - **Download session** (after a live session) saves the words and timings Deepgram heard, your corrections and cue delays (no audio). Put the files in `sessions/` and run `npm run eval`.
 
 ## Scripts
 
-| Command          | What it does                                                                                                                                                 |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npm run dev`    | Dev server                                                                                                                                                   |
-| `npm test`       | Unit tests (Vitest)                                                                                                                                          |
-| `npm run eval`   | Replay saved sessions and labeled training recordings; report fillers caught / missed / wrong                                                                |
-| `npm run cad`    | Rebuild the 3D cuff on the page (`public/cad/cue-cuff.glb`) from the STEP on the `hardware-rev0` branch (`hardware/rev0/democad.step`) after the CAD changes |
-| `npm run check`  | Lint, typecheck, format check and tests, the same as CI                                                                                                      |
-| `npm run format` | Format with Prettier                                                                                                                                         |
-| `npm run build`  | Production build                                                                                                                                             |
+| Command          | What it does                                                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`    | Dev server                                                                                                                                                    |
+| `npm test`       | Unit tests (Vitest)                                                                                                                                           |
+| `npm run eval`   | Replay saved sessions and labeled training recordings; report fillers caught / missed / wrong                                                                 |
+| `npm run cad`    | Rebuild the 3D device on the page (`public/cad/cue-bte.glb`) from the STEP on the `hardware-rev0` branch (`hardware/rev0/democad.step`) after the CAD changes |
+| `npm run check`  | Lint, typecheck, format check and tests, the same as CI                                                                                                       |
+| `npm run format` | Format with Prettier                                                                                                                                          |
+| `npm run build`  | Production build                                                                                                                                              |
 
 ## How it works
 
@@ -83,7 +83,7 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram live (nova-3, filler_words
 | `src/lib/cue/pace.ts`, `syllables.ts` | Rolling speaking rate                                                               |
 | `src/lib/cue/config.ts`               | Defaults and pace presets                                                           |
 | `src/lib/deepgram/liveTranscriber.ts` | Mic capture and Deepgram WebSocket client                                           |
-| `src/app/api/deepgram-token/route.ts` | Mints 30 s Deepgram tokens so the API key never reaches the browser                 |
+| `src/app/api/deepgram-token/route.ts` | Mints 30 s Deepgram tokens so the server's key never reaches the browser            |
 | `src/app/CueApp.tsx`                  | The UI                                                                              |
 
 ## Privacy

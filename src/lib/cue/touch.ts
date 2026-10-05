@@ -1,5 +1,5 @@
 /**
- * Cuff touch gestures, for controls only (on/off, mode). Deliberately few and hard to
+ * Touch gestures on the device, for controls only (on/off, mode). Deliberately few and hard to
  * trigger by accident, since people touch their ears often:
  *   long press (hold ≥ 1.5 s)        → "toggle_on"   (Cue on/off)
  *   double tap (two quick taps)      → "toggle_mode" (Conversation ↔ Presentation)
@@ -43,7 +43,7 @@ export class TouchGestures {
       return "toggle_on";
     }
     if (held > TAP_MAX_MS) {
-      // A lingering touch (adjusting the cuff, hair): not a tap, and breaks any double tap.
+      // A lingering touch (adjusting the device, hair): not a tap, and breaks any double tap.
       this.lastTapEnd = null;
       return null;
     }

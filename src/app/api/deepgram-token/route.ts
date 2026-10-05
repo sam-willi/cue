@@ -4,7 +4,11 @@
 export async function POST() {
   const key = process.env.DEEPGRAM_API_KEY;
   if (!key) {
-    return Response.json({ error: "DEEPGRAM_API_KEY is not set. Add it to .env.local." }, { status: 500 });
+    // Not configured (e.g. a public demo): visitors can use their own key instead.
+    return Response.json(
+      { error: "This site has no Deepgram key. Add your own to start listening.", code: "no_server_key" },
+      { status: 503 },
+    );
   }
   const res = await fetch("https://api.deepgram.com/v1/auth/grant", {
     method: "POST",

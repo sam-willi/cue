@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import CuffModel from "./CuffModel";
+import DeviceModel from "./DeviceModel";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
@@ -75,6 +75,11 @@ export default function CueApp() {
   const [config, setConfig] = useState<CueConfig>(DEFAULT_CONFIG);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  // A visitor's own Deepgram key. Kept in this browser only (this tab, or this device if they
+  // choose) and sent straight to Deepgram, never to this app's server.
+  const [apiKey, setApiKey] = useState("");
+  const [rememberKey, setRememberKey] = useState(false);
+  const [keyFormOpen, setKeyFormOpen] = useState(false);
   const [pace, setPace] = useState<Pace | null>(null);
   const [volume, setVolume] = useState<VolumeStatus | null>(null);
   const [demoQuiet, setDemoQuiet] = useState(false);
@@ -139,7 +144,7 @@ export default function CueApp() {
     buzzTimer.current = window.setTimeout(() => setConfirm(null), CONFIRMS[pattern].durationMs + 600);
   }, []);
 
-  /** A cuff touch gesture: long press = Cue on/off, double tap = switch mode. */
+  /** A touch gesture on the device: long press = Cue on/off, double tap = switch mode. */
   const onTouch = useCallback(
     (action: TouchAction) => {
       const c = configRef.current;
@@ -233,7 +238,32 @@ export default function CueApp() {
 
   useEffect(() => () => stopAll(), [stopAll]);
 
-  const startLive = async (opts: { record?: boolean } = {}) => {
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(KEY_STORAGE);
+      const key = saved ?? sessionStorage.getItem(KEY_STORAGE);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage only exists after mount
+      if (key) setApiKey(key);
+      setRememberKey(saved !== null);
+    } catch {
+      // Storage blocked (private window, previews): the key just isn't remembered.
+    }
+  }, []);
+
+  const saveKey = (key: string, remember: boolean) => {
+    setApiKey(key);
+    setRememberKey(remember);
+    setKeyFormOpen(false);
+    try {
+      localStorage.removeItem(KEY_STORAGE);
+      sessionStorage.removeItem(KEY_STORAGE);
+      if (key) (remember ? localStorage : sessionStorage).setItem(KEY_STORAGE, key);
+    } catch {
+      // Storage blocked: the key works until the page closes.
+    }
+  };
+
+  const startLive = async (opts: { record?: boolean; apiKey?: string } = {}) => {
     stopAll();
     reset();
     recordAudioRef.current = !!opts.record;
@@ -258,17 +288,19 @@ export default function CueApp() {
         levelsRef.current.push([t, db]);
         sessionRef.current.ingestLevel(t, db);
       },
-      onStatus: (s, detail) => {
+      onStatus: (s, detail, code) => {
         if (s === "stopped") return;
         setStatus(s === "error" ? "error" : s);
         if (detail) setError(detail);
+        // No usable key: open the field for the visitor's own (the headline says why).
+        if (code) setKeyFormOpen(true);
       },
     });
     rawRef.current = [];
     setRecorded(0);
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
     transcriberRef.current = t;
-    await t.start();
+    await t.start({ apiKey: (opts.apiKey ?? apiKey) || undefined });
   };
 
   const runDemo = (text = demoText) => {
@@ -278,7 +310,7 @@ export default function CueApp() {
     const demoStart = performance.now();
     clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
     let sim: Word[] = simulateWords(text, { wpm: demoWpm });
-    // "A friend cuts in": the microphone hears them, but the cuff's bone sensor doesn't,
+    // "A friend cuts in": the microphone hears them, but the device's bone sensor doesn't,
     // so their fillers shouldn't tap.
     let friend: Word[] = [];
     if (demoFriend && sim.length > 4) {
@@ -455,7 +487,7 @@ export default function CueApp() {
         : status === "error"
           ? (error ?? "")
           : config.muted
-            ? "Long-press the cuff, or switch Cue on below."
+            ? "Long-press the device, or switch Cue on below."
             : calibrating
               ? "Talk normally for a few seconds so Cue learns your usual volume."
               : live
@@ -496,23 +528,23 @@ export default function CueApp() {
       </header>
 
       <div className="lg:flex lg:flex-row-reverse lg:items-start lg:gap-12">
-        {/* The cuff, from its CAD: each cue leaves the motor on the skin side. Beside the page on wide
+        {/* The behind-the-ear device, from its CAD: each cue leaves the motor on the skin side. Beside the page on wide
           screens, above it on phones. */}
-        <aside aria-label="The cuff" className="mt-6 lg:sticky lg:top-8 lg:mt-8 lg:w-[44%] lg:shrink-0">
+        <aside aria-label="The device" className="mt-6 lg:sticky lg:top-8 lg:mt-8 lg:w-[44%] lg:shrink-0">
           <figure
             role="img"
             aria-label={
               confirm
-                ? `Confirmation on the cuff: ${CONFIRMS[confirm.pattern].label}`
+                ? `Confirmation on the device: ${CONFIRMS[confirm.pattern].label}`
                 : buzz
-                  ? `The cuff buzzes: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
+                  ? `The device buzzes: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
                   : heard
                     ? `Noticed ${heard.label}, no buzz yet`
-                    : "The Cue ear cuff, no cue right now"
+                    : "The Cue behind-the-ear device, no cue right now"
             }
             className="overflow-hidden rounded-2xl bg-surface-2"
           >
-            <CuffModel
+            <DeviceModel
               buzz={buzz}
               confirm={confirm}
               noticed={heard}
@@ -520,7 +552,7 @@ export default function CueApp() {
             />
           </figure>
           <p className="mt-3 text-caption text-muted">
-            The cuff from its CAD. Taps leave the motor behind your ear; drag to turn it.
+            Cue’s behind-the-ear (BTE) device, from its CAD. Taps leave the motor behind your ear; drag to turn it.
           </p>
         </aside>
 
@@ -557,6 +589,20 @@ export default function CueApp() {
                   ? "Practice doesn’t use the microphone."
                   : "Your audio goes to Deepgram to be transcribed. Cue doesn’t store it."}
               </p>
+              {status !== "demo" && !live && (
+                <DeepgramKey
+                  value={apiKey}
+                  remember={rememberKey}
+                  open={keyFormOpen}
+                  onOpen={() => setKeyFormOpen(true)}
+                  onCancel={() => setKeyFormOpen(false)}
+                  onRemove={() => saveKey("", false)}
+                  onSave={(key, remember) => {
+                    saveKey(key, remember);
+                    void startLive({ apiKey: key });
+                  }}
+                />
+              )}
             </div>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
@@ -878,7 +924,7 @@ export default function CueApp() {
 
             <Disclosure
               title="Practice"
-              summary="Try a sentence without a mic, or try the cuff’s touch controls"
+              summary="Try a sentence without a mic, or try the device’s touch controls"
               open={open.practice}
               onToggle={() => toggle("practice")}
             >
@@ -923,7 +969,7 @@ export default function CueApp() {
                     <Switch label="Trail off quietly at the end" on={demoQuiet} onChange={setDemoQuiet} />
                     <Switch
                       label="A friend cuts in with “um… like went”"
-                      hint="The mic hears them; the cuff’s bone sensor doesn’t, so Cue ignores them."
+                      hint="The mic hears them; the device’s bone sensor doesn’t, so Cue ignores them."
                       on={demoFriend}
                       onChange={setDemoFriend}
                     />
@@ -939,14 +985,14 @@ export default function CueApp() {
 
                 <div>
                   <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                    Try the cuff’s touch controls
+                    Try the device’s touch controls
                   </h3>
                   <p className="mt-1 text-body-sm text-muted">
-                    On the cuff, touch is only for controls. A single tap does nothing, so fixing your hair won’t
+                    On the device, touch is only for controls. A single tap does nothing, so fixing your hair won’t
                     trigger it.
                   </p>
                   <div className="mt-4">
-                    <CuffTouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
+                    <TouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
                   </div>
                 </div>
               </div>
@@ -1154,10 +1200,11 @@ export default function CueApp() {
                 <div>
                   <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Privacy</h3>
                   <p className="mt-2 max-w-prose text-muted">
-                    While you listen, audio streams to Deepgram to be transcribed. Cue keeps nothing on its own. A
-                    session is only saved if you choose Download session, and that file has words and timing, never
-                    audio. Cue never builds a voiceprint: on the cuff, a bone-conduction sensor hears only your own
-                    voice. In this web prototype the microphone hears everyone, so other people’s fillers can tap too.
+                    While you listen, audio streams to Deepgram to be transcribed. If you add your own Deepgram key, it
+                    stays in this browser and goes straight to Deepgram. Cue keeps nothing on its own. A session is only
+                    saved if you choose Download session, and that file has words and timing, never audio. Cue never
+                    builds a voiceprint: on the device, a bone-conduction sensor hears only your own voice. In this web
+                    prototype the microphone hears everyone, so other people’s fillers can tap too.
                   </p>
                 </div>
               </div>
@@ -1166,6 +1213,119 @@ export default function CueApp() {
         </div>
       </div>
     </main>
+  );
+}
+
+const KEY_STORAGE = "cue.deepgramKey";
+
+/**
+ * Use your own Deepgram key: for a deployment with no key of its own, or anyone who'd rather
+ * pay for their own transcription. The key stays in the browser and goes straight to Deepgram.
+ */
+function DeepgramKey({
+  value,
+  remember,
+  open,
+  onOpen,
+  onCancel,
+  onRemove,
+  onSave,
+}: {
+  value: string;
+  remember: boolean;
+  open: boolean;
+  onOpen: () => void;
+  onCancel: () => void;
+  onRemove: () => void;
+  onSave: (key: string, remember: boolean) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [keep, setKeep] = useState(remember);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    // Start each edit from what's saved.
+    setWasOpen(open);
+    if (open) {
+      setDraft(value);
+      setKeep(remember);
+    }
+  }
+
+  if (!open) {
+    return value ? (
+      <p className="text-body-sm text-muted">
+        Listening uses your Deepgram key.{" "}
+        <button onClick={onOpen} className="underline underline-offset-2 hover:text-text">
+          Change
+        </button>{" "}
+        or{" "}
+        <button onClick={onRemove} className="underline underline-offset-2 hover:text-text">
+          remove it
+        </button>
+      </p>
+    ) : (
+      <button onClick={onOpen} className="text-body-sm text-muted underline underline-offset-2 hover:text-text">
+        Use your own Deepgram key
+      </button>
+    );
+  }
+
+  const key = draft.trim();
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (key) onSave(key, keep);
+      }}
+      className="mt-2 w-full max-w-md rounded-lg border border-line bg-surface p-4 text-left"
+    >
+      <label htmlFor="dg-key" className="text-label font-medium">
+        Deepgram API key
+      </label>
+      <input
+        id="dg-key"
+        type="password"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        autoComplete="off"
+        spellCheck={false}
+        autoFocus
+        className="mt-1.5 min-h-11 w-full rounded-lg border border-line bg-bg px-3 font-mono text-body-sm focus:border-text focus:outline-none"
+      />
+      <label className="mt-3 flex items-center gap-2 text-body-sm">
+        <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} className="accent-cue" />
+        Remember on this device
+      </label>
+      <p className="mt-3 text-caption text-muted">
+        Your key stays in this browser and goes straight to Deepgram; Cue’s server never sees it. Without “remember”,
+        it’s forgotten when you close the tab. No key yet? New accounts at{" "}
+        <a
+          href="https://console.deepgram.com/signup"
+          target="_blank"
+          rel="noreferrer"
+          className="underline underline-offset-2 hover:text-text"
+        >
+          console.deepgram.com
+        </a>{" "}
+        come with free credit.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="submit"
+          disabled={!key}
+          className="min-h-11 rounded-lg bg-text px-5 text-body-sm font-medium text-bg disabled:opacity-40"
+        >
+          Save and start listening
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="min-h-11 rounded-lg border border-line px-5 text-body-sm hover:border-text"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -1466,10 +1626,10 @@ function TranscriptKey() {
 }
 
 /**
- * Stand-in for the cuff's touch surface (controls only). Hold 1.5 s = on/off,
- * double-tap = switch mode; a single tap does nothing, as on the real cuff.
+ * Stand-in for the device's touch surface (controls only). Hold 1.5 s = on/off,
+ * double-tap = switch mode; a single tap does nothing, as on the real device.
  */
-function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => void; mode: string; on: boolean }) {
+function TouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => void; mode: string; on: boolean }) {
   const gestures = useRef(new TouchGestures());
   const holdTimer = useRef<number | undefined>(undefined);
   const hintTimer = useRef<number | undefined>(undefined);
@@ -1506,8 +1666,8 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
     <div className="flex items-center gap-5">
       <button
         type="button"
-        aria-label="Simulated cuff touch surface: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
-        className={`cuff-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-body-sm font-medium ${pressing ? "pressing" : ""}`}
+        aria-label="Simulated touch surface on the device: hold 1.5 seconds to turn Cue on or off, double-tap to switch mode"
+        className={`touch-pad relative grid h-20 w-20 shrink-0 touch-none select-none place-items-center rounded-full border border-neutral bg-neutral-soft text-body-sm font-medium ${pressing ? "pressing" : ""}`}
         onPointerDown={(e) => {
           try {
             e.currentTarget.setPointerCapture(e.pointerId); // keep the press if the finger drifts
@@ -1549,7 +1709,7 @@ function CuffTouchPad({ onAction, mode, on }: { onAction: (a: TouchAction) => vo
             transform="rotate(-90 18 18)"
           />
         </svg>
-        Cuff
+        Device
       </button>
       <div className="text-body">
         <p>Hold for 1.5 seconds to turn Cue {on ? "off" : "on"}.</p>
