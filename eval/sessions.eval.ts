@@ -3,7 +3,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { evaluateSession, type SessionFile } from "@/lib/cue/evaluate";
+import { evaluateSession, scoreLabels, type SessionFile } from "@/lib/cue/evaluate";
 
 const DIR = join(__dirname, "..", "sessions");
 const files = existsSync(DIR) ? readdirSync(DIR).filter((f) => f.endsWith(".json")) : [];
@@ -45,6 +45,48 @@ it("scores saved sessions against their corrections", () => {
       `  false buzzes still firing: ${stillFb}/${labeledFb} (${perHour.toFixed(1)} per speaking hour)`,
       `  misses still missed: ${stillMiss}/${labeledMiss}`,
       "  (unlabeled detections are assumed correct)",
+    ].join("\n") + "\n",
+  );
+});
+
+// Labeled training recordings (Training section → "Save to training set"): ./training/<id>/session.json
+const TRAINING = join(__dirname, "..", "training");
+const trainingDirs = existsSync(TRAINING)
+  ? readdirSync(TRAINING).filter((d) => existsSync(join(TRAINING, d, "session.json")))
+  : [];
+
+it("scores labeled training recordings (precision / recall per session)", () => {
+  if (trainingDirs.length === 0) {
+    process.stdout.write(`\nNo training recordings yet. Record one in the app's Training section.\n`);
+    return;
+  }
+  let caught = 0;
+  let missed = 0;
+  let wrong = 0;
+  const rows: string[] = [];
+  for (const d of trainingDirs) {
+    const file = JSON.parse(readFileSync(join(TRAINING, d, "session.json"), "utf8")) as SessionFile;
+    const s = scoreLabels(file);
+    if (!s) continue;
+    caught += s.caught;
+    missed += s.missed.length;
+    wrong += s.wrong.length;
+    rows.push(
+      `${d}\n  caught ${s.caught}, missed ${s.missed.length}, wrong ${s.wrong.length}` +
+        `  (precision ${(s.precision * 100).toFixed(0)}%, recall ${(s.recall * 100).toFixed(0)}%)` +
+        s.missed.map((m) => `\n    missed "${m.word}" at ${m.start.toFixed(1)}s`).join("") +
+        s.wrong.map((m) => `\n    wrong  "${m.word}" at ${m.start.toFixed(1)}s`).join(""),
+    );
+  }
+  const p = caught + wrong ? caught / (caught + wrong) : 1;
+  const r = caught + missed ? caught / (caught + missed) : 1;
+  process.stdout.write(
+    [
+      "",
+      ...rows,
+      "",
+      `TRAINING TOTAL ${rows.length} recording(s): caught ${caught}, missed ${missed}, wrong ${wrong}`,
+      `  precision ${(p * 100).toFixed(0)}%  recall ${(r * 100).toFixed(0)}%`,
     ].join("\n") + "\n",
   );
 });
