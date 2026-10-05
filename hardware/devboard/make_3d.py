@@ -38,3 +38,20 @@ write("TDK_T5838", [
     box(0, 0, 0, 3.5, 2.65, 0.2, "0.15 0.35 0.15"),
     box(0, 0, 0.2, 3.3, 2.45, 0.78, "0.8 0.8 0.82", 0.6),
 ])
+
+# Stand-ins for two standard-library parts whose KiCad models didn't load on every install (build_board.py and the
+# board file point these footprints here instead of the KiCad 3D library).
+# JST PH S2B-PH-SM4-TB (horizontal): housing from the footprint's Fab outline (x +-3.95, y -3.2..4.4), mouth at +Y
+write("JST_PH_S2B-PH-SM4-TB", [
+    box(0, 0.6, 0, 7.9, 7.6, 4.75, "0.93 0.92 0.86"),
+    box(0, 3.4, 1.0, 5.6, 2.1, 3.0, "0.55 0.54 0.5"),            # mouth cavity
+    box(-1, -2.85, 0, 0.6, 2.6, 0.25, "0.85 0.75 0.4", 0.6),     # signal pins
+    box(1, -2.85, 0, 0.6, 2.6, 0.25, "0.85 0.75 0.4", 0.6),
+    box(-3.35, 2.9, 0, 1.2, 3.0, 0.3, "0.8 0.8 0.82", 0.6),      # mounting tabs
+    box(3.35, 2.9, 0, 1.2, 3.0, 0.3, "0.8 0.8 0.82", 0.6),
+])
+# VSSOP-10 3x3 mm, 0.5 mm pitch (TI DRV2605L DGS): leads on the left/right sides like the KiCad footprint
+write("VSSOP-10_3x3mm_P0.5mm", [box(0, 0, 0.1, 3.0, 3.0, 0.85, "0.08 0.08 0.09")] + [
+    box(sx * 2.0, y, 0, 1.0, 0.25, 0.15, "0.8 0.8 0.82", 0.6)
+    for sx in (-1, 1) for y in (-1.0, -0.5, 0, 0.5, 1.0)
+])

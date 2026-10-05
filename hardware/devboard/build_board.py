@@ -82,11 +82,20 @@ PASSES = 100
 POWER_NETS = {"VBUS", "VBAT", "VSYS", "SW1", "SW2", "1V8", "3V0", "MIC_1V8", "LRA_P", "LRA_N", "VBUSOUT"}
 
 
+MODEL_OVERRIDES = {"VSSOP-10_3x3mm_P0.5mm": "VSSOP-10_3x3mm_P0.5mm",
+                   "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal": "JST_PH_S2B-PH-SM4-TB"}
+
+
 def load_fp(p):
     lib = CUE_LIB if p["lib"] == C.CUE else p["lib"]
     fp = pcbnew.FootprintLoad(lib, p["fp"])
     if fp is None:
         raise SystemExit(f"footprint not found: {lib}:{p['fp']}")
+    if p["fp"] in MODEL_OVERRIDES:  # project-local model (see make_3d.py)
+        fp.Models().clear()
+        m = pcbnew.FP_3DMODEL()
+        m.m_Filename = "${KIPRJMOD}/Cue.3dshapes/" + MODEL_OVERRIDES[p["fp"]] + ".wrl"
+        fp.Models().push_back(m)
     nick = os.path.basename(lib.rstrip("/")).replace(".pretty", "")
     fp.SetFPID(pcbnew.LIB_ID(nick, p["fp"]))
     USED_LIBS.add(nick)

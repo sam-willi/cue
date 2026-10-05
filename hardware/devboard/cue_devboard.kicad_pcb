@@ -1442,7 +1442,7 @@
       (net 13 "LRA_N") (tstamp 13140922-9aa1-46c4-aa62-9fa88dd45f36))
     (pad "10" smd roundrect (at 2.2 -1 90) (size 1.45 0.3) (layers "F.Cu" "F.Paste" "F.Mask") (roundrect_rratio 0.25)
       (net 35 "VBAT") (tstamp 7cc09c29-854b-405c-8e32-4ac7f91cbd37))
-    (model "${KICAD7_3DMODEL_DIR}/Package_SO.3dshapes/VSSOP-10_3x3mm_P0.5mm.wrl"
+    (model "${KIPRJMOD}/Cue.3dshapes/VSSOP-10_3x3mm_P0.5mm.wrl"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
@@ -1969,7 +1969,7 @@
       (net 7 "GND") (tstamp 48b104b6-f548-471d-b1c8-e7109a86e4ef))
     (pad "MP" smd roundrect (at -3.35 2.9) (size 1.5 3.4) (layers "F.Cu" "F.Paste" "F.Mask") (roundrect_rratio 0.166667) (tstamp 81a45819-bf6e-4c9c-9fae-be6e02442faf))
     (pad "MP" smd roundrect (at 3.35 2.9) (size 1.5 3.4) (layers "F.Cu" "F.Paste" "F.Mask") (roundrect_rratio 0.166667) (tstamp d9e8505e-e7e7-413e-aae6-8385698b126c))
-    (model "${KICAD7_3DMODEL_DIR}/Connector_JST.3dshapes/JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal.wrl"
+    (model "${KIPRJMOD}/Cue.3dshapes/JST_PH_S2B-PH-SM4-TB.wrl"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
