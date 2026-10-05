@@ -18,7 +18,7 @@ function converse(
   turns: Turn[],
   opts: { noiseDb?: number; noiseAfter?: { t: number; db: number }; config?: object } = {},
 ) {
-  const s = new CueSession({ cooldownSec: 0, calibrationSec: 6, ...opts.config });
+  const s = new CueSession({ tapOn: "every", cooldownSec: 0, calibrationSec: 6, ...opts.config });
   let t = 0;
   for (const turn of turns) {
     const words: Word[] = simulateWords(turn.text, { startAt: t }).map((w) => ({ ...w, speaker: turn.label }));
@@ -61,7 +61,7 @@ describe("coaching only the wearer", () => {
 
   it("coaches the wearer's soft 'um' said mid-sentence (loudness only, no labels)", () => {
     // Hesitations come out quieter than the rest of speech: here 14 dB below normal.
-    const s = new CueSession({ cooldownSec: 0, calibrationSec: 6 });
+    const s = new CueSession({ tapOn: "every", cooldownSec: 0, calibrationSec: 6 });
     const setup = simulateWords(SETUP);
     const later = simulateWords("so i was thinking um we could go", { startAt: setup.at(-1)!.end + 1 });
     const all = [...setup, ...later];

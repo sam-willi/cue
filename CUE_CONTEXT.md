@@ -1,6 +1,6 @@
 # Cue — Canonical Product Context
 
-> **Purpose:** This document is the canonical source of truth for coding, hardware, design, research, marketing, and strategy agents working on Cue. Read it before proposing or implementing work. If another artifact conflicts with this one, use this document unless a human owner explicitly supersedes it.
+> **Purpose:** This document is the canonical source of truth for coding, hardware, design, research, marketing, and strategy agents working on Cue. Software behavior is specified in [`SOFTWARE.md`](./SOFTWARE.md); visual design in [`DESIGN.md`](./DESIGN.md). Read it before proposing or implementing work. If another artifact conflicts with this one, use this document unless a human owner explicitly supersedes it.
 >
 > **Last updated:** 2026-10-03 (see §26 Decision log)  
 > **Maturity:** Product concept / validation and prototyping  
@@ -771,6 +771,10 @@ Cue is a **single, discreet, jewelry-like ear cuff**—not an earbud—that coac
 ## 26. Decision log
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
+
+### 2026-10-04 — Software system spec adopted
+
+5. **`SOFTWARE.md` is canonical for software behavior.** Cue is a behavioral coaching system, not a filler detector: a decision engine asks "would a tap help right now?" using filler density and clusters, pace against the wearer's own baseline, time without a pause, repetition, and speaking-turn length, with 10–20 s cooldowns, high confidence, and checks on whether a tap worked. *Where it conflicts with earlier decisions:* the three-rhythm haptic vocabulary (decision 1) stands over `SOFTWARE.md` §18's single universal tap; whether to add an opt-in stored voice profile (`SOFTWARE.md` §4) is an **[OPEN QUESTION]**; no voiceprint is stored today.
 
 ### 2026-10-03 (later) — Touch for controls
 
