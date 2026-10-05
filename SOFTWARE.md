@@ -7,7 +7,7 @@
 > **Where this document conflicts with a later owner decision**, the decision wins and is recorded in `CUE_CONTEXT.md` §26:
 >
 > - **§18 Haptic language:** the owner chose **three rhythms** (one tap = pause, two taps = slow down, long pulse = speak up), not a single universal tap. A one-tap mode remains a setting and a test condition.
-> - **§4 Speaker identification:** whether to add an opt-in stored voice profile is an **open question**. Today Cue stores no voiceprint; it uses per-session speaker labels (when the engine provides them), loudness, and surrounding speech.
+> - **§4 Speaker identification:** resolved by hardware (`CUE_CONTEXT.md` §26, decision 6). The cuff's **bone-conduction sensor** verifies when the wearer is speaking, the **microphone** captures audio for speech-to-text, and a **vibration motor behind the ear** delivers taps. There is no software voice detection and no voice profile.
 > - **§21–23 Processing and privacy:** the software MVP streams audio to Deepgram for transcription; on-device processing is the long-term direction.
 
 Cue should not be designed as a simple filler-word detector.

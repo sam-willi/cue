@@ -8,7 +8,6 @@ interface DgWord {
   start: number;
   end: number;
   confidence: number;
-  speaker?: number;
 }
 
 export interface DgMessage {
@@ -30,7 +29,6 @@ const toWords = (ws: DgWord[], offset = 0): Word[] =>
       start: w.start + offset,
       end: w.end + offset,
       confidence: w.confidence,
-      ...(w.speaker !== undefined && { speaker: w.speaker }),
     }))
     .filter((w) => w.norm);
 

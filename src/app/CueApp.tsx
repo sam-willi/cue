@@ -76,7 +76,7 @@ export default function CueApp() {
   const [pace, setPace] = useState<Pace | null>(null);
   const [volume, setVolume] = useState<VolumeStatus | null>(null);
   const [demoQuiet, setDemoQuiet] = useState(false);
-  const [demoOther, setDemoOther] = useState(false);
+  const [demoFriend, setDemoFriend] = useState(false);
   const [log, setLog] = useState<CueDecision[]>([]);
   const [checks, setChecks] = useState<LikeCheck[]>([]);
   const [recorded, setRecorded] = useState(0);
@@ -165,7 +165,8 @@ export default function CueApp() {
       if (u.outcomes.length)
         setOutcomes((o) => ({ ...o, ...Object.fromEntries(u.outcomes.map((x) => [x.id, x.outcome])) }));
       setSignals(u.signals);
-      setWords(sessionRef.current.annotatedWords());
+      const sess = sessionRef.current;
+      setWords(sess.words.map((w) => ({ ...w, wearer: sess.isWearerWord(w) })));
       setSpeakingSec(sessionRef.current.speakingSeconds());
     },
     [triggerBuzz],
@@ -202,26 +203,23 @@ export default function CueApp() {
   const startLive = async () => {
     stopAll();
     reset();
-    const t = new LiveTranscriber(
-      {
-        onMessage: (msg) => {
-          rawRef.current.push(msg);
-          if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
-          const u = feedMessage(sessionRef.current, msg);
-          if (u) apply(u);
-        },
-        onLevel: (t, db) => {
-          levelsRef.current.push([t, db]);
-          sessionRef.current.ingestLevel(t, db);
-        },
-        onStatus: (s, detail) => {
-          if (s === "stopped") return;
-          setStatus(s === "error" ? "error" : s);
-          if (detail) setError(detail);
-        },
+    const t = new LiveTranscriber({
+      onMessage: (msg) => {
+        rawRef.current.push(msg);
+        if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
+        const u = feedMessage(sessionRef.current, msg);
+        if (u) apply(u);
       },
-      config.engine,
-    );
+      onLevel: (t, db) => {
+        levelsRef.current.push([t, db]);
+        sessionRef.current.ingestLevel(t, db);
+      },
+      onStatus: (s, detail) => {
+        if (s === "stopped") return;
+        setStatus(s === "error" ? "error" : s);
+        if (detail) setError(detail);
+      },
+    });
     rawRef.current = [];
     setRecorded(0);
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
@@ -235,15 +233,13 @@ export default function CueApp() {
     setStatus("demo");
     const demoStart = performance.now();
     clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
-    // The wearer is speaker 0. With "another speaker", a friend (speaker 1, further from
-    // the mic, so quieter) cuts in about halfway with fillers Cue should ignore.
-    let sim: Word[] = simulateWords(text, { wpm: demoWpm }).map((w) => ({ ...w, speaker: 0 }));
-    if (demoOther && sim.length > 6) {
-      const cut = sim[Math.floor(sim.length * 0.7)].start;
-      const friend = simulateWords("Um, yeah, I like went there too.", { wpm: 170, startAt: cut + 0.5 }).map((w) => ({
-        ...w,
-        speaker: 1,
-      }));
+    let sim: Word[] = simulateWords(text, { wpm: demoWpm });
+    // "A friend cuts in": the microphone hears them, but the cuff's bone sensor doesn't,
+    // so their fillers shouldn't tap.
+    let friend: Word[] = [];
+    if (demoFriend && sim.length > 4) {
+      const cut = sim[Math.floor(sim.length * 0.6)].start;
+      friend = simulateWords("Um, yeah, I like went there too.", { wpm: 170, startAt: cut + 0.5 });
       const resume = friend.at(-1)!.end + 0.8 - cut;
       sim = [
         ...sim.filter((w) => w.start < cut),
@@ -251,15 +247,16 @@ export default function CueApp() {
         ...sim.filter((w) => w.start >= cut).map((w) => ({ ...w, start: w.start + resume, end: w.end + resume })),
       ];
     }
-    // Simulated mic level: the wearer at −20 dBFS (optionally trailing off to −32 for the
-    // last 45%), the friend at −32, a quiet room at −60. The demo learns "normal" from its
+    // Simulated mic level: speech at −20 dBFS (optionally trailing off to −32 for the
+    // last 45%), a quiet room at −60. The demo learns "normal" from its
     // first ~30% instead of 15 s.
     const total = sim.at(-1)?.end ?? 0;
     sessionRef.current.config = { ...config, calibrationSec: Math.min(config.calibrationSec, total * 0.3) };
     for (let t = 0; t <= total; t += 0.05) {
       const w = sim.find((x) => t >= x.start && t <= x.end);
-      const db = !w ? -60 : w.speaker === 1 ? -32 : demoQuiet && t > total * 0.55 ? -32 : -20;
+      const db = !w ? -60 : demoQuiet && t > total * 0.55 ? -32 : -20;
       sessionRef.current.ingestLevel(t, db);
+      if (demoFriend) sessionRef.current.ingestBone(t, !!w && !friend.includes(w));
     }
     sim.forEach((w, k) => {
       timersRef.current.push(
@@ -335,7 +332,7 @@ export default function CueApp() {
   const presetLabel = config.paceMode === "custom" ? "Custom" : PACE_PRESETS[config.paceMode].label;
 
   const live = status === "listening" || status === "connecting";
-  const calibrating = status === "listening" && config.onlyWearer && volume?.expectedDb == null;
+  const calibrating = status === "listening" && volume?.expectedDb == null;
   const endSession = () => {
     stopAll();
     if (words.length) setOpen((o) => ({ ...o, review: true }));
@@ -354,11 +351,9 @@ export default function CueApp() {
             ? "Cue is off."
             : status === "demo"
               ? "Practicing."
-              : calibrating
-                ? "Learning your voice."
-                : status === "listening"
-                  ? "Listening."
-                  : "Ready when you are.";
+              : status === "listening"
+                ? "Listening."
+                : "Ready when you are.";
   const heroLine = buzz
     ? capitalize(buzz.label)
     : confirm
@@ -368,7 +363,7 @@ export default function CueApp() {
         : config.muted
           ? "Long-press the cuff, or switch Cue on below."
           : calibrating
-            ? "Talk on your own for a few seconds so Cue knows which voice is yours."
+            ? "Talk normally for a few seconds so Cue learns your usual volume."
             : live
               ? "Talk naturally. You don’t need to watch this screen."
               : status === "demo"
@@ -634,7 +629,7 @@ export default function CueApp() {
                         <span
                           key={k}
                           className="italic text-muted/70"
-                          title="Someone else talking. Cue doesn’t coach other people."
+                          title="The bone sensor didn’t hear you say this, so it isn’t coached."
                         >
                           {w.text}{" "}
                         </span>
@@ -792,7 +787,12 @@ export default function CueApp() {
                   onChange={setDemoWpm}
                 />
                 <Switch label="Trail off quietly at the end" on={demoQuiet} onChange={setDemoQuiet} />
-                <Switch label="Add a friend cutting in with “um… like went”" on={demoOther} onChange={setDemoOther} />
+                <Switch
+                  label="A friend cuts in with “um… like went”"
+                  hint="The mic hears them; the cuff’s bone sensor doesn’t, so Cue ignores them."
+                  on={demoFriend}
+                  onChange={setDemoFriend}
+                />
               </div>
               <button
                 onClick={() => runDemo()}
@@ -820,7 +820,7 @@ export default function CueApp() {
 
         <Disclosure
           title="Settings"
-          summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.onlyWearer ? "your voice only" : "everyone’s voice"}`}
+          summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
           open={open.settings}
           onToggle={() => toggle("settings")}
         >
@@ -863,30 +863,6 @@ export default function CueApp() {
                 hint="Off: one tap for everything, meaning make space."
                 on={config.distinctCues}
                 onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
-              />
-              <div>
-                <p className="mb-2">Speech engine</p>
-                <Segmented
-                  label="Speech engine"
-                  value={config.engine}
-                  options={[
-                    { value: "flux", label: "Fastest" },
-                    { value: "nova-2", label: "Speaker labels" },
-                  ]}
-                  onChange={(v) => setConfig((c) => ({ ...c, engine: v }))}
-                />
-                <p className="mt-2 text-body-sm text-muted">
-                  {config.engine === "flux"
-                    ? "Cues arrive about twice as fast. Your voice is told apart from others by loudness only."
-                    : "Cues are slower, but other people’s voices are told apart more reliably."}{" "}
-                  Applies the next time you start listening.
-                </p>
-              </div>
-              <Switch
-                label="Only coach my voice"
-                hint="Cue learns your voice in the first 15 seconds, so talk on your own then."
-                on={config.onlyWearer}
-                onChange={(v) => setConfig((c) => ({ ...c, onlyWearer: v }))}
               />
             </div>
 
@@ -948,8 +924,9 @@ export default function CueApp() {
               <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Privacy</h3>
               <p className="mt-2 max-w-prose text-muted">
                 While you listen, audio streams to Deepgram to be transcribed. Cue keeps nothing on its own. A session
-                is only saved if you choose Download session, and that file has words and timing, never audio. Speaker
-                labels last for one session; Cue never builds a voiceprint.
+                is only saved if you choose Download session, and that file has words and timing, never audio. Cue never
+                builds a voiceprint: on the cuff, a bone-conduction sensor hears only your own voice. In this web
+                prototype the microphone hears everyone, so other people’s fillers can tap too.
               </p>
             </div>
           </div>
@@ -1292,7 +1269,7 @@ function TranscriptKey() {
         <span className="rounded px-0.5 text-text ring-1 ring-text">like</span> you marked missed
       </li>
       <li>
-        <span className="italic text-muted/70">um</span> someone else
+        <span className="italic text-muted/70">um</span> not you (bone sensor)
       </li>
     </ul>
   );
