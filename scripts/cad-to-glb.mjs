@@ -1,27 +1,33 @@
 /**
- * Convert the cuff CAD (cad/democad.step, a zoo.dev export) into a web model:
- * public/cad/cue-cuff.glb, which the page renders with three.js.
+ * Convert the cuff CAD (a zoo.dev STEP export) into a web model: public/cad/cue-cuff.glb,
+ * which the page renders with three.js. The STEP lives on the hardware-rev0 branch
+ * (hardware/rev0/democad.step); by default this reads it from there with git.
  *
  * Each STEP solid becomes one glTF mesh with its CAD color. The LRA haptic motor (BOM M1:
  * Vybronics VG0832013D, 8 mm coin, pressed toward the skin) is found by its footprint and
  * its parts are named "motor-*". The scene's extras record where the vibration leaves the
  * device (the motor's skin-side face) so the page can draw the haptics coming out of it.
  *
- * Run: node scripts/cad-to-glb.mjs [in.step] [out.glb]   (re-run whenever the CAD changes)
+ * Run: npm run cad   or   node scripts/cad-to-glb.mjs [in.step] [out.glb]   (re-run whenever the CAD changes)
  */
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import occtImport from "occt-import-js";
 
 const ROOT = path.dirname(path.dirname(new URL(import.meta.url).pathname));
-const IN = process.argv[2] ?? path.join(ROOT, "cad/democad.step");
+const CAD_REF = "origin/hardware-rev0:hardware/rev0/democad.step";
+const IN = process.argv[2] ?? CAD_REF;
 const OUT = process.argv[3] ?? path.join(ROOT, "public/cad/cue-cuff.glb");
 
 /** The motor: an ~8 mm round part. Its center in the CAD's XY plane (mm). */
 const MOTOR_DIAMETER = [7, 10];
 
 const occt = await occtImport();
-const result = occt.ReadStepFile(new Uint8Array(fs.readFileSync(IN)), {
+const step = process.argv[2]
+  ? fs.readFileSync(IN)
+  : execFileSync("git", ["show", CAD_REF], { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 });
+const result = occt.ReadStepFile(new Uint8Array(step), {
   linearUnit: "millimeter",
   linearDeflectionType: "absolute_value",
   linearDeflection: 0.05,
@@ -131,7 +137,11 @@ parts.forEach((p, i) => {
 });
 
 const gltf = {
-  asset: { version: "2.0", generator: "cue scripts/cad-to-glb.mjs", extras: { source: path.relative(ROOT, IN) } },
+  asset: {
+    version: "2.0",
+    generator: "cue scripts/cad-to-glb.mjs",
+    extras: { source: process.argv[2] ? path.relative(ROOT, IN) : CAD_REF },
+  },
   scene: 0,
   scenes: [{ nodes: nodes.map((_, i) => i), extras: { units: "mm", motor } }],
   nodes,

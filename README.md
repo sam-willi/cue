@@ -54,15 +54,15 @@ Open http://localhost:3000.
 
 ## Scripts
 
-| Command          | What it does                                                                                              |
-| ---------------- | --------------------------------------------------------------------------------------------------------- |
-| `npm run dev`    | Dev server                                                                                                |
-| `npm test`       | Unit tests (Vitest)                                                                                       |
-| `npm run eval`   | Replay saved sessions and labeled training recordings; report fillers caught / missed / wrong             |
-| `npm run cad`    | Rebuild the 3D cuff on the page (`public/cad/cue-cuff.glb`) from `cad/democad.step` after the CAD changes |
-| `npm run check`  | Lint, typecheck, format check and tests, the same as CI                                                   |
-| `npm run format` | Format with Prettier                                                                                      |
-| `npm run build`  | Production build                                                                                          |
+| Command          | What it does                                                                                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npm run dev`    | Dev server                                                                                                                                                   |
+| `npm test`       | Unit tests (Vitest)                                                                                                                                          |
+| `npm run eval`   | Replay saved sessions and labeled training recordings; report fillers caught / missed / wrong                                                                |
+| `npm run cad`    | Rebuild the 3D cuff on the page (`public/cad/cue-cuff.glb`) from the STEP on the `hardware-rev0` branch (`hardware/rev0/democad.step`) after the CAD changes |
+| `npm run check`  | Lint, typecheck, format check and tests, the same as CI                                                                                                      |
+| `npm run format` | Format with Prettier                                                                                                                                         |
+| `npm run build`  | Production build                                                                                                                                             |
 
 ## How it works
 

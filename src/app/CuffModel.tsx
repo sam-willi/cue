@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { CONFIRMS, PATTERNS, type ConfirmPattern, type CuePattern } from "@/lib/cue/patterns";
 
 /**
- * The cuff, from its CAD (cad/democad.step → public/cad/cue-cuff.glb via scripts/cad-to-glb.mjs),
+ * The cuff, from its CAD (hardware/rev0/democad.step on the hardware-rev0 branch → public/cad/cue-cuff.glb via
+ * scripts/cad-to-glb.mjs),
  * with each haptic drawn where it really happens: rings leave the LRA motor's skin-side face in
  * the cue's rhythm (one, two, or one long), and the motor glows while it's driven. Confirmations
  * from the touch controls are a neutral swell with no rings, so they never read as a cue
