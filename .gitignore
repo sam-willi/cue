@@ -45,3 +45,6 @@ next-env.d.ts
 /sessions/
 cue-session-*.json
 scripts/out/
+
+# training recordings (audio of real conversations) — never commit
+/training/

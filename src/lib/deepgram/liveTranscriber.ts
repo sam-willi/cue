@@ -9,6 +9,8 @@ export interface TranscriberHandlers {
   onMessage: (msg: DgMessage) => void;
   /** Mic level of each 50 ms chunk: Deepgram audio time (s, chunk midpoint) and dBFS. */
   onLevel?: (t: number, db: number) => void;
+  /** Every 16 kHz PCM chunk sent to Deepgram, for opt-in training recordings. */
+  onAudio?: (pcm: Int16Array) => void;
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string) => void;
 }
 
@@ -72,7 +74,9 @@ export class LiveTranscriber {
           const chunkSec = e.data.byteLength / 2 / 16000;
           this.sentSec += chunkSec;
           this.clockZero = Math.min(this.clockZero, performance.now() - this.sentSec * 1000);
-          this.h.onLevel?.(this.sentSec - chunkSec / 2, pcmDbfs(new Int16Array(e.data)));
+          const pcm = new Int16Array(e.data);
+          this.h.onLevel?.(this.sentSec - chunkSec / 2, pcmDbfs(pcm));
+          this.h.onAudio?.(pcm);
         };
       };
       ws.onmessage = (e) => this.h.onMessage(JSON.parse(e.data));

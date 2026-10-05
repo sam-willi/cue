@@ -56,3 +56,36 @@ describe("evaluateSession", () => {
     expect(score.falseBuzzes).toEqual({ labeled: 1, stillFiring: [] });
   });
 });
+
+describe("scoreLabels", () => {
+  it("compares detections with the words the user marked as fillers", async () => {
+    const { scoreLabels } = await import("../evaluate");
+    // Three sentences; "like went" (detected), "just like sitting" (detected now), "like tofu" (not a filler).
+    const base = fileFor(["i like went to the mall", "um so we left", "i like tofu"], []);
+    const at = (sentence: number, word: number) => {
+      const starts: number[] = [];
+      let t = 0;
+      for (const text of ["i like went to the mall", "um so we left", "i like tofu"]) {
+        const n = text.split(" ").length;
+        starts.push(t);
+        t += n * 0.4 - 0.08 + 1.5;
+      }
+      return starts[sentence] + word * 0.4;
+    };
+    // User marks "like" (went) and "um" as fillers, and also "so" (Cue won't detect that).
+    const s = scoreLabels({
+      ...base,
+      config: { ...base.config, tapOn: "every" },
+      fillerLabels: [
+        { start: at(0, 1), word: "like" },
+        { start: at(1, 0), word: "um" },
+        { start: at(1, 1), word: "so" },
+      ],
+    })!;
+    expect(s.caught).toBe(2);
+    expect(s.missed.map((m) => m.word)).toEqual(["so"]);
+    expect(s.wrong).toEqual([]);
+    expect(s.recall).toBeCloseTo(2 / 3);
+    expect(s.precision).toBe(1);
+  });
+});

@@ -13,6 +13,7 @@ import { simulateWords } from "@/lib/cue/simulate";
 import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
+import { encodeWav } from "@/lib/audio/wav";
 
 const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
@@ -90,9 +91,22 @@ export default function CueApp() {
   const [words, setWords] = useState<(Word & { wearer: boolean })[]>([]);
   const [buzz, setBuzz] = useState<{ n: number; label: string; pattern: CuePattern } | null>(null);
   const [confirm, setConfirm] = useState<{ n: number; pattern: ConfirmPattern } | null>(null);
+  /** A filler Cue detected but didn't buzz for (not a pattern yet, or cooling down). */
+  const [heard, setHeard] = useState<{ n: number; label: string } | null>(null);
+  const heardTimer = useRef<number | undefined>(undefined);
   /** Live transcript is a testing aid only; the product never needs the screen mid-conversation. */
   const [showTranscript, setShowTranscript] = useState(false);
-  const [open, setOpen] = useState({ review: false, practice: false, settings: false });
+  const [open, setOpen] = useState({ review: false, practice: false, training: false, settings: false });
+  /** Training recording: audio is kept only when the user starts one explicitly. */
+  const [recordingTraining, setRecordingTraining] = useState(false);
+  const recordAudioRef = useRef(false);
+  const audioChunksRef = useRef<Int16Array[]>([]);
+  const audioBlobRef = useRef<Blob | null>(null);
+  const [trainingAudioUrl, setTrainingAudioUrl] = useState<string | null>(null);
+  /** Ground-truth labels: word keys the user marked as fillers. */
+  const [fillerMarks, setFillerMarks] = useState<Set<number>>(new Set());
+  const [playhead, setPlayhead] = useState<number | null>(null);
+  const [trainingSaved, setTrainingSaved] = useState<string | null>(null);
   const toggle = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const [demoText, setDemoText] = useState(EXAMPLES[0]);
   const [demoWpm, setDemoWpm] = useState(150);
@@ -154,7 +168,23 @@ export default function CueApp() {
       if (u.pace !== null) setPace(u.pace);
       if (u.volume !== null) setVolume(u.volume);
       const hit = u.decisions.find((d) => d.delivered);
+      const held = u.decisions.find(
+        (d) =>
+          !d.delivered &&
+          isDisfluency(d.event.type) &&
+          (d.withheldReason === "not_a_pattern" || d.withheldReason === "cooldown"),
+      );
+      if (!hit && held) {
+        const label =
+          held.withheldReason === "cooldown"
+            ? `Noticed ${LABEL[held.event.type]}. Cue just buzzed, so not again yet.`
+            : `Noticed ${LABEL[held.event.type]}${held.trigger ? ` (${held.trigger})` : ""}. No buzz yet.`;
+        setHeard((x) => ({ n: (x?.n ?? 0) + 1, label }));
+        window.clearTimeout(heardTimer.current);
+        heardTimer.current = window.setTimeout(() => setHeard(null), 1600);
+      }
       if (hit) {
+        setHeard(null);
         triggerBuzz(hit.event.type, describeTap(hit));
         const endedAt = isFiller(hit) ? clockRef.current?.toPage(hit.event.end) : null;
         if (endedAt != null) {
@@ -202,10 +232,21 @@ export default function CueApp() {
 
   useEffect(() => () => stopAll(), [stopAll]);
 
-  const startLive = async () => {
+  const startLive = async (opts: { record?: boolean } = {}) => {
     stopAll();
     reset();
+    recordAudioRef.current = !!opts.record;
+    setRecordingTraining(!!opts.record);
+    audioChunksRef.current = [];
+    audioBlobRef.current = null;
+    if (trainingAudioUrl) URL.revokeObjectURL(trainingAudioUrl);
+    setTrainingAudioUrl(null);
+    setFillerMarks(new Set());
+    setTrainingSaved(null);
     const t = new LiveTranscriber({
+      onAudio: (pcm) => {
+        if (recordAudioRef.current) audioChunksRef.current.push(pcm);
+      },
       onMessage: (msg) => {
         rawRef.current.push(msg);
         if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
@@ -337,7 +378,55 @@ export default function CueApp() {
   const calibrating = status === "listening" && volume?.expectedDb == null;
   const endSession = () => {
     stopAll();
-    if (words.length) setOpen((o) => ({ ...o, review: true }));
+    if (recordAudioRef.current) {
+      recordAudioRef.current = false;
+      setRecordingTraining(false);
+      const blob = encodeWav(audioChunksRef.current);
+      audioBlobRef.current = blob;
+      setTrainingAudioUrl(URL.createObjectURL(blob));
+      // Start the labels from what Cue detected; the user adds and removes from there.
+      setFillerMarks(new Set(log.filter(isFiller).map((d) => wordKey(d.event.start))));
+      setOpen((o) => ({ ...o, training: true }));
+    } else if (words.length) setOpen((o) => ({ ...o, review: true }));
+  };
+
+  const toggleFillerMark = (start: number) =>
+    setFillerMarks((m) => {
+      const next = new Set(m);
+      const k = wordKey(start);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+
+  const saveTraining = async () => {
+    const file: SessionFile = {
+      version: 2,
+      savedAt: new Date().toISOString(),
+      config,
+      messages: rawRef.current,
+      corrections: [],
+      levels: levelsRef.current,
+      latenciesMs: Object.values(latency),
+      fillerLabels: words
+        .filter((w) => fillerMarks.has(wordKey(w.start)))
+        .map((w) => ({ start: w.start, word: w.norm })),
+    };
+    const form = new FormData();
+    form.append("session", JSON.stringify(file));
+    if (audioBlobRef.current) form.append("audio", audioBlobRef.current, "audio.wav");
+    setTrainingSaved("Saving…");
+    try {
+      const res = await fetch("/api/training", { method: "POST", body: form });
+      const body = await res.json();
+      setTrainingSaved(
+        res.ok
+          ? `Saved to ${body.folder}: ${body.labels} filler${body.labels === 1 ? "" : "s"} marked${body.audio ? ", with audio" : ""}.`
+          : (body.error ?? "Couldn’t save."),
+      );
+    } catch {
+      setTrainingSaved("Couldn’t reach the app to save. Is it running locally?");
+    }
   };
 
   // The hero is the cue itself: one word that says what Cue is telling you right now.
@@ -358,19 +447,21 @@ export default function CueApp() {
                 : "Ready when you are.";
   const heroLine = buzz
     ? capitalize(buzz.label)
-    : confirm
-      ? ""
-      : status === "error"
-        ? (error ?? "")
-        : config.muted
-          ? "Long-press the cuff, or switch Cue on below."
-          : calibrating
-            ? "Talk normally for a few seconds so Cue learns your usual volume."
-            : live
-              ? "Talk naturally. You don’t need to watch this screen."
-              : status === "demo"
-                ? "Playing your practice sentence."
-                : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
+    : heard && !confirm
+      ? heard.label
+      : confirm
+        ? ""
+        : status === "error"
+          ? (error ?? "")
+          : config.muted
+            ? "Long-press the cuff, or switch Cue on below."
+            : calibrating
+              ? "Talk normally for a few seconds so Cue learns your usual volume."
+              : live
+                ? "Talk naturally. You don’t need to watch this screen."
+                : status === "demo"
+                  ? "Playing your practice sentence."
+                  : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
 
   const totalCues = tapped.length;
   const reviewSummary = words.length
@@ -400,12 +491,12 @@ export default function CueApp() {
             className="hidden dark:block"
           />
         </h1>
-        <MicState status={status} />
+        <MicState status={status} recording={recordingTraining} />
       </header>
 
       {/* --- Live: the one thing on screen while you talk --- */}
       <section aria-label="Live coaching" className="flex flex-col items-center pt-14 text-center sm:pt-20">
-        <CueRings buzz={buzz} confirm={confirm} />
+        <CueRings buzz={buzz} confirm={confirm} noticed={heard} />
         <p
           className="mt-10 font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl text-balance"
           aria-live="polite"
@@ -424,7 +515,10 @@ export default function CueApp() {
               Stop practice
             </button>
           ) : (
-            <button onClick={startLive} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
+            <button
+              onClick={() => startLive()}
+              className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+            >
               Start listening
             </button>
           )}
@@ -824,6 +918,99 @@ export default function CueApp() {
         </Disclosure>
 
         <Disclosure
+          title="Training"
+          summary="Record yourself talking, then mark every filler to teach and test the detector"
+          open={open.training}
+          onToggle={() => toggle("training")}
+        >
+          <div className="space-y-8">
+            <div>
+              <p className="max-w-prose text-body text-muted">
+                Talk for a few minutes the way you normally do. Cue records the audio for this session only. Afterwards,
+                select every word that was a filler, then save it to the training set on this computer.
+              </p>
+              <p className="mt-2 max-w-prose text-body-sm text-muted">
+                Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub. Only
+                record people who have agreed to it.
+              </p>
+              <div className="mt-4">
+                {live && recordingTraining ? (
+                  <button
+                    onClick={endSession}
+                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                  >
+                    Stop and label
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => startLive({ record: true })}
+                    disabled={live || status === "demo"}
+                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
+                  >
+                    Start training recording
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
+              <div>
+                <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  Mark the fillers
+                </h3>
+                <p className="mt-1 text-body-sm text-muted">
+                  Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
+                  unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
+                </p>
+                {trainingAudioUrl && (
+                  <audio
+                    controls
+                    src={trainingAudioUrl}
+                    className="mt-4 w-full"
+                    onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
+                    onEnded={() => setPlayhead(null)}
+                  />
+                )}
+                <p className="mt-4 text-body leading-9">
+                  {words.map((w, k) => {
+                    const marked = fillerMarks.has(wordKey(w.start));
+                    const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
+                    return (
+                      <span key={k}>
+                        <button
+                          type="button"
+                          aria-pressed={marked}
+                          onClick={() => toggleFillerMark(w.start)}
+                          className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
+                        >
+                          {w.text}
+                        </button>{" "}
+                      </span>
+                    );
+                  })}
+                </p>
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <button
+                    onClick={saveTraining}
+                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                  >
+                    Save to training set
+                  </button>
+                  <span className="text-body-sm text-muted">
+                    {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
+                  </span>
+                </div>
+                {trainingSaved && (
+                  <p className="mt-3 text-body-sm" role="status">
+                    {trainingSaved}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </Disclosure>
+
+        <Disclosure
           title="Settings"
           summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
           open={open.settings}
@@ -965,42 +1152,81 @@ const formatDb = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(Math.round(x)
 function CueRings({
   buzz,
   confirm,
+  noticed,
 }: {
   buzz: { n: number; label: string; pattern: CuePattern } | null;
   confirm: { n: number; pattern: ConfirmPattern } | null;
+  noticed: { n: number; label: string } | null;
 }) {
-  const state = confirm ? "cue-confirming" : buzz ? "cue-buzzing" : "";
+  const state = confirm ? "cue-confirming" : buzz ? "cue-buzzing" : noticed ? "cue-noticed" : "";
+  const showIcon = !!buzz || (!!noticed && !confirm);
   return (
     <div
-      key={`${buzz?.n ?? 0}-${confirm?.n ?? 0}`}
+      key={`${buzz?.n ?? 0}-${confirm?.n ?? 0}-${noticed?.n ?? 0}`}
       data-pattern={buzz?.pattern}
       data-confirm={confirm?.pattern}
-      className={`relative grid h-40 w-40 place-items-center ${state}`}
+      className={`relative grid h-56 w-56 place-items-center ${state}`}
       role="img"
       aria-label={
         confirm
           ? `Confirmation: ${CONFIRMS[confirm.pattern].label}`
           : buzz
-            ? `Cue: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
-            : "No cue right now"
+            ? `Buzz: ${PATTERNS[buzz.pattern].name}, ${buzz.label}`
+            : noticed
+              ? `Noticed ${noticed.label}, no buzz yet`
+              : "No cue right now"
       }
     >
       {[0, 1].map((k) => (
         <span
           key={k}
-          className="cue-ring pointer-events-none absolute inset-6 rounded-full border-2 border-cue opacity-0"
+          className="cue-ring pointer-events-none absolute inset-4 rounded-full border-2 border-cue opacity-0"
         />
       ))}
       <span
-        className={`cue-core block h-28 w-28 rounded-full border transition-colors duration-200 ${
-          confirm ? "border-neutral bg-neutral-soft" : buzz ? "border-cue bg-cue-soft" : "border-line bg-surface"
+        className={`cue-core grid h-48 w-48 place-items-center rounded-full border transition-colors duration-200 ${
+          confirm
+            ? "border-neutral bg-neutral-soft"
+            : buzz
+              ? "border-cue bg-cue-soft text-cue"
+              : noticed
+                ? "border-line bg-surface-2 text-muted"
+                : "border-line bg-surface"
         }`}
-      />
-      <span
-        className={`absolute h-3 w-3 rounded-full transition-colors duration-200 ${buzz ? "bg-cue" : confirm ? "bg-neutral" : "bg-line"}`}
-        aria-hidden
-      />
+      >
+        {showIcon ? (
+          <BuzzGlyph />
+        ) : (
+          <span
+            className={`block h-3 w-3 rounded-full transition-colors duration-200 ${confirm ? "bg-neutral" : "bg-line"}`}
+            aria-hidden
+          />
+        )}
+      </span>
     </div>
+  );
+}
+
+/** The buzz icon: a device with motion lines on both sides that pulse in the tap's rhythm. */
+function BuzzGlyph() {
+  return (
+    <svg className="buzz-glyph" width="124" height="124" viewBox="0 0 96 96" fill="none" aria-hidden>
+      <rect x="34" y="20" width="28" height="56" rx="8" stroke="currentColor" strokeWidth="3.5" />
+      <path
+        className="buzz-lines buzz-lines-inner"
+        d="M24 36v24M72 36v24"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+      <path
+        className="buzz-lines buzz-lines-outer"
+        d="M14 41v14M82 41v14"
+        stroke="currentColor"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
@@ -1017,12 +1243,12 @@ function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
 }
 
 /** Always-visible microphone state (DESIGN.md §12: recording state must be unmistakable). */
-function MicState({ status }: { status: Status }) {
+function MicState({ status, recording }: { status: Status; recording: boolean }) {
   const on = status === "listening";
   const text = {
     idle: "Microphone off",
     connecting: "Connecting…",
-    listening: "Microphone on",
+    listening: recording ? "Recording for training" : "Microphone on",
     demo: "Microphone off",
     error: "Microphone off",
   }[status];
