@@ -51,6 +51,7 @@ Needs KiCad 7, Java, `xvfb-run`, and Freerouting 1.9 at `tools/freerouting-1.9.0
 ```bash
 export KICAD7_FOOTPRINT_DIR=/usr/share/kicad/footprints
 python3 devboard_circuit.py      # electrical checks
+python3 make_3d.py               # Cue.3dshapes (simple 3D models)
 python3 make_footprints.py       # Cue.pretty footprints
 python3 make_schematic.py        # cue_devboard.kicad_sch
 kicad-cli sch export netlist --format kicadsexpr -o sch.net cue_devboard.kicad_sch
@@ -67,3 +68,4 @@ python3 export_fab.py            # fab/
 | `build_board.py` | Placement, plane fan-out, Freerouting, pours, stitching, DRC |
 | `export_fab.py` | Gerbers, drill, JLCPCB BOM and CPL, assembly and schematic PDFs |
 | `render.py` | PNG renders of each layer |
+| `make_3d.py` | Simple 3D models for the radio module and mic (`Cue.3dshapes`) |

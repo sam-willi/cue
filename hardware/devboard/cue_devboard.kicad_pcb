@@ -1267,6 +1267,8 @@
       (net 7 "GND") (thermal_bridge_angle 45) (tstamp 085cdedf-8ce6-44a1-9bae-0e46237c6c26))
     (pad "G6" smd rect (at 3.55 2.75 90) (size 0.4 0.4) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 7 "GND") (thermal_bridge_angle 45) (tstamp 0f67e751-de6f-4b03-bb86-b0617bc5d590))
+      (model "${KIPRJMOD}/Cue.3dshapes/Ezurio_BL54L15u_453-00223.wrl"
+      (offset (xyz 0 0 0)) (scale (xyz 1 1 1)) (rotate (xyz 0 0 0)))
   )
 
   (footprint "Capacitor_SMD:C_0603_1608Metric" (layer "F.Cu")
@@ -2758,6 +2760,8 @@
       (net 19 "PDM_CLK") (thermal_bridge_angle 45) (tstamp 903e5c3a-1eaa-4189-a743-2cd62e33b046))
     (pad "7" smd rect (at 1.363999 0.8375 90) (size 0.522 0.725) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 15 "MIC_1V8") (thermal_bridge_angle 45) (tstamp b333d200-e428-4fa9-857b-bcceccfa0b31))
+      (model "${KIPRJMOD}/Cue.3dshapes/TDK_T5838.wrl"
+      (offset (xyz 0 0 0)) (scale (xyz 1 1 1)) (rotate (xyz 0 0 0)))
   )
 
   (footprint "TestPoint:TestPoint_Pad_D1.0mm" (layer "B.Cu")

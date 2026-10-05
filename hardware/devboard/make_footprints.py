@@ -58,6 +58,10 @@ def rect(fp, layer, x1, y1, x2, y2, w=0.12):
 
 
 def save(fp, name):
+    if os.path.exists(os.path.join(HERE, "Cue.3dshapes", name + ".wrl")):  # from make_3d.py
+        m = pcbnew.FP_3DMODEL()
+        m.m_Filename = "${KIPRJMOD}/Cue.3dshapes/" + name + ".wrl"
+        fp.Models().push_back(m)
     os.makedirs(LIB, exist_ok=True)
     if not os.path.exists(os.path.join(LIB, "")):
         pcbnew.FootprintLibCreate(LIB)
