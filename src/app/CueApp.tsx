@@ -13,6 +13,7 @@ import { simulateWords } from "@/lib/cue/simulate";
 import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
+import { encodeWav } from "@/lib/audio/wav";
 
 const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
@@ -95,7 +96,17 @@ export default function CueApp() {
   const heardTimer = useRef<number | undefined>(undefined);
   /** Live transcript is a testing aid only; the product never needs the screen mid-conversation. */
   const [showTranscript, setShowTranscript] = useState(false);
-  const [open, setOpen] = useState({ review: false, practice: false, settings: false });
+  const [open, setOpen] = useState({ review: false, practice: false, training: false, settings: false });
+  /** Training recording: audio is kept only when the user starts one explicitly. */
+  const [recordingTraining, setRecordingTraining] = useState(false);
+  const recordAudioRef = useRef(false);
+  const audioChunksRef = useRef<Int16Array[]>([]);
+  const audioBlobRef = useRef<Blob | null>(null);
+  const [trainingAudioUrl, setTrainingAudioUrl] = useState<string | null>(null);
+  /** Ground-truth labels: word keys the user marked as fillers. */
+  const [fillerMarks, setFillerMarks] = useState<Set<number>>(new Set());
+  const [playhead, setPlayhead] = useState<number | null>(null);
+  const [trainingSaved, setTrainingSaved] = useState<string | null>(null);
   const toggle = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const [demoText, setDemoText] = useState(EXAMPLES[0]);
   const [demoWpm, setDemoWpm] = useState(150);
@@ -221,10 +232,21 @@ export default function CueApp() {
 
   useEffect(() => () => stopAll(), [stopAll]);
 
-  const startLive = async () => {
+  const startLive = async (opts: { record?: boolean } = {}) => {
     stopAll();
     reset();
+    recordAudioRef.current = !!opts.record;
+    setRecordingTraining(!!opts.record);
+    audioChunksRef.current = [];
+    audioBlobRef.current = null;
+    if (trainingAudioUrl) URL.revokeObjectURL(trainingAudioUrl);
+    setTrainingAudioUrl(null);
+    setFillerMarks(new Set());
+    setTrainingSaved(null);
     const t = new LiveTranscriber({
+      onAudio: (pcm) => {
+        if (recordAudioRef.current) audioChunksRef.current.push(pcm);
+      },
       onMessage: (msg) => {
         rawRef.current.push(msg);
         if (rawRef.current.length % 10 === 1) setRecorded(rawRef.current.length);
@@ -356,7 +378,55 @@ export default function CueApp() {
   const calibrating = status === "listening" && volume?.expectedDb == null;
   const endSession = () => {
     stopAll();
-    if (words.length) setOpen((o) => ({ ...o, review: true }));
+    if (recordAudioRef.current) {
+      recordAudioRef.current = false;
+      setRecordingTraining(false);
+      const blob = encodeWav(audioChunksRef.current);
+      audioBlobRef.current = blob;
+      setTrainingAudioUrl(URL.createObjectURL(blob));
+      // Start the labels from what Cue detected; the user adds and removes from there.
+      setFillerMarks(new Set(log.filter(isFiller).map((d) => wordKey(d.event.start))));
+      setOpen((o) => ({ ...o, training: true }));
+    } else if (words.length) setOpen((o) => ({ ...o, review: true }));
+  };
+
+  const toggleFillerMark = (start: number) =>
+    setFillerMarks((m) => {
+      const next = new Set(m);
+      const k = wordKey(start);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+
+  const saveTraining = async () => {
+    const file: SessionFile = {
+      version: 2,
+      savedAt: new Date().toISOString(),
+      config,
+      messages: rawRef.current,
+      corrections: [],
+      levels: levelsRef.current,
+      latenciesMs: Object.values(latency),
+      fillerLabels: words
+        .filter((w) => fillerMarks.has(wordKey(w.start)))
+        .map((w) => ({ start: w.start, word: w.norm })),
+    };
+    const form = new FormData();
+    form.append("session", JSON.stringify(file));
+    if (audioBlobRef.current) form.append("audio", audioBlobRef.current, "audio.wav");
+    setTrainingSaved("Saving…");
+    try {
+      const res = await fetch("/api/training", { method: "POST", body: form });
+      const body = await res.json();
+      setTrainingSaved(
+        res.ok
+          ? `Saved to ${body.folder}: ${body.labels} filler${body.labels === 1 ? "" : "s"} marked${body.audio ? ", with audio" : ""}.`
+          : (body.error ?? "Couldn’t save."),
+      );
+    } catch {
+      setTrainingSaved("Couldn’t reach the app to save. Is it running locally?");
+    }
   };
 
   // The hero is the cue itself: one word that says what Cue is telling you right now.
@@ -421,7 +491,7 @@ export default function CueApp() {
             className="hidden dark:block"
           />
         </h1>
-        <MicState status={status} />
+        <MicState status={status} recording={recordingTraining} />
       </header>
 
       {/* --- Live: the one thing on screen while you talk --- */}
@@ -445,7 +515,10 @@ export default function CueApp() {
               Stop practice
             </button>
           ) : (
-            <button onClick={startLive} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
+            <button
+              onClick={() => startLive()}
+              className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+            >
               Start listening
             </button>
           )}
@@ -845,6 +918,99 @@ export default function CueApp() {
         </Disclosure>
 
         <Disclosure
+          title="Training"
+          summary="Record yourself talking, then mark every filler to teach and test the detector"
+          open={open.training}
+          onToggle={() => toggle("training")}
+        >
+          <div className="space-y-8">
+            <div>
+              <p className="max-w-prose text-body text-muted">
+                Talk for a few minutes the way you normally do. Cue records the audio for this session only. Afterwards,
+                select every word that was a filler, then save it to the training set on this computer.
+              </p>
+              <p className="mt-2 max-w-prose text-body-sm text-muted">
+                Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub. Only
+                record people who have agreed to it.
+              </p>
+              <div className="mt-4">
+                {live && recordingTraining ? (
+                  <button
+                    onClick={endSession}
+                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                  >
+                    Stop and label
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => startLive({ record: true })}
+                    disabled={live || status === "demo"}
+                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
+                  >
+                    Start training recording
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
+              <div>
+                <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  Mark the fillers
+                </h3>
+                <p className="mt-1 text-body-sm text-muted">
+                  Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
+                  unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
+                </p>
+                {trainingAudioUrl && (
+                  <audio
+                    controls
+                    src={trainingAudioUrl}
+                    className="mt-4 w-full"
+                    onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
+                    onEnded={() => setPlayhead(null)}
+                  />
+                )}
+                <p className="mt-4 text-body leading-9">
+                  {words.map((w, k) => {
+                    const marked = fillerMarks.has(wordKey(w.start));
+                    const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
+                    return (
+                      <span key={k}>
+                        <button
+                          type="button"
+                          aria-pressed={marked}
+                          onClick={() => toggleFillerMark(w.start)}
+                          className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
+                        >
+                          {w.text}
+                        </button>{" "}
+                      </span>
+                    );
+                  })}
+                </p>
+                <div className="mt-6 flex flex-wrap items-center gap-4">
+                  <button
+                    onClick={saveTraining}
+                    className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                  >
+                    Save to training set
+                  </button>
+                  <span className="text-body-sm text-muted">
+                    {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
+                  </span>
+                </div>
+                {trainingSaved && (
+                  <p className="mt-3 text-body-sm" role="status">
+                    {trainingSaved}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        </Disclosure>
+
+        <Disclosure
           title="Settings"
           summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
           open={open.settings}
@@ -1077,12 +1243,12 @@ function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
 }
 
 /** Always-visible microphone state (DESIGN.md §12: recording state must be unmistakable). */
-function MicState({ status }: { status: Status }) {
+function MicState({ status, recording }: { status: Status; recording: boolean }) {
   const on = status === "listening";
   const text = {
     idle: "Microphone off",
     connecting: "Connecting…",
-    listening: "Microphone on",
+    listening: recording ? "Recording for training" : "Microphone on",
     demo: "Microphone off",
     error: "Microphone off",
   }[status];

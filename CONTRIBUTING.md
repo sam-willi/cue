@@ -21,6 +21,13 @@
 3. Adjust the rule in `src/lib/cue/likeClassifier.ts` (or a word list in `lexicon.ts`). Keep the rule's `reason` string accurate.
 4. Make sure all existing cases still pass. A fix that causes a false buzz elsewhere isn't a fix.
 
+### Training recordings (best ground truth)
+
+1. In the app, open **Training** → **Start training recording**, and talk naturally for a few minutes. The mic indicator says "Recording for training".
+2. Select **Stop and label**. Play the recording back and select every word that was a filler (Cue's detections start selected; unselect any it got wrong).
+3. **Save to training set** writes `training/<timestamp>/audio.wav` and `session.json` on your machine (local development only; `training/` is git-ignored and must never be committed or shared without consent).
+4. `npm run eval` replays every recording through the current rules and reports, per recording and in total, fillers **caught**, **missed** and **wrong**, with precision and recall.
+
 ### Checking against real sessions
 
 1. During a live session, click words in the transcript to mark wrong buzzes and misses, then **Download session**.

@@ -25,6 +25,56 @@ export interface SessionFile {
   bone?: [number, boolean][];
   /** Measured cue delays in this session, ms after the filler ended. */
   latenciesMs?: number[];
+  /**
+   * Ground truth from a training recording: every word the user marked as a filler
+   * (anything not listed is not a filler). Present only for labeled training sessions.
+   */
+  fillerLabels?: { start: number; word: string }[];
+}
+
+export interface LabelScore {
+  /** Fillers Cue detected that the user also marked. */
+  caught: number;
+  /** Marked fillers Cue didn't detect. */
+  missed: { start: number; word: string }[];
+  /** Detections the user didn't mark as fillers. */
+  wrong: { start: number; word: string }[];
+  /** caught / (caught + wrong); 1 when Cue detected nothing. */
+  precision: number;
+  /** caught / (caught + missed); 1 when nothing was marked. */
+  recall: number;
+}
+
+/**
+ * Score a labeled training session: replay it through the current detector and compare
+ * its filler detections, word by word, with the words the user marked as fillers.
+ */
+export function scoreLabels(file: SessionFile, config?: Partial<CueConfig>): LabelScore | null {
+  if (!file.fillerLabels) return null;
+  const session = new CueSession({ ...file.config, muted: false, ...config });
+  for (const [t, db] of file.levels ?? []) session.ingestLevel(t, db);
+  for (const [t, active] of file.bone ?? []) session.ingestBone(t, active);
+  for (const msg of file.messages) feedMessage(session, msg);
+  session.endUtterance();
+  const detected = session.history.filter(wouldCue).map((d) => ({ start: d.event.start, word: d.event.context }));
+  const marked = file.fillerLabels;
+  const near = (a: { start: number }, list: { start: number }[]) =>
+    list.some((b) => Math.abs(a.start - b.start) < SAME_WORD);
+  const caught = marked.filter((m) => near(m, detected)).length;
+  const missed = marked.filter((m) => !near(m, detected));
+  const wrong = detected
+    .filter((d) => !near(d, marked))
+    .map((d) => ({
+      start: d.start,
+      word: session.words.find((w) => Math.abs(w.start - d.start) < SAME_WORD)?.norm ?? d.word,
+    }));
+  return {
+    caught,
+    missed,
+    wrong,
+    precision: caught + wrong.length ? caught / (caught + wrong.length) : 1,
+    recall: caught + missed.length ? caught / (caught + missed.length) : 1,
+  };
 }
 
 const SAME_WORD = 0.25;
