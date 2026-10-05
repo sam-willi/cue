@@ -50,10 +50,11 @@ def part(ref, value, mpn, footprint, pins, status="FIT", note="", supply=(), i2c
 
 # U1 - Bluetooth: Ezurio BL54L15u module (nRF54L15 + 32 MHz crystal + chip antenna, certified)
 part("U1", "BL54L15u", "Ezurio 453-00223 (chip antenna)", "Ezurio_BL54L15u_LGA45_7.9x6.3mm",
-     ["VDD", "GND", "P1.04", "P1.05", "P1.06", "P1.07", "P1.08", "P1.09",
-      "P1.10", "P1.11", "P1.12", "P1.13", "P2.00", "P2.01", "P2.02", "SWDIO", "SWDCLK", "nRESET"],
+     ["VDD", "GND", "P1.03", "P1.04", "P1.05", "P1.06", "P1.07", "P1.08", "P1.09",
+      "P1.10", "P1.11", "P1.12", "P1.13", "P1.14", "P2.00", "P2.01", "P2.02", "SWDIO", "SWDCLK", "nRESET"],
      note="7.9 x 6.3 x 1.75 mm, FCC/CE/ISED/MIC/RCM. Pad numbers TBC from module datasheet. "
-          "Clock signals (SCL, PDM CLK, I2S BCLK/WCLK) must land on P1 clock pins - confirm in Nordic pin table. "
+          "Clock pins P1.03/P1.04/P1.08/P1.11/P1.12 (Nordic pin table). Ezurio Note 7: P1.09-P1.12 below 1 MHz behind "
+          ">=330 R. Same pin map as the dev board (hardware/devboard). "
           "Interrupt inputs on P0/P1 only (P2 cannot raise pin interrupts).",
      supply=[("VDD", 1.7, 3.5)])
 
@@ -63,8 +64,9 @@ part("U2", "nPM1300", "Nordic NPM1300-QEAA-R", "QFN-32_5x5mm_P0.5mm",
       "VDDIO", "SDA", "SCL", "GPIO0", "GPIO1", "GPIO2", "GPIO3", "GPIO4", "SHPHLD", "NTC",
       "VSET1", "VSET2", "CC1", "CC2", "VBUSOUT", "LED0", "LED1", "LED2",
       "LSIN1", "LSOUT1", "LSIN2", "LSOUT2"],
-     note="I2C 0x6B. Pad numbers TBC. PVDD (buck input) tied to VSYS - confirm against reference circuit (TBC). "
-          "CC1/CC2/NTC/LSIN-LSOUT handling per datasheet (TBC).",
+     note="I2C 0x6B. Per nPM1300 PS v1.2.1 Config 1: PVDD tied to VSYS, 3x10uF on VSYS, 100nF on VDDIO, "
+          "1uF on VBUSOUT. CC1/CC2 unused (may float, PS 6.1.3). LOADSW2 unused: LSIN2/LSOUT2 to GND. "
+          "NTC: 10k B3380 thermistor RT1 (PS Table 11; never leave NTC floating).",
      supply=[("VBUS", 4.0, 5.5)], i2c=0x6B)
 
 # U3 - Motion + bone conduction: ST LSM6DSV16BX, LGA-14 (pin numbers verified, AN5845)
@@ -112,9 +114,13 @@ def cap(ref, val, fp="C_0402", status="FIT", note=""):
 
 cap("C1", "1uF", note="VBUS")
 cap("C2", "10uF", fp="C_0603", note="VBUS")
-cap("C3", "10uF", fp="C_0603", note="VBAT")
+cap("C3", "2.2uF", fp="C_0603", note="VBAT (nPM1300 ref C6)")
 cap("C4", "1uF", note="VSYS")
-cap("C5", "2.2uF", note="VSYS")
+cap("C5", "10uF", fp="C_0603", note="VSYS / PVDD (nPM1300 ref C2)")
+cap("C17", "10uF", fp="C_0603", note="VSYS (nPM1300 ref C3)")
+cap("C18", "10uF", fp="C_0603", note="VSYS (nPM1300 ref C4)")
+cap("C19", "100nF", fp="C_0201", note="nPM1300 VDDIO (ref C13)")
+cap("C20", "1uF", note="nPM1300 VBUSOUT (ref C5)")
 cap("C6", "10uF", fp="C_0603", note="1V8 out")
 cap("C7", "10uF", fp="C_0603", note="3V0 out")
 cap("C8", "100nF", fp="C_0201", note="U3 VDD (typ.)")
@@ -132,8 +138,12 @@ def res(ref, val, status="FIT", note=""):
 
 res("R1", "4.7k", note="I2C SDA pull-up to 1V8")
 res("R2", "4.7k", note="I2C SCL pull-up to 1V8")
-res("R3", "TBC", note="nPM1300 VSET1 - pick value for 1.8 V from datasheet table")
-res("R4", "TBC", note="nPM1300 VSET2 - pick value for 3.0 V from datasheet table")
+res("R3", "47k", note="nPM1300 VSET1 -> BUCK1 1.8 V at start-up (PS Table 17)")
+res("R4", "150k", note="nPM1300 VSET2 -> BUCK2 3.0 V at start-up (PS Table 18)")
+res("R7", "330R", note="Ezurio Note 7 series resistor, U1 P1.11 TDM_WCLK")
+res("R8", "330R", note="Ezurio Note 7 series resistor, U1 P1.10 PMIC_INT")
+part("RT1", "10k NTC", "Murata NCP03XH103F05RL (0201, B3380)", "R_0201", ["1", "2"],
+     note="Battery thermistor against the cell (nPM1300 PS Table 11).")
 res("R5", "470R", status="DNP", note="U7 CX series (ESD), per IQS227 datasheet")
 res("R6", "TBC", note="U3 QVAR1 series to shell electrode (TBC)")
 
@@ -162,10 +172,12 @@ def nc(ref, *pins):
 net("5V_IN", ("J1", "1:5V"), ("D1", "1:K"), ("U2", "VBUS"), ("C1", "1"), ("C2", "1"))
 net("VBAT", ("BT1", "+"), ("U2", "VBAT"), ("C3", "1"),
     ("U5", "VDD"), ("U5", "VDD_NC"), ("C11", "1"))  # DRV2605L max 5.2 V: VSYS can follow VBUS while charging
-net("VSYS", ("U2", "VSYS"), ("U2", "PVDD"), ("C4", "1"), ("C5", "1"))
+net("VSYS", ("U2", "VSYS"), ("U2", "PVDD"), ("C4", "1"), ("C5", "1"), ("C17", "1"), ("C18", "1"))
+net("VBUSOUT", ("U2", "VBUSOUT"), ("C20", "1"))
+net("NTC", ("U2", "NTC"), ("RT1", "1"))
 net("SW1", ("U2", "SW1"), ("L1", "1"))
 net("SW2", ("U2", "SW2"), ("L2", "1"))
-net("1V8", ("L1", "2"), ("U2", "VOUT1"), ("C6", "1"), ("U2", "VDDIO"),
+net("1V8", ("L1", "2"), ("U2", "VOUT1"), ("C6", "1"), ("U2", "VDDIO"), ("C19", "1"),
     ("U1", "VDD"), ("C16", "1"),
     ("U3", "8:VDD"), ("U3", "5:VDD_IO"), ("U3", "12:CS"), ("C8", "1"), ("C9", "1"),
     ("U4", "7:VDD"), ("C10", "1"),
@@ -178,29 +190,32 @@ gnd = [("J1", "2:GND"), ("D1", "2:A"), ("BT1", "-"), ("U1", "GND"),
        ("U3", "7:GND"), ("U3", "1:SDO_SA0"), ("U4", "3:GND"), ("U4", "2:SELECT"),
        ("U5", "GND"), ("U6", "GND"), ("U7", "2:GND"), ("TP4", "1")]
 gnd += [(c, "2") for c in ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10",
-                           "C11", "C12", "C13", "C14", "C15", "C16"]]
+                           "C11", "C12", "C13", "C14", "C15", "C16", "C17", "C18", "C19", "C20"]]
+gnd += [("RT1", "2"), ("U2", "LSIN2"), ("U2", "LSOUT2")]
 net("GND", *gnd)
 net("VSET1", ("U2", "VSET1"), ("R3", "1"))
 net("VSET2", ("U2", "VSET2"), ("R4", "1"))
 N["GND"] += [("R3", "2"), ("R4", "2")]
 
 # I2C bus (1.8 V)
-net("I2C_SDA", ("U1", "P1.10"), ("U2", "SDA"), ("U3", "14:SDA"), ("U5", "SDA"), ("R1", "1"))
-net("I2C_SCL", ("U1", "P1.11"), ("U2", "SCL"), ("U3", "13:SCL"), ("U5", "SCL"), ("R2", "1"))
+net("I2C_SDA", ("U1", "P1.13"), ("U2", "SDA"), ("U3", "14:SDA"), ("U5", "SDA"), ("R1", "1"))
+net("I2C_SCL", ("U1", "P1.04"), ("U2", "SCL"), ("U3", "13:SCL"), ("U5", "SCL"), ("R2", "1"))
 
 # PDM bus: T5838 right channel (SELECT low), V2S200D left channel (SEL high)
-net("PDM_CLK", ("U1", "P1.12"), ("U4", "6:CLK"), ("U6", "CLK"))
-net("PDM_DIN", ("U1", "P1.13"), ("U4", "1:DATA"), ("U6", "DATA"))
+net("PDM_CLK", ("U1", "P1.03"), ("U4", "6:CLK"), ("U6", "CLK"))
+net("PDM_DIN", ("U1", "P1.14"), ("U4", "1:DATA"), ("U6", "DATA"))
 
 # TDM / I2S from LSM6DSV16BX bone-conduction channel
-net("TDM_BCLK", ("U1", "P1.04"), ("U3", "3:BCLK"))
-net("TDM_WCLK", ("U1", "P1.05"), ("U3", "11:WCLK"))
+net("TDM_BCLK", ("U1", "P1.08"), ("U3", "3:BCLK"))
+net("TDM_WCLK", ("R7", "2"), ("U3", "11:WCLK"))
+net("U1_TDM_WCLK", ("U1", "P1.11"), ("R7", "1"))
 net("TDM_DIN", ("U1", "P1.06"), ("U3", "2:TDMout"))
 
 # Interrupts (P1 - interrupt capable)
 net("IMU_INT1", ("U3", "4:INT1"), ("U1", "P1.07"))
-net("MIC_WAKE", ("U4", "4:WAKE"), ("U1", "P1.08"))
-net("PMIC_INT", ("U2", "GPIO0"), ("U1", "P1.09"))
+net("MIC_WAKE", ("U4", "4:WAKE"), ("U1", "P1.05"))
+net("PMIC_INT", ("U2", "GPIO0"), ("R8", "2"))
+net("U1_PMIC_INT", ("U1", "P1.10"), ("R8", "1"))
 
 # Control outputs (P2 is fine for outputs)
 net("HAPTIC_EN", ("U1", "P2.00"), ("U5", "EN"))
@@ -226,9 +241,9 @@ net("SWDCLK", ("U1", "SWDCLK"), ("TP2", "1"))
 net("SHPHLD", ("U2", "SHPHLD"), ("TP5", "1"))
 
 # Deliberately unconnected
-nc("U1", "nRESET")
-nc("U2", "GPIO1", "GPIO2", "GPIO3", "GPIO4", "LED0", "LED1", "LED2", "VBUSOUT",
-   "CC1", "CC2", "NTC", "LSIN1", "LSOUT1", "LSIN2", "LSOUT2")
+nc("U1", "nRESET", "P1.09", "P1.12")
+nc("U2", "GPIO1", "GPIO2", "GPIO3", "GPIO4", "LED0", "LED1", "LED2",
+   "CC1", "CC2", "LSIN1", "LSOUT1")
 nc("U3", "9:QVAR2", "10:INT2")
 
 # --------------------------------------------------------------------------

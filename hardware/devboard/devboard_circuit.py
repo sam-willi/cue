@@ -7,15 +7,15 @@ header, expansion header, buttons and test points.
 
 Differences from the rev0 cuff netlist:
   - USB-C (J1) replaces the case pogo pads; nPM1300 CC1/CC2 detect the charger.
-  - JST-SH battery (J2) and LRA (J3) connectors replace soldered cell and motor.
+  - JST-PH battery (J2) and JST-SH LRA (J3) connectors replace soldered cell and motor.
   - Knowles V2S200D and Azoteq IQS227 are not on this board; their signals
     (PDM, I2C, 3V0) come out on the expansion header (J5) for eval boards.
   - The T5838 mic is powered through nPM1300 load switch 1 (MIC_1V8). Firmware sets
     BUCK1 to 1.8 V before closing the switch, so the 1.98 V-max mic is protected
     even if the BUCK1 start-up voltage were wrong.
-  - nRF54L15 pins re-chosen on the BL54L15u pad map: clock signals only on P1.08,
-    P1.11, P1.12, P1.13 (clock pins used by Nordic's own nRF54L boards), interrupts
-    on P0/P1 only.
+  - nRF54L15 pins re-chosen on the BL54L15u pad map: clock signals only on clock pins
+    (P1.03, P1.04, P1.08, P1.11, P1.12), interrupts on P0/P1 only, and Ezurio Note 7
+    respected (P1.09-P1.12 below 1 MHz behind 330 R).
 
 Every pin is keyed by its footprint pad number.
 """
@@ -74,12 +74,13 @@ part("U2", FP + "Package_DFN_QFN.pretty", "QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm
      "Nordic NPM1300-QEAA-R", {
          "1": "1V8", "2": "GND", "3": "SW1", "4": "VSYS", "5": "SW2", "6": "GND",
          "7": "PMIC_INT", "12": "1V8", "13": "I2C_SDA", "14": "I2C_SCL", "15": "SHPHLD",
-         "16": "VSET2", "17": "VSET1", "19": "VBAT", "20": "VSYS", "21": "VBUS", "22": "VBUSOUT",
-         "23": "CC1", "24": "CC2", "28": "1V8", "29": "MIC_1V8", "32": "3V0", "33": "GND"},
+         "16": "VSET2", "17": "VSET1", "18": "NTC", "19": "VBAT", "20": "VSYS", "21": "VBUS", "22": "VBUSOUT",
+         "23": "CC1", "24": "CC2", "28": "1V8", "29": "MIC_1V8", "30": "GND", "31": "GND", "32": "3V0", "33": "GND"},
      supply=[("21", 4.0, 5.5)], i2c=0x6B,
-     nc=["8", "9", "10", "11", "18", "25", "26", "27", "30", "31"],
+     nc=["8", "9", "10", "11", "25", "26", "27"],
      note="I2C 0x6B. BUCK1=1V8 (VSET1), BUCK2=3V0 (VSET2), LS1 gates MIC_1V8. "
-          "NTC unused (disable in firmware). EP size: KiCad 3.45 mm vs 3.5 mm nominal on sister nPM1304 - confirm.")
+          "Matches nPM1300 PS v1.2.1 Configuration 1 (Table 38/39). LOADSW2 unused: LSIN2/LSOUT2 to GND "
+          "per Fig. 57/58. NTC: 10k B3380 thermistor RT1 (Table 11); select it in ADCNTCRSEL. EP size: KiCad 3.45 mm vs 3.5 mm nominal on sister nPM1304 - confirm.")
 
 # --- U3 IMU + bone conduction: ST LSM6DSV16BX LGA-14 (pins from ST AN5845)
 part("U3", FP + "Package_LGA.pretty", "LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y", "LSM6DSV16BX",
@@ -136,8 +137,12 @@ def cap(ref, val, net, pkg=C0402, note=""):
 
 
 cap("C1", "1uF", "VBUS"); cap("C2", "10uF", "VBUS", C0603)
-cap("C3", "10uF", "VBAT", C0603)
-cap("C4", "1uF", "VSYS"); cap("C5", "2.2uF", "VSYS")
+cap("C3", "2.2uF", "VBAT", C0603, note="nPM1300 ref C6")
+cap("C4", "1uF", "VSYS")
+cap("C5", "10uF", "VSYS", C0603, note="PVDD, nPM1300 ref C2 (PVSS1 side)")
+cap("C20", "10uF", "VSYS", C0603, note="nPM1300 ref C3 (PVSS2 side)")
+cap("C21", "10uF", "VSYS", C0603, note="nPM1300 ref C4")
+cap("C22", "100nF", "1V8", note="nPM1300 VDDIO pin 12, ref C13")
 cap("C6", "10uF", "1V8", C0603); cap("C18", "10uF", "1V8", C0603)
 cap("C7", "10uF", "3V0", C0603)
 cap("C8", "100nF", "1V8", note="U3 VDD"); cap("C9", "100nF", "1V8", note="U3 VDD_IO")
@@ -155,6 +160,8 @@ def res(ref, val, a, b, note=""):
 res("R1", "4.7k", "I2C_SDA", "1V8"); res("R2", "4.7k", "I2C_SCL", "1V8")
 res("R3", "47k", "VSET1", "GND", note="VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table")
 res("R4", "150k", "VSET2", "GND", note="VSET2 per Nordic reference circuit (BUCK2 3.0 V) - confirm in PS table")
+part("RT1", R0402[0], R0402[1], "10k NTC", "Murata NCP15XH103F03RC", {"1": "NTC", "2": "GND"},
+     note="10k 1% B25/50 3380 K (nPM1300 PS Table 11). Place next to J2 so it tracks the cell temperature.")
 res("R6", "0R", "QVAR1", "TOUCH_E", note="Qvar series element, value TBC with ST guidance")
 note7 = "Ezurio Note 7: >=330 R series on P1.09-P1.12; place at U1 pad"
 res("R7", "330R", "U1_TDM_WCLK", "TDM_WCLK", note=note7)
@@ -247,3 +254,37 @@ if __name__ == "__main__":
     for p in pr:
         print("  !!", p)
     raise SystemExit(1 if pr else 0)
+
+
+# --------------------------------------------------------------------------- sourcing (JLCPCB assembly)
+# ref -> (manufacturer part number, LCSC number or "" if JLCPCB has none, note).
+# C-numbers checked on lcsc.com / jlcpcb.com on 2026-10-05.
+SOURCING = {}
+for refs, mpn, lcsc, note in [
+    ("C1 C4 C19 C11 C12 C17", "Samsung CL05A105KA5NQNC (1uF 25V X5R 0402)", "C52923", "Basic"),
+    ("C16", "Samsung CL05A475MP5NRNC (4.7uF 10V X5R 0402)", "C23733", "Basic"),
+    ("C2 C5 C20 C21 C6 C18 C7", "Samsung CL10A106MA8NRNC (10uF 25V X5R 0603)", "C96446", "Basic"),
+    ("C22 C8 C9 C10", "Samsung CL05B104KO5NNNC (100nF 16V X7R 0402)", "C1525", "Basic"),
+    ("C3", "Samsung CL10A225KO8NNNC (2.2uF 16V X5R 0603)", "C23630", "Basic"),
+    ("D1", "onsemi ESD5Z5.0T1G", "C82044", "Extended"),
+    ("J1", "GCT USB4125-GF-A", "C3151650", "Extended; low stock"),
+    ("J2", "JST S2B-PH-SM4-TB(LF)(SN)", "C295747", "Extended"),
+    ("J3", "JST SM02B-SRSS-TB(LF)(SN)", "C160402", "Extended"),
+    ("J4", "Samtec FTSH-105-01-L-DV-K-P-TR", "C2932107", "Extended; check land pattern"),
+    ("J5", "XFCN PZ254V-12-10P", "C492422", "Extended; through-hole"),
+    ("L1 L2", "Murata DFE201210U-2R2M=P2", "C2049745", "Extended"),
+    ("R1 R2", "UniOhm 0402WGF4701TCE", "C25900", "Basic"),
+    ("R3", "UniOhm 0402WGF4702TCE", "C25792", "Basic"),
+    ("R4", "UniOhm 0402WGF1503TCE", "C25755", "Extended"),
+    ("R6", "UniOhm 0402WGF0000TCE", "C17168", "Basic"),
+    ("R7 R8 R9", "UniOhm 0402WGF3300TCE", "C25104", "Basic"),
+    ("RT1", "Murata NCP15XH103F03RC", "C77131", "Extended"),
+    ("SW1 SW2", "Omron B3U-1000P", "C231329", "Extended"),
+    ("U1", "Ezurio 453-00223", "", "Not on LCSC: JLCPCB global sourcing or consign"),
+    ("U2", "Nordic NPM1300-QEAA-R", "C7466043", "Listed, out of stock: pre-order / global sourcing"),
+    ("U3", "ST LSM6DSV16BXTR", "C5381401", "Listed, 0 stock: pre-order / global sourcing"),
+    ("U4", "TDK MMICT5838-00-012", "C7230692", "Extended"),
+    ("U5", "TI DRV2605LDGSR", "C527464", "Extended"),
+]:
+    for r in refs.split():
+        SOURCING[r] = (mpn, lcsc, note)

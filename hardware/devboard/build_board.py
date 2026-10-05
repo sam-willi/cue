@@ -62,6 +62,8 @@ ANCHOR = {   # placed in this order: buck loop, rail caps, then the rest
     "C8": ("U3", "8"), "C9": ("U3", "5"), "R6": ("U3", "6"),
     "C10": ("U4", "7"),
     "C11": ("U5", "10"), "C12": ("U5", "1"),
+    "C20": ("U2", "20"), "C21": ("U2", "4"), "C22": ("U2", "12"), "RT1": ("J2", "1"),
+    "R7": ("U1", "23"), "R8": ("U1", "21"), "R9": ("U1", "19"),  # Ezurio Note 7: at the module pads
 }
 UNPLACED = []
 # plain silkscreen labels (text, x, y) - placed in clear areas, checked by DRC
@@ -213,7 +215,8 @@ def build(place_only=False):
         if not place_near(ref, pcbnew.ToMM(pos.x), pcbnew.ToMM(pos.y), "F", top_boxes):
             UNPLACED.append(ref)
     # test points on the bottom, spread along the lower half
-    tp_spots = [(2.0, 11.0), (6.0, 17.0), (14.0, 18.5), (21.0, 9.0), (21.5, 6.0), (26.5, 18.5), (2.0, 4.0), (14.5, 21.5)]
+    tp_spots = [(2.0, 11.0), (6.0, 17.0), (14.0, 18.5), (21.0, 9.0), (21.5, 6.0), (26.5, 18.5), (2.0, 4.0), (14.5, 21.5),
+                (30.0, 20.0), (30.0, 16.5)]
     for i, ref in enumerate(sorted(r for r in C.PARTS if r.startswith("TP"))):
         x, y = tp_spots[i]
         if not place_near(ref, x, y, "B", bot_boxes, avoid_keepout=True):
