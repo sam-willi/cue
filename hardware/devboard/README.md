@@ -29,14 +29,18 @@ Not stocked at LCSC (checked 2026-10-05), so use JLCPCB **global sourcing** or b
 | --- | --- | --- |
 | U1 | Ezurio BL54L15 **453-00044C** (radio module, MHF4) | JLCPCB global sourcing: Chip1stop, 231 in stock, ~$15 (2026-10-05) |
 | U2 | Nordic nPM1300-QEAA-R (power) | LCSC C7466043 (check stock) |
-| SW1, SW2 | Omron B3U-1000P buttons | Out of stock at LCSC: leave unassembled and hand-solder |
+| SW1, SW2 | Omron B3U-1000P buttons | Out of stock at LCSC: left out of `bom.csv` / `cpl.csv`; hand-solder |
 
 Also buy one **2.4 GHz antenna with an MHF4 plug** per board and click it onto the module (not assembled by JLCPCB).
 Ezurio's approved list: mFlexPIFA **EFA2400A3S-10MH4L** (stick-on flex, recommended), FlexPIFA 001-0022, NanoBlue
 EBL2400A1-10MH4L. Don't power the radio on without an antenna.
 
-Check U1's rotation in JLCPCB's placement preview: the module's MHF4 connector must sit at the board's top edge, next
-to pad 1 (silk dot), and the pad rows must land on the pads.
+In JLCPCB's placement preview, check the rotation of U1, U4, J1, J2 and J3 (`fab/placement_check.png` shows the
+right answer): U1's MHF4 connector in the module's top-right corner at the board's top edge, next to the pin-1 dot;
+U4's port over the sound hole. Choose "edge rails added by JLCPCB" (connectors and the module sit at the board edges).
+
+**Battery polarity:** J2 pin 1 is + (silk "+"). JST-PH battery leads are not standardised, so meter the cell's plug
+before connecting: red (+) must land on the "+" pin.
 
 
 Everything else has an LCSC number in `fab/bom.csv` (from `devboard_circuit.SOURCING`). The LSM6DSV16BX is in stock
@@ -70,7 +74,20 @@ LCSC-stocked alternatives, if you want everything sourced through JLCPCB (each n
   PVDD cap C5 1.5 mm from pin 4, output caps at the inductor outputs, 3 × 3 vias in the exposed pad. Other power
   traces are widened to 0.2–0.4 mm where clearance allows; keep the charge current at or below ~200 mA.
 
-## Review (2026-10-05)
+## Review (2026-10-05, second pass after the module change)
+
+An independent review of the re-routed board found one must-check (battery polarity, now marked "+" / "-") and these,
+all fixed: motor (LRA) lines ran beside PDM_CLK under the mic (J3 moved; now 2.1 mm away and 5 mm from the sound hole);
+U2 exposed-pad vias sat inside the paste openings (now 4 vias in the gaps between them); vias touching the RT1, C6 and
+C8 pads (moved off: `via_off_pads.py`); silkscreen below JLCPCB's 1.0 mm / 0.15 mm minimum (all text now 1.0 mm, test
+points labelled on the bottom, button labels on top); L1 output now joins C6 directly on the top layer. U3 pin 7 (GND)
+was isolated on one routing pass; it is now tied to C9's ground. Left as-is (fine at these currents): some
+VSYS / VBAT / VBUS segments are 0.127 mm where the router had no room.
+
+Not checked: Ezurio's own CAD footprint (behind a free sign-in on ezurio.com); ours is from the datasheet drawing and
+was checked against it by two reviewers.
+
+## Review (2026-10-05, first pass)
 
 Every footprint and pin map was checked against the manufacturer's drawing (nPM1300, T5838 from the PDFs;
 LSM6DSV16BX, DRV2605L, USB4125, FTSH-105, JST PH/SH, DFE201210U, B3U-1000P, ESD5Z, NCP15 from the web): no errors.
@@ -102,6 +119,7 @@ python3 make_schematic.py        # cue_devboard.kicad_sch
 kicad-cli sch export netlist --format kicadsexpr -o sch.net cue_devboard.kicad_sch
 python3 check_schematic.py sch.net   # schematic == circuit, pad for pad
 python3 build_board.py           # place, autoroute, pour, DRC (~10 min)
+python3 via_off_pads.py          # move any via that touches an SMD pad
 python3 export_fab.py            # fab/
 ```
 
@@ -112,5 +130,11 @@ python3 export_fab.py            # fab/
 | `make_schematic.py` / `check_schematic.py` | Schematic generator and netlist cross-check |
 | `build_board.py` | Placement, plane fan-out, Freerouting, pours, stitching, DRC |
 | `export_fab.py` | Gerbers, drill, JLCPCB BOM and CPL, assembly and schematic PDFs |
+| `via_off_pads.py` | Nudges vias off SMD pads after routing |
+
+The committed `cue_devboard.kicad_pcb` is the source of truth for fabrication. After the scripted build it was finished
+by hand: C8 moved 0.4 mm right and QVAR1 re-routed so U3 pin 7 reaches ground, the via between R4 and RT1 removed (R4's
+ground goes through RT1's pad to its via), and the SHIP label set vertically beside SW2. A fresh `build_board.py` run
+will not reproduce those edits exactly.
 | `render.py` | PNG renders of each layer |
 | `make_3d.py` | Simple 3D models for the radio modules, mic and two connectors (`Cue.3dshapes`) |

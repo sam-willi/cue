@@ -110,7 +110,8 @@ part("J1", FP + "Connector_USB.pretty", "USB_C_Receptacle_GCT_USB4125-xx-x_6P_To
      note="Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.")
 part("J2", CUE, "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", "BATT",
      "JST S2B-PH-SM4-TB", {"1": "VBAT", "2": "GND"}, nc=["MP"],
-     note="JST-PH to fit the Adafruit #1570 100 mAh LiPo (built-in protection). Check polarity: pin 1 = +.")
+     note="JST-PH for the Adafruit #1570 LiPo. Pin 1 = + (silk '+'). JST-PH battery leads are not standardised: "
+          "meter the cell's plug before connecting; red must land on '+'.")
 part("J3", FP + "Connector_JST.pretty", "JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal", "LRA",
      "JST SM02B-SRSS-TB", {"1": "LRA_P", "2": "LRA_N"}, nc=["MP"], note="Coin LRA on a pigtail (Vybronics VG0832013D).")
 part("J4", FP + "Connector_PinHeader_1.27mm.pretty", "PinHeader_2x05_P1.27mm_Vertical_SMD", "SWD",
@@ -171,9 +172,9 @@ res("R8", "330R", "U1_PMIC_INT", "PMIC_INT", note=note7)
 part("E1", CUE, "Touch_Pad_4x3mm", "TOUCH", "Copper pad (shell contact)", {"1": "TOUCH_E"},
      note="Qvar touch electrode; solder a wire to the shell or touch directly.")
 part("SW1", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "USER", "Omron B3U-1000P",
-     {"1": "BTN_USER", "2": "GND"})
+     {"1": "BTN_USER", "2": "GND"}, status="DNP", note="Hand-solder: out of stock at LCSC.")
 part("SW2", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "SHIP/WAKE", "Omron B3U-1000P",
-     {"1": "SHPHLD", "2": "GND"}, note="Hold to leave ship mode / power on.")
+     {"1": "SHPHLD", "2": "GND"}, status="DNP", note="Hold to leave ship mode / power on. Hand-solder: out of stock at LCSC.")
 
 for i, n in enumerate(["VBUS", "VBAT", "VSYS", "1V8", "3V0", "MIC_1V8", "GND", "PMIC_INT", "I2C_SDA", "I2C_SCL"], start=1):
     part(f"TP{i}", FP + "TestPoint.pretty", "TestPoint_Pad_D1.0mm", f"TP {n}", "Test pad", {"1": n})

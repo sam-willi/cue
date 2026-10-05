@@ -49,16 +49,16 @@ def main():
         w.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
         for r in csv.DictReader(f):
             ref = r["Ref"]
-            if ref.startswith(("TP", "FID", "E")):  # pads only, nothing to place
-                continue
+            if ref.startswith(("TP", "FID", "E")) or C.PARTS.get(ref, {}).get("status") == "DNP":
+                continue  # pads only / hand-soldered: nothing for JLCPCB to place
             w.writerow([ref, r["PosX"] + "mm", r["PosY"] + "mm", "Top" if r["Side"] == "top" else "Bottom", r["Rot"]])
     os.remove(pos)
 
     # BOM grouped by (value, mpn, footprint)
     groups = defaultdict(list)
     for ref, p in C.PARTS.items():
-        if ref.startswith(("TP", "FID", "E")):
-            continue  # pads only, nothing to buy
+        if ref.startswith(("TP", "FID", "E")) or p["status"] == "DNP":
+            continue  # pads only / hand-soldered (not assembled by JLCPCB)
         groups[(p["value"], p["mpn"], p["fp"], p["status"])].append(ref)
 
     def key(refs):

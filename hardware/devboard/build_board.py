@@ -39,7 +39,7 @@ def V(x, y):
 U2_X, U2_Y = 11.0, 18.6
 _U2_BLOCK = {
     "U2": (0, 0, 180), "C5": (4.75, 0.25, 0), "L1": (5.35, 2.05, 0), "L2": (5.35, -1.55, 0),
-    "C6": (7.9, 3.15, 90), "C7": (7.9, -2.65, 90), "C17": (-4.2, 0.9, 90),
+    "C6": (7.9, 3.15, 270), "C7": (7.9, -2.65, 90), "C17": (-4.2, 0.9, 90),
     "R4": (-3.7, -4.8, 0), "R3": (-3.7, -3.8, 0), "C22": (3.7, -4.1, 90),
 }
 # ------------------------------------------------------------------ fixed placement: ref -> (x, y, rot, side)
@@ -49,13 +49,13 @@ FIXED = {
     "J1": (3.4, 7.8, -90, "F"),    # USB-C, mouth to the left edge
     "SW2": (3.6, 17.6, 0, "F"),    # ship/wake, between USB-C and the battery connector
     "J2": (4.6, H - 4.9, 0, "F"),  # battery (JST-PH), mouth to bottom edge
-    "SW1": (31.0, 22.0, 0, "F"),   # user button
+    "SW1": (28.0, 24.2, 0, "F"),   # user button
     "U5": (30.0, 12.0, 90, "F"),   # DRV2605L beside the HAPTIC pads (8-10, right side)
-    "J3": (23.0, H - 3.2, 0, "F"),  # LRA, mouth to bottom edge
+    "J3": (35.0, H - 3.2, 0, "F"),  # LRA, mouth to bottom edge; right of the mic so the motor lines stay clear of PDM
     "J5": (37.4, 12.6, 0, "F"),    # expansion 2x5 2.54 (origin = pin 1)
     "U3": (21.8, 18.6, 0, "F"),    # LSM6DSV16BX under the module's TDM / I2C pads
     "U4": (26.2, 18.6, 90, "F"),   # T5838 (bottom port hole in footprint)
-    "E1": (31.0, H - 3.0, 0, "F"),  # touch pad
+    "E1": (23.0, H - 3.0, 0, "F"),  # touch pad, under U3 (Qvar)
     "FID1": (W - 1.0, H - 1.0, 0, "F"),
     "FID2": (W - 1.0, 1.2, 0, "F"),
     "FID3": (1.0, 0.8, 0, "F"),
@@ -76,8 +76,9 @@ ANCHOR = {   # placed in this order: Note 7 resistors (must hug the module), buc
 }
 UNPLACED = []
 # plain silkscreen labels (text, x, y) - placed in clear areas, checked by DRC
-SILK_LABELS = [("BATT+", 11.2, H - 1.0), ("LRA", 23.0, H - 6.6), ("SWD", 37.6, 4.6), ("EXP", 38.7, 10.2)]
-BOTTOM_LABELS = [("SHIP", 4.6, 16.2), ("USER", 31.0, 22.0)]  # under each button
+SILK_LABELS = [("BATT", 11.2, H - 1.2), ("LRA", 35.0, H - 6.8), ("SWD", 37.6, 4.6), ("EXP", 38.7, 10.0),
+               ("+", 3.6, 21.4), ("-", 5.6, 21.4), ("SHIP", 3.6, 14.7), ("USER", 28.0, 21.9), ("TOUCH", 23.0, H - 5.5)]
+BOTTOM_LABELS = []  # test-point labels are added next to each TP
 USED_LIBS = set()
 PASSES = 100
 POWER_NETS = {"VBUS", "VBAT", "VSYS", "SW1", "SW2", "1V8", "3V0", "MIC_1V8", "LRA_P", "LRA_N", "VBUSOUT"}
@@ -319,17 +320,24 @@ def build(place_only=False):
         t.SetPosition(V(x, y))
         t.SetLayer(layer)
         t.SetTextSize(V(size, size))
-        t.SetTextThickness(MM(size * 0.15))
+        t.SetTextThickness(MM(max(0.15, size * 0.15)))
         if mirror:
             t.SetMirrored(True)
         board.Add(t)
 
+    # JLCPCB silkscreen minimum: 1.0 mm text height, 0.15 mm line
     for lbl, x, y in SILK_LABELS:
-        text(lbl, x, y, 0.8)
+        text(lbl, x, y, 1.0)
     for lbl, x, y in BOTTOM_LABELS:
-        text(lbl, x, y, 0.8, pcbnew.B_SilkS, True)
-    text("CUE rev A dev", 21.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
-    text("2026-10", 33.0, H - 1.1, 0.8, pcbnew.B_SilkS, True)
+        text(lbl, x, y, 1.0, pcbnew.B_SilkS, True)
+    for ref, fp in fps.items():   # bottom test points: label each with its net
+        if ref.startswith("TP"):
+            c = fp.GetPosition()
+            net = C.PARTS[ref]["pins"]["1"]
+            tx, ty = pcbnew.ToMM(c.x), pcbnew.ToMM(c.y) + 1.4
+            text(net.replace("MIC_1V8", "MIC"), tx, ty, 1.0, pcbnew.B_SilkS, True)
+    text("CUE rev A dev", 27.0, H - 1.2, 1.0, pcbnew.B_SilkS, True)
+    text("2026-10", 37.0, H - 1.2, 1.0, pcbnew.B_SilkS, True)
 
     pcbnew.SaveBoard(PCB, board)
     return board
@@ -540,8 +548,9 @@ def fanout_planes(board):
                 n_inpad += 1
                 continue
             if min(sx, sy) >= 0.65 and fp.GetReference() in ("U1", "U2"):
-                if min(sx, sy) >= 2.0:  # QFN exposed pad: 3 x 3 grid like Nordic's reference layout
-                    offs = [(dx, dy) for dx in (-1.0, 0, 1.0) for dy in (-1.0, 0, 1.0)]
+                if min(sx, sy) >= 2.0:  # QFN exposed pad: 4 vias in the gaps between the 3 x 3 paste windows
+                    # (windows 0.93 mm at 0 / +-1.15 mm) so solder paste cannot wick down the via holes
+                    offs = [(dx, dy) for dx in (-0.575, 0.575) for dy in (-0.575, 0.575)]
                     for dx, dy in offs:
                         add_via(board, ni, px + dx, py + dy, 0.4, drill, locked=True)
                         n_inpad += 1
@@ -680,7 +689,11 @@ def buck_routes(board, w=0.3):
     px, py, net = pad("U2", "4")
     cx, cy, _ = pad("C5", "1")
     seg([(px, py), (cx, cy)], net, 0.25)
-    print("buck routes: SW1, SW2, PVDD")
+    for lref, cref in (("L1", "C6"), ("L2", "C7")):  # inductor output straight into its output cap on F.Cu
+        lx, ly, net = pad(lref, "2")
+        cx, cy, _ = pad(cref, "1")
+        seg([(lx, ly), (cx, ly), (cx, cy)], net, 0.3)
+    print("buck routes: SW1, SW2, PVDD, L1-C6, L2-C7")
 
 
 def widen_power(board, nets=("SW1", "SW2", "VSYS", "VBUS", "VBAT", "1V8", "3V0", "MIC_1V8", "VBUSOUT",
