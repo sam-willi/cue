@@ -158,7 +158,7 @@ export class CueSession {
   }
 
   /**
-   * Add one frame of the cuff's bone-conduction voice activity: whether the wearer's own
+   * Add one frame of the device's bone-conduction voice activity: whether the wearer's own
    * voice was vibrating through the sensor at engine-clock time `t` (one frame per ~50 ms).
    * Frames must arrive in time order.
    */
@@ -244,7 +244,7 @@ export class CueSession {
   }
 
   private process(rightClosed: boolean): SessionUpdate {
-    // The microphone hears everyone; the cuff's bone-conduction sensor confirms when the
+    // The microphone hears everyone; the device's bone-conduction sensor confirms when the
     // wearer is the one speaking (CUE_CONTEXT §26, decision 6). Only confirmed words are
     // coached. With no bone signal (the web prototype), every word counts as the wearer's.
     const all = this.words;

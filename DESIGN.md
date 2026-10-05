@@ -139,7 +139,7 @@ Use the simplest form that remains clear at the available size:
 | 1 | Full stacked lockup | Launch screens, packaging front, campaign end cards | Default when vertical space is available |
 | 2 | Full horizontal lockup | Navigation, documents, retail strips | Default for wide, shallow spaces |
 | 3 | Wordmark only | Small navigation, product UI already carrying the symbol | Use only when brand context is established |
-| 4 | Symbol only | App icon, avatar, favicon, cuff, case | Use where `cue` would be illegible or redundant |
+| 4 | Symbol only | App icon, avatar, favicon, BTE device, case | Use where `cue` would be illegible or redundant |
 | 5 | Micro symbol | 16–23 px interfaces, very small marking | Use a separately optically simplified master |
 
 Do not merely scale the full stacked lockup down into Tier 4 or Tier 5 contexts.
@@ -204,7 +204,7 @@ Do not merely scale the full stacked lockup down into Tier 4 or Tier 5 contexts.
 
 ### Product marking
 
-- Use the standalone symbol on the cuff whenever physically possible.
+- Use the standalone symbol on the device whenever physically possible.
 - Use the wordmark or horizontal lockup on the charging case.
 - Minimum physical dimensions depend on process testing; never shrink because a render “looks fine.”
 - Use engraving or surface contrast that remains discreet. The product should not become a billboard.
@@ -222,7 +222,7 @@ Do not merely scale the full stacked lockup down into Tier 4 or Tier 5 contexts.
 - Preferred placement is top-left for functional documents and centered for brand moments.
 - Bottom-left is acceptable on photography when contrast is controlled.
 - Avoid top-right placement near account or navigation controls, where the mark can look like a button.
-- Do not place the mark on the wearer’s face or directly over the ear cuff in lifestyle photography.
+- Do not place the mark on the wearer’s face or directly over the device in lifestyle photography.
 - When placed over imagery, use a calm solid-color holding field or choose an area with verified contrast.
 
 ## 5. Clear space and minimum size
@@ -502,19 +502,19 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - Do not gamify “perfect speech” or reward zero fillers.
 - Appropriate progress stories include:
   - Device interventions decreasing.
-  - Self-caught moments increasing (once self-correction can be reliably inferred from speech; the cuff's touch surface is reserved for controls, so there is no self-catch tap).
+  - Self-caught moments increasing (once self-correction can be reliably inferred from speech; the device's touch surface is reserved for controls, so there is no self-catch tap).
   - Pause duration becoming steadier.
   - Retention improving during no-feedback periods.
 
 ## 14. Product and industrial-design language
 
-- Cue is always depicted as a **single outer-ear cuff**, never an earbud.
+- Cue is always depicted as a **single behind-the-ear (BTE) device**: the body sits behind the ear on an ear hook. Never an ear cuff, never an earbud.
 - It must not enter or block the ear canal.
 - The form should appear small, elegant, discreet, and physically plausible.
 - It should resemble jewelry/premium consumer hardware rather than a hearing aid.
 - Favor metallic silver, graphite, champagne, or controlled enamel finishes.
 - Product geometry must remain consistent across every angle and colorway.
-- The case holds one cuff and must not resemble a two-earbud case with one device missing.
+- The case holds one BTE device and must not resemble a two-earbud case with one device missing.
 - Renders must preserve consistent seams, sensors, openings, contacts, thickness, and scale.
 - Do not invent impossible fit, floating devices, or unsupported miniaturization claims.
 
@@ -607,7 +607,7 @@ When generating or commissioning Cue visuals:
 
 1. State whether the output is exploration or production-ready.
 2. Use an opaque specified background for review sheets.
-3. Depict one consistent single ear cuff, never a pair of earbuds.
+3. Depict one consistent single BTE device, never a pair of earbuds.
 4. Preserve geometry across angles and colorways.
 5. Spell `Cue` or `cue` exactly; do not accept garbled brand text.
 6. Avoid stock messaging-app symbols, microphones, multiple radio waves, and generic equalizers.
@@ -625,7 +625,7 @@ Before approving an asset, ask:
 - Does it feel like Cue rather than a generic messaging, podcast, or wellness brand?
 - Does it remain clear at small size and in one color?
 - Can it be engraved or printed reliably?
-- Is the ear-cuff form physically plausible and consistent?
+- Is the behind-the-ear form physically plausible and consistent?
 - Does the work feel calm, confident, youthful, and premium?
 - Does it avoid punishment, shame, and medicalized language?
 - Does it meet accessibility and contrast requirements?
@@ -736,9 +736,13 @@ Every final logo asset must pass:
 
 ## 24. Agent handoff
 
-Cue’s identity is built around **two interlocking voices creating space**. Use the approved two-form symbol and lowercase wordmark direction, but treat the included PNG as concept art pending a professional vector redraw. Keep the system warm-neutral, restrained, calm, and highly legible. Gen Z relevance should come from taste and confidence—not trend clichés. Always depict a single, elegant outer-ear cuff; prioritize one clear idea, supportive language, accessible contrast, consistent geometry, and honest technical representation.
+Cue’s identity is built around **two interlocking voices creating space**. Use the approved two-form symbol and lowercase wordmark direction, but treat the included PNG as concept art pending a professional vector redraw. Keep the system warm-neutral, restrained, calm, and highly legible. Gen Z relevance should come from taste and confidence—not trend clichés. Always depict a single, elegant behind-the-ear (BTE) device; prioritize one clear idea, supportive language, accessible contrast, consistent geometry, and honest technical representation.
 
 ## 25. Change log
+
+### 2026-10-05
+
+- **Form factor wording: behind-the-ear (BTE), not an ear cuff.** The hardware CAD puts the body behind the ear on an ear hook, so §3, §4, §13, §14, the checklists and the final summary now say BTE device where they said ear cuff (`CUE_CONTEXT.md` §26, decision 7). Unchanged: one device, never an earbud, nothing in the ear canal, and it should read as premium consumer hardware rather than a hearing aid.
 
 ### 2026-10-03 (after the expanded brand standards)
 

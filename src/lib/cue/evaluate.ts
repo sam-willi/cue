@@ -21,7 +21,7 @@ export interface SessionFile {
   corrections: Correction[];
   /** Mic level frames as [engine time s, dBFS], for replaying volume cues. */
   levels?: [number, number][];
-  /** Bone-conduction voice activity frames as [engine time s, active], when a cuff is used. */
+  /** Bone-conduction voice activity frames as [engine time s, active], when the device is used. */
   bone?: [number, boolean][];
   /** Measured cue delays in this session, ms after the filler ended. */
   latenciesMs?: number[];
