@@ -5,7 +5,7 @@ Comment,Designator,Footprint,LCSC Part #,Manufacturer Part,Qty,Status,Sourcing,N
 4.7uF,C16,C_0402_1005Metric,C23733,Samsung CL05A475MP5NRNC (4.7uF 10V X5R 0402),1,FIT,Basic,U1 VDD bulk
 100nF,"C8,C9,C10,C22",C_0402_1005Metric,C1525,Samsung CL05B104KO5NNNC (100nF 16V X7R 0402),4,FIT,Basic,"U3 VDD | U3 VDD_IO | U4 VDD, X7R, closest part to pin 7 | nPM1300 VDDIO pin 12, ref C13"
 TVS 5V,D1,D_SOD-523,C82044,onsemi ESD5Z5.0T1G,1,FIT,Extended,Pad 1 = cathode to VBUS.
-USB-C (power),J1,USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal,C5246813,GCT USB4125-GF-A-0190,1,FIT,Extended; same footprint as USB4125-GF-A (C3151650 out of stock),Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.
+USB-C (power),J1,USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal,C5246813,GCT USB4125-GF-A-0190,1,FIT,Extended; 0 stock at JLCPCB 2026-10-05: pick any in-stock USB4125-GF-A variant (same footprint) or hand-solder,Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.
 BATT,J2,JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal,C295747,JST S2B-PH-SM4-TB(LF)(SN),1,FIT,Extended,JST-PH for the Adafruit #1570 LiPo. Pin 1 = + (silk '+'). JST-PH battery leads are not standardised: meter the cell's plug before connecting; red must land on '+'.
 LRA,J3,JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal,C160402,JST SM02B-SRSS-TB(LF)(SN),1,FIT,Extended,Coin LRA on a pigtail (Vybronics VG0832013D).
 SWD,J4,PinHeader_2x05_P1.27mm_Vertical_SMD,C2932107,Samtec FTSH-105-01-L-DV-K-P-TR,1,FIT,Extended; check land pattern,ARM Cortex 10-pin debug pinout. VTref = 1V8.

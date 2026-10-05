@@ -267,7 +267,7 @@ for refs, mpn, lcsc, note in [
     ("C22 C8 C9 C10", "Samsung CL05B104KO5NNNC (100nF 16V X7R 0402)", "C1525", "Basic"),
     ("C3", "Samsung CL10A225KO8NNNC (2.2uF 16V X5R 0603)", "C23630", "Basic"),
     ("D1", "onsemi ESD5Z5.0T1G", "C82044", "Extended"),
-    ("J1", "GCT USB4125-GF-A-0190", "C5246813", "Extended; same footprint as USB4125-GF-A (C3151650 out of stock)"),
+    ("J1", "GCT USB4125-GF-A-0190", "C5246813", "Extended; 0 stock at JLCPCB 2026-10-05: pick any in-stock USB4125-GF-A variant (same footprint) or hand-solder"),
     ("J2", "JST S2B-PH-SM4-TB(LF)(SN)", "C295747", "Extended"),
     ("J3", "JST SM02B-SRSS-TB(LF)(SN)", "C160402", "Extended"),
     ("J4", "Samtec FTSH-105-01-L-DV-K-P-TR", "C2932107", "Extended; check land pattern"),

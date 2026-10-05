@@ -30,6 +30,13 @@ Not stocked at LCSC (checked 2026-10-05), so use JLCPCB **global sourcing** or b
 | U1 | Ezurio BL54L15 **453-00044C** (radio module, MHF4) | JLCPCB global sourcing: Chip1stop, 231 in stock, ~$15 (2026-10-05) |
 | U2 | Nordic nPM1300-QEAA-R (power) | LCSC C7466043 (check stock) |
 | SW1, SW2 | Omron B3U-1000P buttons | Out of stock at LCSC: left out of `bom.csv` / `cpl.csv`; hand-solder |
+| J1 | GCT USB4125-GF-A-0190 (USB-C) | C5246813 showed 0 stock in the JLCPCB BOM check (2026-10-05): search "USB4125" and pick any in-stock USB4125-GF-A variant (same footprint), or untick it and hand-solder one from Digi-Key |
+
+**JLCPCB BOM check (2026-10-05):** 22 of 23 BOM lines matched the intended LCSC numbers. U1 doesn't appear in the
+part search ("Public inventory" is JLCPCB stock only). Use **Pre-order** on the U1 row, or Parts → Global Sourcing,
+to buy 453-00044C (one per assembled board plus a spare). Once it reaches JLCPCB it shows under **My Inventory** and
+can be selected for U1. Assembly waits for the parts to arrive, usually a few days. The PCBA quantity sets how many
+boards get populated (2 is enough for a first spin).
 
 Also buy one **2.4 GHz antenna with an MHF4 plug** per board and click it onto the module (not assembled by JLCPCB).
 Ezurio's approved list: mFlexPIFA **EFA2400A3S-10MH4L** (stick-on flex, recommended), FlexPIFA 001-0022, NanoBlue
