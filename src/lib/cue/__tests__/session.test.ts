@@ -196,6 +196,14 @@ describe("CueSession", () => {
     expect(delivered(h)).toContain("rushing");
   });
 
+  it("detects filler 'lowkey' in all three spellings, and not the adjective", () => {
+    expect(delivered(run("i lowkey want to go"))).toEqual(["filler_lowkey"]);
+    expect(delivered(run("it's low key good"))).toEqual(["filler_lowkey"]);
+    expect(delivered(run("that was low-key amazing"))).toEqual(["filler_lowkey"]);
+    expect(run("it was a low-key party")).toEqual([]);
+    expect(run("keep it lowkey")).toEqual([]);
+  });
+
   it("withholds everything when muted", () => {
     const h = run("i like went home", { config: { muted: true } });
     expect(h.map((d) => d.withheldReason)).toEqual(["muted"]);

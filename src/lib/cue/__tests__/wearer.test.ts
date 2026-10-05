@@ -59,6 +59,30 @@ describe("coaching only the wearer", () => {
     expect(types(s)).toEqual(["filler_um"]);
   });
 
+  it("coaches the wearer's soft 'um' said mid-sentence (loudness only, no labels)", () => {
+    // Hesitations come out quieter than the rest of speech: here 14 dB below normal.
+    const s = new CueSession({ cooldownSec: 0, calibrationSec: 6 });
+    const setup = simulateWords(SETUP);
+    const later = simulateWords("so i was thinking um we could go", { startAt: setup.at(-1)!.end + 1 });
+    const all = [...setup, ...later];
+    for (let f = 0; f < all.at(-1)!.end + 0.5; f += 0.05) {
+      const w = all.find((x) => f >= x.start && f <= x.end);
+      s.ingestLevel(f, !w ? -60 : w.norm === "um" ? -34 : -20);
+    }
+    for (const w of all) s.ingest([w], true);
+    s.endUtterance();
+    expect(types(s)).toEqual(["filler_um"]);
+  });
+
+  it("gives an isolated soft 'um' the benefit of the doubt, but not a much quieter voice", () => {
+    const s = converse([
+      { text: SETUP, db: -20 },
+      { text: "um", db: -35 }, // alone, 15 dB down: likely the wearer, softly
+      { text: "um", db: -45 }, // alone, 25 dB down: someone else
+    ]);
+    expect(types(s)).toEqual(["filler_um"]);
+  });
+
   it("still coaches the wearer when diarization relabels their voice", () => {
     const s = converse([
       { text: SETUP, db: -20, label: 0 },

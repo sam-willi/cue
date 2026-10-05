@@ -3,6 +3,8 @@ import type { Word } from "./types";
 
 /** Without speaker labels, a voice this far below the wearer's normal (dB) is someone else. */
 export const OTHER_DROP_DB = 12;
+/** Hesitations ("um", "uh") are naturally softer than the rest of speech, so they get more room. */
+export const HESITATION_DROP_DB = 20;
 /** A new speaker label this close to the wearer's normal level (dB) is the wearer, relabeled. */
 export const ALIAS_DB = 4;
 
@@ -45,8 +47,11 @@ export class WearerModel {
     return this.wearerLabels.size ? [...this.wearerLabels][0] : null;
   }
 
-  /** True if `w` is the wearer's. `level` is the word's mic level; `normalDb` the wearer's normal. */
-  isWearer(w: Word, level: number | null, normalDb: number | null): boolean {
+  /**
+   * True if `w` is the wearer's. `level` is the word's mic level; `normalDb` the wearer's
+   * normal; `hesitation` marks "um"/"uh", which people say more softly than other words.
+   */
+  isWearer(w: Word, level: number | null, normalDb: number | null, hesitation = false): boolean {
     if (!this.calibrated || normalDb === null) return true;
     if (w.speaker !== undefined && this.wearerLabels.size) {
       if (this.wearerLabels.has(w.speaker)) return true;
@@ -59,6 +64,6 @@ export class WearerModel {
       return false;
     }
     // No labels: loudness alone.
-    return level === null || level >= normalDb - OTHER_DROP_DB;
+    return level === null || level >= normalDb - (hesitation ? HESITATION_DROP_DB : OTHER_DROP_DB);
   }
 }

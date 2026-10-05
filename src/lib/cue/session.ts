@@ -1,8 +1,9 @@
 import { DEFAULT_CONFIG, type CueConfig } from "./config";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
+import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
 import { FRAME_SEC, median, noiseFloor, speechLevels, type LevelFrame } from "./loudness";
-import { WearerModel, wordLevel } from "./wearer";
+import { OTHER_DROP_DB, WearerModel, wordLevel } from "./wearer";
 import { measurePace, type Pace } from "./pace";
 import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word } from "./types";
 
@@ -17,6 +18,8 @@ import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word }
  */
 const SAME_EVENT_CLOSE = 0.3;
 const SAME_EVENT_FAR = 1.5;
+/** A word with gaps shorter than this (s) on both sides belongs to the surrounding speaker. */
+const CONTINUITY_GAP = 0.6;
 /** Words an interim word must be followed by before we trust it. */
 const INTERIM_STABILITY = 2;
 /** Interim "um"/"uh" at or above this ASR confidence cue immediately (no context needed). */
@@ -129,8 +132,39 @@ export class CueSession {
     const key = Math.round(w.start * 100);
     const settled = this.attribution.get(key);
     if (settled !== undefined) return settled;
-    const level = wordLevel(this.levels, w);
-    const mine = this.wearer.isWearer(w, level, this.baselineDb);
+    const all = this.words;
+    const k = all.findIndex((x) => x.start === w.start);
+    const before = all[k - 1];
+    const after = all[k + 1];
+    const closeBefore = before && w.start - before.end < CONTINUITY_GAP ? before : undefined;
+    const closeAfter = after && after.start - w.end < CONTINUITY_GAP ? after : undefined;
+    let mine: boolean;
+    if (isHesitation(w)) {
+      // "um"/"uh" belong to whoever is speaking around them: people say them softly, so
+      // loudness alone can't tell a quiet "um" from someone else's. Only an isolated one
+      // falls back to loudness (with extra room for being soft).
+      const context = [closeAfter, closeBefore].find((x) => x && !isHesitation(x));
+      const labeled = w.speaker !== undefined && this.wearer.learnedLabel !== null;
+      if (context) mine = this.rawIsWearer(context);
+      else if (labeled || this.baselineDb === null)
+        mine = this.rawIsWearer(w); // speaker labels decide
+      else {
+        // No words around it yet. The mic runs ahead of transcription, so listen to the
+        // audio right after the "um": if someone keeps talking, their loudness says who
+        // it is; if it goes quiet, it's an isolated "um" and gets the lenient check.
+        const follow = this.levels.filter((f) => f.t > w.end && f.t <= w.end + CONTINUITY_GAP);
+        if (follow.length * FRAME_SEC < CONTINUITY_GAP * 0.8) return false; // not heard yet; re-checked next update
+        const voicedLine = (this.baselineNoiseDb ?? -60) + 10;
+        const voiced = follow.map((f) => f.db).filter((db) => db > voicedLine);
+        mine =
+          voiced.length * FRAME_SEC >= 0.2 ? median(voiced) >= this.baselineDb - OTHER_DROP_DB : this.rawIsWearer(w);
+      }
+    } else {
+      mine = this.rawIsWearer(w);
+      // Continuity: a word in the middle of the wearer's own sentence, with no real pause
+      // on either side, is the wearer's even if it came out softly.
+      if (!mine && closeBefore && closeAfter) mine = this.rawIsWearer(closeBefore) && this.rawIsWearer(closeAfter);
+    }
     // Settle once calibrated and the word's audio has been measured.
     const measured = this.levels.length === 0 || this.levels[this.levels.length - 1].t >= w.end;
     if (this.baselineDb !== null && measured) this.attribution.set(key, mine);
@@ -168,6 +202,10 @@ export class CueSession {
       if (gap > 0 && gap <= 0.6) total += gap;
     }
     return total;
+  }
+
+  private rawIsWearer(w: Word): boolean {
+    return this.wearer.isWearer(w, wordLevel(this.levels, w), this.baselineDb, isHesitation(w));
   }
 
   private process(rightClosed: boolean): SessionUpdate {
@@ -228,6 +266,21 @@ export class CueSession {
         const confidence = Math.min(v.confidence, Math.max(w.confidence, 0.5) + 0.1);
         const ev = this.event("filler_like", w, confidence, v.reason, words, i);
         ev.like = v;
+        decisions.push(this.decide(ev));
+      }
+
+      const span = lowkeySpan(words, i);
+      if (span) {
+        const prevWord = words[i - 1]?.norm ?? "";
+        if (this.isDecided("filler_lowkey", w.start, prevWord)) continue;
+        const v = classifyLowkey(words, i, span, { rightClosed });
+        if (v === NEED_MORE) continue;
+        // Like "like": decide on unstable words only for a confident filler.
+        if (!stable && !(v.filler && v.confidence >= EARLY_LIKE_CONFIDENCE)) continue;
+        this.markDecided("filler_lowkey", w.start, prevWord);
+        if (!v.filler) continue;
+        const last = words[i + span - 1];
+        const ev = this.event("filler_lowkey", { ...w, end: last.end }, v.confidence, v.reason, words, i);
         decisions.push(this.decide(ev));
       }
     }
@@ -339,6 +392,7 @@ export class CueSession {
       filler_um: "um",
       filler_uh: "uh",
       filler_like: "like",
+      filler_lowkey: "lowkey",
       rushing: "rushing",
       too_quiet: "quiet",
     } as const;
@@ -390,4 +444,8 @@ function contextAround(words: Word[], i: number): string {
     .slice(Math.max(0, i - 4), i + 4)
     .map((x) => x.text)
     .join(" ");
+}
+
+function isHesitation(w: Word): boolean {
+  return UM_FORMS.has(w.norm) || UH_FORMS.has(w.norm);
 }

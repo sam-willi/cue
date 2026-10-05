@@ -17,6 +17,7 @@ const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
   filler_uh: "“uh”",
   filler_like: "filler “like”",
+  filler_lowkey: "“lowkey”",
   rushing: "speaking fast",
   too_quiet: "speaking quietly",
 };
@@ -773,7 +774,7 @@ export default function CueApp() {
                 What Cue coaches
               </legend>
               <div className="mt-3 flex flex-wrap gap-2">
-                {(["um", "uh", "like", "rushing", "quiet"] as const).map((k) => (
+                {(["um", "uh", "like", "lowkey", "rushing", "quiet"] as const).map((k) => (
                   <Chip
                     key={k}
                     on={config.categories[k]}

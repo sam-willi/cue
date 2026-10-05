@@ -17,7 +17,7 @@ export const SYLLABLES_PER_WORD = 1.4;
 export const toApproxWpm = (sps: number) => Math.round((sps * 60) / SYLLABLES_PER_WORD);
 
 export interface CueConfig {
-  categories: { um: boolean; uh: boolean; like: boolean; rushing: boolean; quiet: boolean };
+  categories: { um: boolean; uh: boolean; like: boolean; lowkey: boolean; rushing: boolean; quiet: boolean };
   /** Which non-discourse "like" uses also count as fillers. */
   likeCounts: { quotative: boolean; approximator: boolean };
   /** Minimum detection confidence that may produce a buzz. */
@@ -55,7 +55,7 @@ export interface CueConfig {
 }
 
 export const DEFAULT_CONFIG: CueConfig = {
-  categories: { um: true, uh: true, like: true, rushing: true, quiet: true },
+  categories: { um: true, uh: true, like: true, lowkey: true, rushing: true, quiet: true },
   likeCounts: { quotative: true, approximator: false },
   minConfidence: 0.75,
   paceMode: "conversation",

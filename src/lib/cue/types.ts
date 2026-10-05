@@ -12,7 +12,7 @@ export interface Word {
   speaker?: number;
 }
 
-export type BehaviorType = "filler_um" | "filler_uh" | "filler_like" | "rushing" | "too_quiet";
+export type BehaviorType = "filler_um" | "filler_uh" | "filler_like" | "filler_lowkey" | "rushing" | "too_quiet";
 
 /**
  * How a particular "like" is being used. Only some of these are fillers;
