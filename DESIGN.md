@@ -759,6 +759,7 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ### 2026-10-05
 
+- **"Inside the device" exploded view** from the CAD (`public/cad/cue-bte-exploded.png`) after the cue legend: outer shell, circuit board, coin battery, and the vibration motor in the inner shell, with a caption tying the motor to where taps start on the 3D model.
 - **Body is satin metallic grey** (`CUE_CONTEXT.md` §26, decision 16), replacing matte black (#1C1C1C) on the site: a soft brushed sheen, not chrome. §14 updated. The ear hook stays frosted translucent.
 - **3D device body is matte black (#1C1C1C)** on the site, replacing the dark brown (#3B2F2A) render; the hook stays frosted translucent. Black is one of the hair-matched tones in §14.
 - **Repetition removed** (`CUE_CONTEXT.md` §26, decision 15): the "rattle" cue is gone; §11 lists five cues, and the Pace family is rushing alone. The legend keeps three family columns with an empty Pace slot.

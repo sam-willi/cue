@@ -719,6 +719,26 @@ export default function CueApp() {
               </div>
             </div>
 
+            {/* What's inside: an exploded view from the CAD, so the taps on the 3D model have a body. */}
+            <figure className="mt-12 w-full text-left">
+              <p className="text-body-sm text-muted">Inside the device</p>
+              <div className="mt-3 overflow-hidden rounded-2xl bg-[#1c1c1c]">
+                <Image
+                  src="/cad/cue-bte-exploded.png"
+                  alt="Exploded view of the Cue device: the outer shell on top, the circuit board below it, then the coin battery and the vibration motor sitting in the inner shell that rests against the skin behind the ear."
+                  width={934}
+                  height={1188}
+                  sizes="(min-width: 1024px) 36rem, 100vw"
+                  className="mx-auto h-auto w-full max-w-sm"
+                />
+              </div>
+              <figcaption className="mt-3 max-w-prose text-body-sm text-muted">
+                From top: the outer shell, the circuit board (Bluetooth, microphone, motion and bone-conduction sensor,
+                haptic driver), the coin battery, and the vibration motor in the inner shell. The motor presses against
+                the skin behind your ear, which is where each tap starts on the 3D model.
+              </figcaption>
+            </figure>
+
             {(live || status === "demo" || pace || volume) && (
               <div className="mt-10 grid w-full gap-5 text-left sm:grid-cols-2">
                 <Meter
@@ -1165,7 +1185,7 @@ export default function CueApp() {
 
             <Disclosure
               title="Settings"
-              summary={`${presetLabel} mode, ${config.distinctCues ? "six cues" : "simpler cues"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
+              summary={`${presetLabel} mode, ${config.distinctCues ? "five cues" : "simpler cues"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
               open={open.settings}
               onToggle={() => toggle("settings")}
             >
@@ -1204,7 +1224,7 @@ export default function CueApp() {
                     onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
                   />
                   <Switch
-                    label="Six different cues"
+                    label="Five different cues"
                     hint="Off: simpler cues, one per family (Voice, Pace, Space). The screen still says which behavior it was."
                     on={config.distinctCues}
                     onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
