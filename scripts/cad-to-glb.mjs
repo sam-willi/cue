@@ -173,7 +173,11 @@ const pushView = (typed, target) => {
 // the hook is the large part that reaches out past it. Internals keep their CAD colors.
 const hex = (h) => [1, 3, 5].map((k) => linear(parseInt(h.slice(k, k + 2), 16) / 255));
 const BODY = hex("#1C1C1C"); // matte black
-const HOOK = hex("#D8D3CB"); // light warm gray, seen through a frosted sleeve
+// Frosted translucent sleeve: a faint smoke tint, alpha-blended so the background and the
+// hook's far wall show through. (Glass-style transmission needs something rendered behind it;
+// the page's canvas is transparent, so it read as solid.)
+const HOOK = hex("#BDB8B1");
+const HOOK_OPACITY = 0.4;
 const bodyBox = all;
 const roleOf = (p) => {
   if (Math.max(...p.box.size) <= 15) return null;
@@ -185,17 +189,16 @@ const roleOf = (p) => {
 const meshes = [];
 const materials = [];
 const nodes = [];
-let usesTransmission = false;
 parts.forEach((p, i) => {
   const isMotor = motorParts.includes(p);
   const role = roleOf(p);
   const name = isMotor ? `motor-${i}` : role ? `${role}-${i}` : `part-${i}`;
   if (role === "ear-hook") {
-    usesTransmission = true;
     materials.push({
       name,
-      pbrMetallicRoughness: { baseColorFactor: [...HOOK, 1], metallicFactor: 0, roughnessFactor: 0.6 },
-      extensions: { KHR_materials_transmission: { transmissionFactor: 0.55 } },
+      pbrMetallicRoughness: { baseColorFactor: [...HOOK, HOOK_OPACITY], metallicFactor: 0, roughnessFactor: 0.55 },
+      alphaMode: "BLEND",
+      doubleSided: true,
     });
   } else {
     materials.push({
@@ -235,7 +238,6 @@ parts.forEach((p, i) => {
 });
 
 const gltf = {
-  ...(usesTransmission ? { extensionsUsed: ["KHR_materials_transmission"] } : {}),
   asset: {
     version: "2.0",
     generator: "cue scripts/cad-to-glb.mjs",
