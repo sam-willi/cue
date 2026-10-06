@@ -66,7 +66,7 @@ export interface CueDecision {
   event: SpeechEvent;
   delivered: boolean;
   /** Why a cue was withheld, if it was. */
-  withheldReason?: "low_confidence" | "cooldown" | "muted" | "category_off" | "not_a_pattern";
+  withheldReason?: "low_confidence" | "cooldown" | "muted" | "category_off" | "not_a_pattern" | "mode_off";
   /** What made the engine act, e.g. "3 in 9 s", or how close a held filler came. */
   trigger?: string;
   /** Which engine rule produced the tap. */

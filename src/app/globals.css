@@ -110,9 +110,7 @@ body {
 }
 .cue-playing .beat {
   animation: beat 0.5s ease-out 1;
-}
-.cue-playing .beat:nth-child(2) {
-  animation-delay: 0.22s;
+  animation-delay: var(--beat-delay, 0ms);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,4 +1,6 @@
 export type PaceMode = "conversation" | "presentation" | "custom";
+/** The coaching mode, switched by a double tap on the device. */
+export type CueMode = "conversation" | "presentation";
 
 /**
  * Rushing thresholds in syllables/second, measured over speaking time (pauses
@@ -9,6 +11,28 @@ export type PaceMode = "conversation" | "presentation" | "custom";
 export const PACE_PRESETS: Record<Exclude<PaceMode, "custom">, { label: string; threshold: number }> = {
   conversation: { label: "Conversation", threshold: 4.5 },
   presentation: { label: "Presentation / interview", threshold: 4.0 },
+};
+
+/**
+ * Presentation mode (CUE_CONTEXT.md §26, decision 11). A talk is one long turn, so long turns
+ * don't tap, and repetition is left for the after-session review. Fillers tap on rate, not
+ * clusters: audiences mark speakers down at around 5+ per minute, mostly for um/uh (Laske et
+ * al. 2024). Taps are sparser, since one prompt about every 20 s beat continuous feedback
+ * (Rhema, Tanveer et al. 2015). When several behaviors are due, the order of consideration
+ * gives priority: rushing, then no pause, then fillers, then too quiet. Starting points to test.
+ */
+export const PRESENTATION = {
+  /** Behaviors detected but not tapped live in Presentation mode. */
+  notLive: ["repetition", "long_turn"] as const,
+  noPauseSec: 22,
+  /** Filler taps fire when the weighted rate over the last minute is above this. */
+  fillerRatePerMin: 5,
+  /** "like" and "lowkey" count this much toward the rate; um/uh count 1. */
+  softFillerWeight: 0.5,
+  /** At least this long between any two taps, seconds. */
+  minGapSec: 25,
+  maxTapsPerMin: 2,
+  quietSustainSec: 10,
 };
 
 /** Average syllables per word in conversational English, used only to show an approximate wpm. */
@@ -53,6 +77,8 @@ export interface CueConfig {
   likeCounts: { quotative: boolean; approximator: boolean };
   /** Minimum detection confidence that may produce a buzz. */
   minConfidence: number;
+  /** Conversation or Presentation (decision 11): changes which behaviors tap and how often. */
+  mode: CueMode;
   /** Which pace preset is active; "custom" when the slider was moved. */
   paceMode: PaceMode;
   /** Speaking rate (syllables/s, long pauses excluded) considered rushing. */
@@ -61,16 +87,20 @@ export interface CueConfig {
   paceWindowSec: number;
   /** Pace must stay above threshold this long before cueing, seconds. */
   paceSustainSec: number;
-  /** Minimum gap between any two taps, seconds (SOFTWARE.md §13: 10–20 s). */
+  /** Minimum gap between any two taps, seconds (SOFTWARE.md §13: 10–20 s; Presentation uses at least 25). */
   cooldownSec: number;
-  /** Seconds of speech used to learn the wearer's normal speaking level. */
-  calibrationSec: number;
-  /** "Too quiet" = this many dB below the wearer's normal level… */
+  /**
+   * The speaking level (dBFS) the wearer set for each mode by reading aloud, and the room
+   * noise floor at the time (decision 13). Without one for the current mode, too-quiet is off:
+   * a session can't tell whether the wearer's own normal is already too quiet.
+   */
+  volumeTarget: Partial<Record<CueMode, { db: number; noiseDb: number | null }>>;
+  /** "Too quiet" = this many dB below the target level… */
   quietDropDb: number;
   /** …for at least this long, seconds. */
   quietSustainSec: number;
   muted: boolean;
-  /** Different haptic rhythms per alert (filler / pace / volume) instead of one tap for all. */
+  /** Six distinct cues (decision 12); off plays only each family's root ("simpler cues"). */
   distinctCues: boolean;
 }
 
@@ -97,14 +127,28 @@ export const DEFAULT_CONFIG: CueConfig = {
   paceBaselineSec: 60,
   likeCounts: { quotative: true, approximator: false },
   minConfidence: 0.8,
+  mode: "conversation",
   paceMode: "conversation",
   paceThreshold: 4.5,
   paceWindowSec: 8,
   paceSustainSec: 3,
   cooldownSec: 15,
-  calibrationSec: 15,
+  volumeTarget: {},
   quietDropDb: 6,
   quietSustainSec: 3,
   muted: false,
   distinctCues: true,
 };
+
+export const isPresentation = (c: CueConfig) => c.mode === "presentation";
+
+/** The effective timing rules for the current mode. */
+export function modeRules(c: CueConfig) {
+  const p = isPresentation(c);
+  return {
+    noPauseSec: p ? PRESENTATION.noPauseSec : c.noPauseSec,
+    cooldownSec: p ? Math.max(c.cooldownSec, PRESENTATION.minGapSec) : c.cooldownSec,
+    maxTapsPerMin: p ? PRESENTATION.maxTapsPerMin : Infinity,
+    quietSustainSec: p ? PRESENTATION.quietSustainSec : c.quietSustainSec,
+  };
+}

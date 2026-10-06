@@ -3,7 +3,7 @@
 > **Purpose:** Canonical visual and interaction design guidance for Cue. Product, brand, UI, marketing, industrial-design, and image-generation work should follow this file together with [`CUE_CONTEXT.md`](./CUE_CONTEXT.md).
 >
 > **Status:** Direction approved; production artwork remains to be drawn and validated.  
-> **Last updated:** 2026-10-03 (haptic vocabulary, touch controls, and app tokens synced with `CUE_CONTEXT.md` §26; see §25)
+> **Last updated:** 2026-10-05 (six haptic cues, the 3D device view, and dark-mode app tokens synced with `CUE_CONTEXT.md` §26; see §25)
 
 ## Contents
 
@@ -299,6 +299,15 @@ Default recommendation: start with **cobalt** for product UI. Keep oxblood and c
 - Do not use pastel rainbow gradients as shorthand for Gen Z.
 - Meet WCAG contrast requirements for functional text and controls.
 - **[PROVISIONAL]** In the product app, cobalt marks coaching cues and selected state only. Meters, touch-control confirmations, and corrections stay neutral (ink / stone / warm gray). In dark mode cobalt is lifted (`#8C9BFF`) to keep contrast on ink surfaces; validate with the brand team.
+- **[PROVISIONAL]** Dark-mode app tokens (`src/app/globals.css`), alongside `ink-950` background, `ink-800` surface and `bone-50` text:
+
+  | App token | Hex | Use |
+  |---|---:|---|
+  | `--surface-2` | `#33312E` | Secondary surfaces on ink |
+  | `--line` | `#48453F` | Borders and dividers |
+  | `--muted` | `#B9B4AC` | Secondary text (warm gray, lifted) |
+  | `--neutral` | `#C9C4BC` | Meters and confirmations (non-accent emphasis) |
+  | `--cue` | `#8C9BFF` | Coaching cues and selected state (cobalt, lifted) |
 - Warm gray is not suitable for small text on bone without a contrast check.
 
 ## 8. Typography
@@ -468,17 +477,21 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - Use slower 300–450 ms transitions for expanding reflections or progress views.
 - Avoid bouncing, shaking, flashing, or celebratory confetti for filler reduction.
 - Respect reduced-motion settings.
-- Visual feedback for a cue may use one subtle outward movement or brief pause in motion. On screen, each coaching rhythm is drawn as outward rings: **one** ring, **two** quick rings, or **one slow, wide** ring. No shaking, jitter, or flashing.
-- **[PROVISIONAL — owner decision 2026-10-03, see `CUE_CONTEXT.md` §5 and §26]** Haptic meaning stays small and learnable: three coaching rhythms distinguished by rhythm, not strength.
+- Visual feedback for a cue may use one subtle outward movement or brief pause in motion. In the app, each haptic is drawn where it happens: **rings leave the motor** on the 3D device in the cue's rhythm, and the motor glows while it is driven. No shaking, jitter, or flashing.
+- **[PROVISIONAL — owner decision 12, 2026-10-05, see `CUE_CONTEXT.md` §5 and §26]** Six coaching cues in three families, distinguished by rhythm, not strength. Every cue starts with a sharp onset.
 
-  | Rhythm | Behavior | Meaning |
-  |---|---|---|
-  | One tap | Filler word | Pause |
-  | Two quick taps | Speaking too fast | Slow down |
-  | One long pulse | Speaking too quietly | Speak up |
+  | Family | Behavior | Cue | Meaning |
+  |---|---|---|---|
+  | Space | No pause | One tap | Breathe |
+  | Space | Long turn | Two knocks | Give space |
+  | Pace | Rushing | Slow steps (three pulses) | Slow down |
+  | Pace | Repetition | Rattle (four quick ticks) | Reset |
+  | Voice | Filler pattern | Tap and hum | Pause |
+  | Voice | Too quiet | Long push | Speak up |
 
-  A single-tap mode ("make space" for everything) remains a setting and the comparison condition for user testing.
-- **Touch-control confirmations** (long press = Cue on/off, double tap = Conversation/Presentation mode) are **ramps**: a vibration that swells or fades, shown on screen as a neutral swell, never as rings or taps, so they can't be mistaken for coaching. Rising = on / Conversation, falling = off, two swells = Presentation.
+  A **Simpler cues** setting plays only each family's root (one tap, slow steps, long push).
+- **Touch-control confirmations** (long press = Cue on/off, double tap = Conversation/Presentation mode) are **ramps**: a vibration that swells or fades with no sharp onset, shown on the device as a **neutral glow with no rings**, so they can't be mistaken for coaching. Rising = on / Conversation, falling = off, two swells = Presentation.
+- **Noticed ring (testing aid):** a faint warm-gray ring from the motor means "noticed, not a pattern yet": a filler was detected but did not tap. It is neutral, never cobalt.
 - Do not add vibration patterns beyond these without user testing.
 
 ## 12. UI design principles
@@ -602,6 +615,7 @@ Cue speaks like a thoughtful, socially aware coach: direct, calm, encouraging, a
 - Use `ink-950`/`ink-800` surfaces rather than pure black everywhere.
 - Use `bone-50` or white for primary text depending on contrast.
 - Adjust warm gray upward in luminance so the secondary logo form remains visible.
+- In the product app, lift secondary neutrals the same way: `#33312E` secondary surface, `#48453F` lines, `#B9B4AC` muted text, `#C9C4BC` neutral meters and confirmations, and cobalt lifted to `#8C9BFF` (§7).
 - Use a dedicated reverse logo; do not invert the raster concept automatically.
 - Generated design-review images must use an explicit opaque background so they remain visible in both light and dark chat interfaces.
 
@@ -734,7 +748,7 @@ Every final logo asset must pass:
 - Select or license the long-term brand typeface.
 - Test cobalt, oxblood, chartreuse, and monochrome treatments with target users.
 - Create horizontal, symbol-only, one-color, reversed, and small-size masters.
-- Define exact app component tokens after the first product prototype exists.
+- Define exact app component tokens after the first product prototype exists. *(Partly done: color and type tokens live in `src/app/globals.css`; component tokens are not yet defined.)*
 - Validate industrial-design materials, finishes, dimensions, and colorways.
 - Conduct usability and accessibility testing with real users.
 
@@ -746,6 +760,13 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ### 2026-10-05
 
+- **3D device view replaces the big buzz icon.** The app's hero shows the cue word beside a 3D model of the BTE device built from the hardware CAD (`npm run cad` → `public/cad/cue-bte.glb`), in a matte dark brown body (`#3B2F2A`) with a frosted translucent ear hook, internals unchanged (§14, decision 8).
+- **Six haptic cues, drawn as rings from the motor** (`CUE_CONTEXT.md` §26, decision 12). §11 now lists six cues in three families (Space, Pace, Voice) instead of three rhythms; each cue's rings leave the LRA motor on the 3D device in its rhythm, and touch-control ramps show as a neutral glow with no rings.
+- **Noticed ring** as a testing aid: a faint gray ring for a filler that was detected but isn't a pattern yet (§11).
+- **Own-Deepgram-key form:** a neutral inline form under the primary button, with a "Remember on this device" option and plain-language copy about where the key goes.
+- **Training recorder** (local development only): a collapsed Training section with an explicit "Recording for training" microphone state, consistent with "recording state must be unmistakable" (§12).
+- **Dark-mode app tokens** recorded in §7 (`--surface-2`, `--line`, `--muted`, `--neutral`, lifted cobalt).
+- The page description is being updated in code to match the six-cue behavior.
 - **Discreetness first: matte, wearer-matched finishes replace metallic** (`CUE_CONTEXT.md` §26, decision 8). §14 now specifies an opaque matte body in hair-matched tones and a thin frosted translucent ear hook, with metal only in small details. Product photography pairs matte surfaces with warm backgrounds and shows the device worn.
 - **Form factor wording: behind-the-ear (BTE), not an ear cuff.** The hardware CAD puts the body behind the ear on an ear hook, so §3, §4, §13, §14, the checklists and the final summary now say BTE device where they said ear cuff (`CUE_CONTEXT.md` §26, decision 7). Unchanged: one device, never an earbud, nothing in the ear canal, and it should read as premium consumer hardware rather than a hearing aid.
 
@@ -760,5 +781,5 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 - §11: replaced the single "make space" tap with the three-rhythm coaching vocabulary and ramp confirmations for touch controls, matching owner decisions recorded in `CUE_CONTEXT.md` §26. Cue animations are now outward rings only (no shaking).
 - §13: self-caught progress depends on inferring self-correction from speech.
 - §7: how the product app applies the single-accent rule (cobalt for cues; neutrals elsewhere) and the dark-mode cobalt lift.
-- The software MVP is one calm page (§12 "one clear primary action"; `CUE_CONTEXT.md` §8 "not an overwhelming AI dashboard"): the hero is the cue itself, a single large word (*Ready when you are.* → *Pause.* / *Slow down.* / *Speak up.*) over its rings, with one primary button and an always-visible microphone state. Review, Practice and Settings sit below as collapsed sections; Review opens when a session ends. The live transcript is an off-by-default testing aid, since showing transcripts during conversation is a non-goal.
+- The software MVP is one calm page (§12 "one clear primary action"; `CUE_CONTEXT.md` §8 "not an overwhelming AI dashboard"): the hero is the cue itself, a single large word (*Ready when you are.* → *Pause.* / *Slow down.* / *Speak up.*) over its rings (since 2026-10-05 the word is one of six actions and the rings come from the motor on the 3D device beside it, not under the word), with one primary button and an always-visible microphone state. Review, Practice and Settings sit below as collapsed sections; Review opens when a session ends. The live transcript is an off-by-default testing aid, since showing transcripts during conversation is a non-goal.
 - The software MVP (`src/app`) now uses these tokens: bone/ink neutrals, cobalt cues, Inter / Inter Tight, 8 px controls and 16 px cards, no red error states. At the owner's request the app header shows the stacked lockup at its 72 px minimum width, using **interim rasters derived from the approved concept** (`scripts/brand-assets.py` → `public/brand/`): the background is made transparent, and the dark-mode reverse recolors the ink form to bone and the gray form to a lifted warm gray (§19), rather than inverting. The favicon is the symbol on a bone tile. These are not production masters; replace them with the vector redraw (§3).

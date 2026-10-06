@@ -1,4 +1,4 @@
-import { DEFAULT_CONFIG, type CueConfig } from "./config";
+import { DEFAULT_CONFIG, modeRules, type CueConfig } from "./config";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
 import { DecisionEngine, type Moment, type Outcome } from "./engine";
@@ -71,14 +71,14 @@ const TURN_GAP = 2.5;
 export interface VolumeStatus {
   /** Recent speaking level, dBFS, or null when not enough recent speech. */
   db: number | null;
-  /** The wearer's normal speaking level once learned, dBFS. */
+  /** The speaking level the wearer set for this mode by reading aloud, dBFS (decision 13). */
   baselineDb: number | null;
   /** What the wearer's level should be in the current room (normal adjusted for noise), dBFS. */
   expectedDb: number | null;
   /** Current background noise, dBFS. */
   noiseDb: number | null;
-  /** 0..1 progress toward learning the normal level. */
-  calibration: number;
+  /** Whether a target level is set for the current mode; too-quiet is off without one. */
+  calibrated: boolean;
 }
 
 const FILLER_LIKE_USES: Record<LikeUse, keyof CueConfig["likeCounts"] | true | false> = {
@@ -135,10 +135,6 @@ export class CueSession {
   private paceSamples: number[] = [];
   private paceBaseline: number | null = null;
   private levels: LevelFrame[] = [];
-  private calibrationLevels: number[] = [];
-  private calibratedUpTo = -Infinity;
-  private baselineDb: number | null = null;
-  private baselineNoiseDb: number | null = null;
   private quietSince: number | null = null;
   private bone: { t: number; active: boolean }[] = [];
   /** Audio-time intervals when the vibration motor was running. */
@@ -175,10 +171,14 @@ export class CueSession {
     const all = this.bone.filter((f) => f.t >= w.start - BONE_SLACK && f.t <= w.end + BONE_SLACK);
     // Not heard yet by the bone stream: count it for now; it's re-checked on later updates.
     if (all.length === 0) return this.bone[this.bone.length - 1].t < w.end;
-    // Ignore frames while the motor was vibrating; if that hides the whole word, judge it
-    // by the frames just around it, and if there are none, give the wearer the benefit.
+    // Ignore frames while the motor was vibrating. If that hides the whole word, judge it by
+    // the frames just after it: frames before a tap belong to whatever was said before it.
+    // Failing that, the frames just around it; with none at all, the wearer gets the benefit.
     let frames = near(BONE_SLACK);
-    if (frames.length === 0) frames = near(MASK_FALLBACK);
+    if (frames.length === 0) {
+      const after = this.bone.filter((f) => f.t > w.end && f.t <= w.end + MASK_FALLBACK && !this.masked(f.t));
+      frames = after.length ? after : near(MASK_FALLBACK);
+    }
     if (frames.length === 0) return true;
     return frames.filter((f) => f.active).length / frames.length >= BONE_SHARE;
   }
@@ -255,7 +255,10 @@ export class CueSession {
     const likeChecks: LikeCheck[] = [];
     const from = Math.max(0, words.length - SCAN_WINDOW);
     const moment = this.moment(words, rightClosed);
-    const disfluent = (ev: SpeechEvent) => decisions.push(this.engine.considerDisfluency(ev, moment));
+    // Disfluencies are decided after rushing and no-pause, so when several are due at once the
+    // engine's cooldown gives those priority (decision 11): rushing, no pause, fillers, too quiet.
+    const pendingDisfluencies: SpeechEvent[] = [];
+    const disfluent = (ev: SpeechEvent) => pendingDisfluencies.push(ev);
 
     for (let i = from; i < words.length; i++) {
       const w = words[i];
@@ -369,7 +372,7 @@ export class CueSession {
     });
 
     const sincePause = words.length ? moment.now - lastPauseEnd(words) : 0;
-    sustained("no_pause", sincePause >= this.config.noPauseSec, () =>
+    sustained("no_pause", sincePause >= modeRules(this.config).noPauseSec, () =>
       this.event(
         "no_pause",
         { ...lastWord, start: lastPauseEnd(words) },
@@ -379,6 +382,8 @@ export class CueSession {
         words.length - 1,
       ),
     );
+
+    for (const ev of pendingDisfluencies) decisions.push(this.engine.considerDisfluency(ev, moment));
 
     const turn = words.length ? moment.now - turnStart(all, (w) => this.isWearerWord(w)) : 0;
     sustained("long_turn", turn >= this.config.longTurnSec, () =>
@@ -438,7 +443,7 @@ export class CueSession {
     // a pause has begun. Without audio, use the gap before the last word.
     const after = this.levels.filter((f) => f.t > now && f.t <= now + BREAK_SEC);
     if (after.length * FRAME_SEC >= BREAK_SEC * 0.8) {
-      const voicedLine = (this.baselineNoiseDb ?? -60) + 10;
+      const voicedLine = (noiseFloor(this.levels, now - NOISE_WINDOW, now) ?? -60) + 10;
       return { now, atBreak: after.every((f) => f.db <= voicedLine) };
     }
     const prev = words[words.length - 2];
@@ -456,7 +461,7 @@ export class CueSession {
   private paceLimit(): number {
     const c = this.config;
     if (c.paceMode === "custom" || this.paceBaseline === null) return c.paceThreshold;
-    const rise = c.paceMode === "presentation" ? PACE_RISE.presentation : PACE_RISE.conversation;
+    const rise = c.mode === "presentation" ? PACE_RISE.presentation : PACE_RISE.conversation;
     return Math.max(PACE_FLOOR, this.paceBaseline * rise);
   }
 
@@ -472,47 +477,57 @@ export class CueSession {
   }
 
   /**
-   * Too quiet = recent speech well below the wearer's own normal level, sustained.
-   * The normal level is learned from the first `calibrationSec` of speech.
+   * The wearer's speaking level and the room's noise so far: what "Set my volume" saves as the
+   * target for a mode after a short read-aloud. Null until there's enough speech.
+   */
+  measuredLevel(minSpeechSec = 3): { db: number; noiseDb: number | null; speechSec: number } | null {
+    const mine = this.words.filter((w) => this.isWearerWord(w));
+    if (!mine.length || !this.levels.length) return null;
+    const now = this.levels[this.levels.length - 1].t;
+    const frames = speechLevels(this.levels, mine, -Infinity, now);
+    const speechSec = frames.length * FRAME_SEC;
+    if (speechSec < minSpeechSec) return null;
+    return { db: median(frames), noiseDb: noiseFloor(this.levels, -Infinity, now), speechSec };
+  }
+
+  /**
+   * Too quiet = recent speech well below the target level the wearer set for this mode by
+   * reading aloud (decision 13), sustained. A session alone can't tell whether someone's own
+   * normal is already too quiet, so without a target too-quiet stays off.
    */
   private checkVolume(all: Word[], mine: Word[]): { status: VolumeStatus | null; quiet?: () => SpeechEvent } {
     if (this.levels.length === 0 || all.length === 0) return { status: null };
     const c = this.config;
     const now = all[all.length - 1].end;
-    const none = { db: null, baselineDb: null, expectedDb: null, noiseDb: null };
-
-    // Calibration: learn the wearer's normal speaking level and the room's noise at the time.
-    if (this.baselineDb === null) {
-      this.calibrationLevels.push(...speechLevels(this.levels, all, this.calibratedUpTo, now));
-      this.calibratedUpTo = now + 1e-6;
-      const learned = this.calibrationLevels.length * FRAME_SEC;
-      if (learned < c.calibrationSec) return { status: { ...none, calibration: learned / c.calibrationSec } };
-      this.baselineDb = median(this.calibrationLevels);
-      this.baselineNoiseDb = noiseFloor(this.levels, -Infinity, now);
+    const target = c.volumeTarget[c.mode];
+    const noiseNow = noiseFloor(this.levels, now - NOISE_WINDOW, now);
+    const recentFrames = mine.length ? speechLevels(this.levels, mine, now - VOLUME_WINDOW, now) : [];
+    const recentDb = recentFrames.length * FRAME_SEC >= VOLUME_MIN_SPEECH ? median(recentFrames) : null;
+    if (!target) {
+      this.quietSince = null;
+      return { status: { db: recentDb, baselineDb: null, expectedDb: null, noiseDb: noiseNow, calibrated: false } };
     }
-    const baselineDb = this.baselineDb!;
+    const baselineDb = target.db;
 
     // Room noise now vs. during calibration: people naturally speak up in noise (Lombard
     // effect), so the expected level moves with it. Without this, calibrating in a café
     // and then talking in a quiet room would falsely read as "too quiet".
-    const noiseDb = noiseFloor(this.levels, now - NOISE_WINDOW, now);
+    const noiseDb = noiseNow;
     const shift =
-      noiseDb !== null && this.baselineNoiseDb !== null
-        ? Math.max(-LOMBARD_MAX, Math.min(LOMBARD_MAX, LOMBARD_SLOPE * (noiseDb - this.baselineNoiseDb)))
+      noiseDb !== null && target.noiseDb !== null
+        ? Math.max(-LOMBARD_MAX, Math.min(LOMBARD_MAX, LOMBARD_SLOPE * (noiseDb - target.noiseDb)))
         : 0;
     const expectedDb = baselineDb + shift;
 
-    const recent = mine.length ? speechLevels(this.levels, mine, now - VOLUME_WINDOW, now) : [];
-    if (recent.length * FRAME_SEC < VOLUME_MIN_SPEECH)
-      return { status: { db: null, baselineDb, expectedDb, noiseDb, calibration: 1 } };
-    const db = median(recent);
-    const status: VolumeStatus = { db, baselineDb, expectedDb, noiseDb, calibration: 1 };
+    if (recentDb === null) return { status: { db: null, baselineDb, expectedDb, noiseDb, calibrated: true } };
+    const db = recentDb;
+    const status: VolumeStatus = { db, baselineDb, expectedDb, noiseDb, calibrated: true };
 
     const quietLine = expectedDb - c.quietDropDb;
     if (db > quietLine + VOLUME_HYSTERESIS) this.quietSince = null;
     if (db >= quietLine) return { status };
     this.quietSince ??= now;
-    if (now - this.quietSince < c.quietSustainSec) return { status };
+    if (now - this.quietSince < modeRules(c).quietSustainSec) return { status };
 
     const since = this.quietSince;
     const last = mine[mine.length - 1];
@@ -524,7 +539,7 @@ export class CueSession {
           "too_quiet",
           { ...last, start: since },
           0.9,
-          `~${Math.round(expectedDb - db)} dB below your normal speaking level${roomNote} for ${Math.round(now - since)} s`,
+          `~${Math.round(expectedDb - db)} dB below the volume you set${roomNote} for ${Math.round(now - since)} s`,
           mine,
           mine.length - 1,
         );

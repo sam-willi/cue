@@ -1,4 +1,4 @@
-import type { CueConfig } from "./config";
+import { modeRules, PRESENTATION, isPresentation, type CueConfig } from "./config";
 import type { BehaviorType, CueDecision, SpeechEvent } from "./types";
 
 /**
@@ -9,7 +9,9 @@ import type { BehaviorType, CueDecision, SpeechEvent } from "./types";
  *    (3 within 12 s) or a high rate (8+ in the last minute), not one at a time (§7).
  *  - Sustained behaviors (rushing, no pause, long turn, too quiet) wait for a natural
  *    break in speech, up to a few seconds, so the tap doesn't land mid-word (§12).
- *  - One tap at a time: a 10–20 s cooldown after any tap (§13).
+ *  - One tap at a time: a 10–20 s cooldown after any tap (§13). Presentation mode is sparser
+ *    (decision 11): 25 s between taps, at most 2 a minute, fillers judged as a rate, and long
+ *    turns and repetition left for the review.
  *  - Only confident detections count (§14).
  *  - It checks whether each tap worked (the user paused, slowed, spoke up); if it did,
  *    it waits longer before tapping for that behavior again (§13, §17).
@@ -59,7 +61,7 @@ export interface Moment {
 
 export class DecisionEngine {
   readonly taps: TapRecord[] = [];
-  private evidence: number[] = []; // times of counted disfluencies
+  private evidence: { t: number; weight: number }[] = []; // counted disfluencies
   private evidenceSince = -Infinity; // disfluencies before the last pattern tap don't count again
   private lastTapAt = -Infinity;
   private lastTapByReason = new Map<TapReason, TapRecord>();
@@ -73,14 +75,32 @@ export class DecisionEngine {
     const c = this.config();
     const held = this.gate(event);
     if (held) return { event, delivered: false, withheldReason: held };
-    this.evidence.push(event.end);
+    const soft = event.type === "filler_like" || event.type === "filler_lowkey";
+    this.evidence.push({ t: event.end, weight: soft ? PRESENTATION.softFillerWeight : 1 });
 
     let reason: TapReason | null = null;
     let why = "";
     if (c.tapOn === "every") {
       reason = "filler";
+    } else if (isPresentation(c)) {
+      // Presentation (decision 11): a rate, not clusters; um/uh weigh more than "like"/"lowkey".
+      const rate = this.evidence
+        .filter((e) => e.t > this.evidenceSince && e.t >= m.now - DENSITY_WINDOW)
+        .reduce((n, e) => n + e.weight, 0);
+      const shown = Number.isInteger(rate) ? `${rate}` : rate.toFixed(1);
+      if (rate > PRESENTATION.fillerRatePerMin) {
+        reason = "filler_density";
+        why = `${shown} in the last minute`;
+      } else {
+        return {
+          event,
+          delivered: false,
+          withheldReason: "not_a_pattern",
+          trigger: `${shown} of more than ${PRESENTATION.fillerRatePerMin} per minute`,
+        };
+      }
     } else {
-      const counted = this.evidence.filter((t) => t > this.evidenceSince);
+      const counted = this.evidence.filter((e) => e.t > this.evidenceSince).map((e) => e.t);
       const inCluster = counted.filter((t) => t >= m.now - c.clusterWindowSec);
       const inMinute = counted.filter((t) => t >= m.now - DENSITY_WINDOW);
       if (inCluster.length >= c.clusterCount) {
@@ -147,17 +167,18 @@ export class DecisionEngine {
 
   /** Disfluencies counted in (from, to]. */
   disfluenciesBetween(from: number, to: number): number {
-    return this.evidence.filter((t) => t > from && t <= to).length;
+    return this.evidence.filter((e) => e.t > from && e.t <= to).length;
   }
 
   /** Counted disfluencies per minute over the last minute of the session. */
   fillerRate(now: number): number {
-    return this.evidence.filter((t) => t >= now - DENSITY_WINDOW).length;
+    return this.evidence.filter((e) => e.t >= now - DENSITY_WINDOW).length;
   }
 
   private gate(event: SpeechEvent): CueDecision["withheldReason"] {
     const c = this.config();
     if (!c.categories[CATEGORY[event.type]]) return "category_off";
+    if (isPresentation(c) && (PRESENTATION.notLive as readonly BehaviorType[]).includes(event.type)) return "mode_off";
     if (event.confidence < c.minConfidence) return "low_confidence";
     if (c.muted) return "muted";
     return undefined;
@@ -165,9 +186,13 @@ export class DecisionEngine {
 
   private cooldownFor(reason: TapReason, now: number): boolean {
     const c = this.config();
+    const rules = modeRules(c);
     const base =
-      c.tapOn === "every" && reason === "filler" ? Math.min(c.cooldownSec, EVERY_FILLER_COOLDOWN) : c.cooldownSec;
+      c.tapOn === "every" && reason === "filler"
+        ? Math.min(rules.cooldownSec, EVERY_FILLER_COOLDOWN)
+        : rules.cooldownSec;
     if (now - this.lastTapAt < base) return true;
+    if (this.taps.filter((t) => t.at > now - 60).length >= rules.maxTapsPerMin) return true;
     // If the last tap for this same behavior worked, give the user more room before the next.
     const last = this.lastTapByReason.get(reason);
     if (last?.outcome === "worked" && now - last.at < base * WORKED_PATIENCE) return true;

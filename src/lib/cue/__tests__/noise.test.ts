@@ -16,7 +16,9 @@ function converse(
   turns: Turn[],
   opts: { noiseDb?: number; noiseAfter?: { t: number; db: number }; config?: object } = {},
 ) {
-  const s = new CueSession({ tapOn: "every", cooldownSec: 0, calibrationSec: 6, ...opts.config });
+  // The first turn is the wearer setting their volume, in the room as it was then (decision 13).
+  const volumeTarget = { conversation: { db: turns[0].db, noiseDb: opts.noiseDb ?? -60 } };
+  const s = new CueSession({ tapOn: "every", cooldownSec: 0, volumeTarget, ...opts.config });
   let t = 0;
   for (const turn of turns) {
     const words: Word[] = simulateWords(turn.text, { startAt: t });
@@ -33,7 +35,7 @@ function converse(
   return s;
 }
 
-// ~7 s of the wearer talking alone, to calibrate (calibrationSec: 6 in these tests).
+// ~7 s of the wearer talking alone at the volume they set.
 const SETUP = "so this is me talking on my own for a little while so cue can learn how i sound normally okay";
 const types = (s: CueSession) => s.history.filter((d) => d.delivered).map((d) => d.event.type);
 
