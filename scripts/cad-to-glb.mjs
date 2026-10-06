@@ -172,7 +172,7 @@ const pushView = (typed, target) => {
 // tone and a frosted translucent ear hook. The outer shells are the large parts over the body;
 // the hook is the large part that reaches out past it. Internals keep their CAD colors.
 const hex = (h) => [1, 3, 5].map((k) => linear(parseInt(h.slice(k, k + 2), 16) / 255));
-const BODY = hex("#1C1C1C"); // matte black
+const BODY = hex("#8A8D90"); // satin metallic grey (decision 16)
 // Frosted translucent sleeve: a faint smoke tint, alpha-blended so the background and the
 // hook's far wall show through. (Glass-style transmission needs something rendered behind it;
 // the page's canvas is transparent, so it read as solid.)
@@ -205,8 +205,9 @@ parts.forEach((p, i) => {
       name,
       pbrMetallicRoughness: {
         baseColorFactor: [...(role === "body-shell" ? BODY : p.color), 1],
-        metallicFactor: role ? 0 : 0.15,
-        roughnessFactor: role ? 0.75 : 0.6,
+        // The shell is satin metal: a soft brushed sheen, not a mirror (decision 16).
+        metallicFactor: role ? 0.8 : 0.15,
+        roughnessFactor: role ? 0.42 : 0.6,
       },
     });
   }

@@ -524,8 +524,8 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - It must not enter or block the ear canal.
 - **Discreetness comes first** (`CUE_CONTEXT.md` §26, decision 8): the form should go unnoticed, and appear small, elegant, and physically plausible.
 - When noticed, it should read as premium consumer hardware rather than a hearing aid.
-- Matte finishes only on visible surfaces; avoid gloss, chrome, and metallic sheen, because shine draws the eye.
-- Body: opaque, matte, in hair-matched tones (black, dark brown, light brown / dark blonde, gray).
+- No gloss, chrome, or mirror finishes on visible surfaces, because shine draws the eye. The body's satin metallic sheen is the one exception (decision 16): soft and brushed, never polished.
+- Body: opaque, **satin metallic grey** (decision 16). Matte hair-matched tones (black, dark brown, light brown / dark blonde, gray) are possible later variants.
 - Ear hook: thin (about 1 mm), frosted translucent with a faint neutral or smoke tint, sitting close to the head; never glossy clear. Matched-color hooks are optional extras.
 - Metal only in small details, such as the touch area or the logo, if at all.
 - Product geometry must remain consistent across every angle and colorway.
@@ -759,6 +759,7 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ### 2026-10-05
 
+- **Body is satin metallic grey** (`CUE_CONTEXT.md` §26, decision 16), replacing matte black (#1C1C1C) on the site: a soft brushed sheen, not chrome. §14 updated. The ear hook stays frosted translucent.
 - **3D device body is matte black (#1C1C1C)** on the site, replacing the dark brown (#3B2F2A) render; the hook stays frosted translucent. Black is one of the hair-matched tones in §14.
 - **Repetition removed** (`CUE_CONTEXT.md` §26, decision 15): the "rattle" cue is gone; §11 lists five cues, and the Pace family is rushing alone. The legend keeps three family columns with an empty Pace slot.
 - **3D device view replaces the big buzz icon.** The app's hero shows the cue word beside a 3D model of the BTE device built from the hardware CAD (`npm run cad` → `public/cad/cue-bte.glb`), in a matte dark brown body (`#3B2F2A`) with a frosted translucent ear hook, internals unchanged (§14, decision 8).

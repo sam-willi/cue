@@ -258,7 +258,7 @@ Exact schedules such as “100% in week one, 70% in week two” were illustrativ
 - **[CONFIRMED]** It is a single-ear product.
 - **[CONFIRMED]** It should be small, discreet, elegant, and logically wearable.
 - **[CONFIRMED]** **Discreetness comes first** (decision 8, 2026-10-05): it should go unnoticed in conversation. When it is noticed, it should read as premium consumer hardware rather than a hearing aid or medical device; BTE is also a hearing-aid form factor, so finish, proportion, and styling carry this distinction.
-- **[CONFIRMED]** Matte, wearer-matched finishes, not metallic (decision 8): a frosted translucent ear hook and an opaque matte body in hair-matched tones. Metal only in small details, if at all.
+- **[CONFIRMED]** A frosted translucent ear hook and an opaque body (decision 8); the body is **satin metallic grey**, a soft brushed sheen rather than a mirror finish (decision 16, which amends decision 8's matte, hair-matched body). Metal only in small details, if at all.
 - **[CONFIRMED]** All concept imagery must depict one consistent product geometry across angles, on-ear views, case views, and colorways.
 
 ### Candidate physical arrangement
@@ -266,7 +266,7 @@ Exact schedules such as “100% in week one, 70% in week two” were illustrativ
 **[WORKING ASSUMPTION]** A plausible architecture is a BTE body resting in the groove behind the ear, held by an ear hook over the top of the ear (as in `hardware/rev0/democad.step` on the `hardware-rev0` branch), with:
 
 - a skin-contact face, against the skin behind the ear, for vibration sensing and/or haptic transfer;
-- a small, opaque, matte shell containing electronics, in a hair-matched tone;
+- a small, opaque shell containing electronics, in satin metallic grey (decision 16);
 - a compliant silicone or elastomer contact surface for comfort and grip;
 - an ear hook with a ~1 mm nitinol wire core in a frosted, faintly tinted silicone or aliphatic-TPU sleeve, sitting close to the head (decision 8);
 - an inward-facing or shielded microphone port if acoustic sensing is required;
@@ -298,7 +298,7 @@ Status: the breadboard **kit** is wired but has no firmware; the **Rev A dev boa
 - **[CONFIRMED]** The retail system is expected to include one Cue device, not a left/right pair.
 - **[CONFIRMED]** Cue should have a dedicated charging case.
 - **[CONFIRMED]** Product storytelling should show the device itself prominently from multiple consistent angles, not let the case dominate.
-- **[CONFIRMED]** Offer the body in a small range of matte, hair-matched tones; the standard ear hook is frosted translucent (decision 8).
+- **[CONFIRMED]** The body is satin metallic grey (decision 16); the standard ear hook is frosted translucent (decision 8).
 
 ### Working case concept
 
@@ -314,7 +314,7 @@ Potential details:
 
 ### Working colorways
 
-- **[WORKING ASSUMPTION]** Body, matte, matched to common hair colors: black, dark brown, light brown / dark blonde, and gray. (The earlier silver, champagne, and graphite metallic set is superseded by decision 8.)
+- **[WORKING ASSUMPTION]** Body: satin metallic grey as the standard (decision 16). Matte hair-matched tones (black, dark brown, light brown / dark blonde, gray) remain possible later variants. (The earlier silver, champagne, and graphite metallic set is superseded by decision 8.)
 - **[WORKING ASSUMPTION]** Ear hook: frosted translucent with a faint neutral or smoke tint as the standard; matte skin- or hair-matched hooks as optional extras.
 - **[OPEN QUESTION]** Which body tones and hook tint disappear on the widest range of skin tones, hair colors, and hairstyles; test on people, not renders.
 - **[OPEN QUESTION]** Whether to offer any expressive accent finish (for example, iridescent or soft lilac) as an opt-in variant, given that discreetness comes first.
@@ -619,7 +619,7 @@ No numeric product claims should be published until measured in appropriate stud
 - **[CONFIRMED]** Name: **Cue**.
 - **[CONFIRMED]** Brand should be modern, creative, Gen Z–aware, and more than plain wordmark typography.
 - **[CONFIRMED]** Visual identity may incorporate a person speaking, a speech gesture, a subtle waveform, a pause, or a “cue” signal.
-- **[CONFIRMED]** Product aesthetic: discreet first (matte, wearer-matched, decision 8), then elegant and premium.
+- **[CONFIRMED]** Product aesthetic: discreet first, then elegant and premium: a satin metallic grey body and a frosted ear hook (decisions 8 and 16).
 - **[CONFIRMED]** Avoid medical-device, hearing-aid, surveillance, punishment, and corporate presentation-software aesthetics.
 
 ### Voice
@@ -780,13 +780,15 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 
 ## 25. Concise agent handoff summary
 
-Cue is a **single, discreet behind-the-ear (BTE) device** with matte, wearer-matched finishes and a thin frosted ear hook—not an ear cuff and not an earbud—that coaches speaking during real conversations. The hero loop is **filler pattern detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement** (tapping on patterns rather than every filler is a working assumption, decision 14). It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use six rhythm-coded haptic cues in three families (Space, Pace, Voice; decision 12), use the device's touch surface only for on/off and Conversation/Presentation switching (not coaching), avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio (the MVP's disclosed cloud transcription is a prototype exception, decision 9). Start with the web app and a simple BLE haptic device (decision 10), then validate device sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is discreet first (matte, wearer-matched body tones, a thin frosted translucent ear hook, no metallic sheen), then small, elegant, Gen Z–aware, and consistent across all angles, with a one-device charging case. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
+Cue is a **single, discreet behind-the-ear (BTE) device** with a satin metallic grey body and a thin frosted ear hook—not an ear cuff and not an earbud—that coaches speaking during real conversations. The hero loop is **filler pattern detected in context → private haptic cue → user pauses/slows/speaks up → Cue observes improvement** (tapping on patterns rather than every filler is a working assumption, decision 14). It must distinguish filler “like” from semantic “like,” also address rushing, poor pauses and speaking too quietly, use six rhythm-coded haptic cues in three families (Space, Pace, Voice; decision 12), use the device's touch surface only for on/off and Conversation/Presentation switching (not coaching), avoid cueing every event, and fade feedback to test retained learning. The companion app is simple, supportive, and progress-oriented; everyday mode should favor local processing and derived events rather than stored audio (the MVP's disclosed cloud transcription is a prototype exception, decision 9). Start with the web app and a simple BLE haptic device (decision 10), then validate device sensing, fit, battery, and miniaturization before promising production feasibility. The hardware aesthetic is discreet first (matte, wearer-matched body tones, a thin frosted translucent ear hook, no metallic sheen), then small, elegant, Gen Z–aware, and consistent across all angles, with a one-device charging case. `US20240144956A1` was abandoned in April 2026 but remains prior art; Cue is not patent-cleared, and its adaptive intervention/learning loop is the more interesting differentiation. Preserve confirmed choices, label assumptions, and do not overclaim.
 
 ## 26. Decision log
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
 ### 2026-10-05 — Owner decisions for the software MVP
+
+16. **The body is satin metallic grey.** Amends decision 8's matte, hair-matched body: the shell is a grey with a soft brushed-metal sheen, not a mirror or chrome finish. The ear hook stays frosted translucent, and discreetness still comes first: no gloss or chrome. *Previously:* an opaque matte body in hair-matched tones (dark brown, then matte black on the site). *Rationale:* owner preference; a satin rather than polished finish keeps the sheen soft so it draws less attention.
 
 15. **Repeated words are not coached.** Cue no longer detects or taps for accidental repetition ("I, I, I think", "and then, and then"), and its "rattle" cue is gone, leaving five cues; the Pace family is rushing alone. *Previously:* repetition counted toward the filler pattern in Conversation, with its own rattle cue (decision 12), and was shown after the session in Presentation. *Rationale:* owner decision: the behavior and its fix (pause, then restart the sentence) were unclear to users, and the fix is the same pause the filler cue already asks for.
 
