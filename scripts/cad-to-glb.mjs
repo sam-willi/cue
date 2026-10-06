@@ -180,11 +180,105 @@ const HOOK = hex("#BDB8B1");
 const HOOK_OPACITY = 0.4;
 const bodyBox = all;
 const roleOf = (p) => {
-  if (Math.max(...p.box.size) <= 15) return null;
+  // Round parts that show through the skin-side shell (the motor and sensor windows) take the
+  // body's finish, so the device reads as one object.
+  if (Math.max(...p.box.size) <= 15) return isRound(p.box) && p.box.min[2] < all.min[2] + 3.5 ? "skin-part" : null;
   const outside = p.box.center[0] < bodyBox.min[0] + 0.25 * bodyBox.size[0] || p.box.center[1] > 0.6 * bodyBox.max[1];
   if (outside) return "ear-hook";
   return p.box.size[2] > 4 ? "body-shell" : null; // the shell halves, not the frame or board inside
 };
+
+/**
+ * A web stand-in for the ear hook (owner request, 2026-10-05): a smooth tapered tube on a
+ * teardrop curve, thicker where it leaves the body and thinner toward a rounded tip, with a
+ * gentle curl toward the head. Same attachment point and footprint as the CAD hook; the CAD
+ * itself should be updated to match. Set ORGANIC_HOOK = false to render the CAD hook.
+ */
+const ORGANIC_HOOK = true;
+function organicHook() {
+  // Centerline in the CAD frame (mm), traced from the CAD hook and softened. Starts inside the shell.
+  const K = [
+    [-5.8, 22.0, 0.0],
+    [-6.6, 27.0, 0.0],
+    [-9.2, 33.2, 0.3],
+    [-14.5, 37.6, 0.6],
+    [-21.0, 38.6, 0.8],
+    [-27.0, 36.2, 0.8],
+    [-31.2, 30.5, 0.5],
+    [-32.8, 23.5, 0.1],
+    [-32.0, 17.8, -0.3],
+  ];
+  const sub = (a, b) => a.map((v, k) => v - b[k]);
+  const add = (a, b) => a.map((v, k) => v + b[k]);
+  const mul = (a, f) => a.map((v) => v * f);
+  const len = (a) => Math.hypot(...a);
+  const norm = (a) => mul(a, 1 / (len(a) || 1));
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  // Uniform Catmull-Rom through the knots.
+  const at = (t) => {
+    const f = t * (K.length - 1);
+    const i = Math.min(K.length - 2, Math.floor(f));
+    const u = f - i;
+    const p0 = K[Math.max(0, i - 1)];
+    const [p1, p2] = [K[i], K[i + 1]];
+    const p3 = K[Math.min(K.length - 1, i + 2)];
+    return [0, 1, 2].map(
+      (k) =>
+        0.5 *
+        (2 * p1[k] +
+          (-p0[k] + p2[k]) * u +
+          (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * u * u +
+          (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * u * u * u),
+    );
+  };
+  const radius = (t) => 0.95 + 0.8 * Math.pow(1 - t, 1.4); // 1.75 mm at the body → 0.95 mm at the tip
+  const FLAT = 0.85; // slightly flattened toward the head
+  const N = 160;
+  const M = 28;
+  const pos = [];
+  const nrm = [];
+  const rings = [];
+  const ring = (c, nAxis, bAxis, r) => {
+    rings.push(pos.length / 3);
+    for (let j = 0; j < M; j++) {
+      const a = (j / M) * 2 * Math.PI;
+      const [ca, sa] = [Math.cos(a), Math.sin(a)];
+      pos.push(...add(c, add(mul(nAxis, ca * r), mul(bAxis, sa * r * FLAT))));
+      nrm.push(...norm(add(mul(nAxis, ca / r), mul(bAxis, sa / (r * FLAT)))));
+    }
+  };
+  const Z = [0, 0, 1];
+  let last;
+  for (let k = 0; k <= N; k++) {
+    const t = k / N;
+    const c = at(t);
+    const T = norm(sub(at(Math.min(1, t + 1e-3)), at(Math.max(0, t - 1e-3))));
+    const nAxis = norm(cross(Z, T));
+    const bAxis = cross(T, nAxis);
+    ring(c, nAxis, bAxis, radius(t));
+    last = { c, T, nAxis, bAxis };
+  }
+  // Rounded tip: shrinking rings, then a point.
+  const r0 = radius(1);
+  for (let k = 1; k <= 6; k++) {
+    const phi = (k / 7) * (Math.PI / 2);
+    ring(add(last.c, mul(last.T, r0 * Math.sin(phi))), last.nAxis, last.bAxis, r0 * Math.cos(phi));
+  }
+  const tip = pos.length / 3;
+  pos.push(...add(last.c, mul(last.T, r0)));
+  nrm.push(...last.T);
+  const idx = [];
+  for (let k = 0; k + 1 < rings.length; k++)
+    for (let j = 0; j < M; j++) {
+      const [a, b] = [rings[k] + j, rings[k] + ((j + 1) % M)];
+      const [c, d] = [rings[k + 1] + j, rings[k + 1] + ((j + 1) % M)];
+      idx.push(a, c, b, b, c, d);
+    }
+  const lastRing = rings[rings.length - 1];
+  for (let j = 0; j < M; j++) idx.push(lastRing + j, tip, lastRing + ((j + 1) % M));
+  const positions = Float32Array.from(pos);
+  return { positions, normals: Float32Array.from(nrm), indices: Uint32Array.from(idx), box: bounds(positions) };
+}
 
 const meshes = [];
 const materials = [];
@@ -193,6 +287,7 @@ parts.forEach((p, i) => {
   const isMotor = motorParts.includes(p);
   const role = roleOf(p);
   const name = isMotor ? `motor-${i}` : role ? `${role}-${i}` : `part-${i}`;
+  if (role === "ear-hook" && ORGANIC_HOOK) Object.assign(p, organicHook());
   if (role === "ear-hook") {
     materials.push({
       name,
@@ -204,7 +299,7 @@ parts.forEach((p, i) => {
     materials.push({
       name,
       pbrMetallicRoughness: {
-        baseColorFactor: [...(role === "body-shell" ? BODY : p.color), 1],
+        baseColorFactor: [...(role ? BODY : p.color), 1],
         // The shell is satin metal: a soft brushed sheen, not a mirror (decision 16).
         metallicFactor: role ? 0.8 : 0.15,
         roughnessFactor: role ? 0.42 : 0.6,
