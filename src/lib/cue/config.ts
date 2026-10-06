@@ -99,7 +99,7 @@ export interface CueConfig {
   /** …for at least this long, seconds. */
   quietSustainSec: number;
   muted: boolean;
-  /** Six distinct cues (decision 12); off plays only each family's root ("simpler cues"). */
+  /** Five distinct cues (decisions 12 and 15); off plays only each family's root ("simpler cues"). */
   distinctCues: boolean;
 }
 
