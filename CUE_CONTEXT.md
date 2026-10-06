@@ -788,6 +788,8 @@ Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
 ### 2026-10-05 — Owner decisions for the software MVP
 
+17. **Volume feedback can be switched off per mode.** Amends decision 13: someone who doesn't want volume coaching turns off "Volume feedback" for a mode and never has to set a volume for it; no too-quiet cues fire in that mode. The choice is saved on the device. *Rationale:* owner request; calibrating should be optional for people who don't need speak-up cues.
+
 16. **The body is satin metallic grey.** Amends decision 8's matte, hair-matched body: the shell is a grey with a soft brushed-metal sheen, not a mirror or chrome finish. The ear hook stays frosted translucent, and discreetness still comes first: no gloss or chrome. *Previously:* an opaque matte body in hair-matched tones (dark brown, then matte black on the site). *Rationale:* owner preference; a satin rather than polished finish keeps the sheen soft so it draws less attention.
 
 15. **Repeated words are not coached.** Cue no longer detects or taps for accidental repetition ("I, I, I think", "and then, and then"), and its "rattle" cue is gone, leaving five cues; the Pace family is rushing alone. *Previously:* repetition counted toward the filler pattern in Conversation, with its own rattle cue (decision 12), and was shown after the session in Presentation. *Rationale:* owner decision: the behavior and its fix (pause, then restart the sentence) were unclear to users, and the fix is the same pause the filler cue already asks for.

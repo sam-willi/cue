@@ -106,3 +106,14 @@ describe("pcmDbfs", () => {
     expect(pcmDbfs(new Int16Array(800))).toBe(-100);
   });
 });
+
+describe("volume feedback switch", () => {
+  it("gives no too-quiet cues in a mode where volume feedback is off", () => {
+    const { session } = talk(40, (t) => (t < 22 ? -20 : -30), {
+      volumeCues: { conversation: false, presentation: true },
+    });
+    const cues = quietCues(session);
+    expect(cues.filter((d) => d.delivered)).toEqual([]);
+    expect(cues.map((d) => d.withheldReason)).toEqual(["category_off"]);
+  });
+});

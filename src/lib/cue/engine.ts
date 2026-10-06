@@ -177,6 +177,7 @@ export class DecisionEngine {
   private gate(event: SpeechEvent): CueDecision["withheldReason"] {
     const c = this.config();
     if (!c.categories[CATEGORY[event.type]]) return "category_off";
+    if (event.type === "too_quiet" && !c.volumeCues[c.mode]) return "category_off";
     if (isPresentation(c) && (PRESENTATION.notLive as readonly BehaviorType[]).includes(event.type)) return "mode_off";
     if (event.confidence < c.minConfidence) return "low_confidence";
     if (c.muted) return "muted";

@@ -256,6 +256,8 @@ export default function CueApp() {
       setRememberKey(saved !== null);
       const targets = localStorage.getItem(VOLUME_STORAGE);
       if (targets) setConfig((c) => ({ ...c, volumeTarget: JSON.parse(targets) }));
+      const cues = localStorage.getItem(VOLUME_CUES_STORAGE);
+      if (cues) setConfig((c) => ({ ...c, volumeCues: { ...c.volumeCues, ...JSON.parse(cues) } }));
     } catch {
       // Storage blocked (private window, previews): the key just isn't remembered.
     }
@@ -447,6 +449,18 @@ export default function CueApp() {
 
   const live = status === "listening" || status === "connecting";
   const volumeSet = !!config.volumeTarget[config.mode];
+  const volumeOn = config.volumeCues[config.mode];
+  const modeName = MODE_LABEL[config.mode].toLowerCase();
+  const setVolumeCues = (on: boolean) =>
+    setConfig((c) => {
+      const volumeCues = { ...c.volumeCues, [c.mode]: on };
+      try {
+        localStorage.setItem(VOLUME_CUES_STORAGE, JSON.stringify(volumeCues));
+      } catch {
+        // Storage blocked: the choice lasts until the page closes.
+      }
+      return { ...c, volumeCues };
+    });
   const endSession = () => {
     stopAll();
     if (recordAudioRef.current) {
@@ -665,14 +679,17 @@ export default function CueApp() {
                 }
               />
               <Switch label="Cue on" on={!config.muted} onChange={(v) => setConfig((c) => ({ ...c, muted: !v }))} />
+              <Switch label={`Volume feedback in ${modeName}`} on={volumeOn} onChange={setVolumeCues} />
               <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
             </div>
             <p className="mt-4 max-w-md text-body-sm text-muted">
-              {volumeNote ??
-                (volumeSet
-                  ? `Your ${MODE_LABEL[config.mode].toLowerCase()} volume is set.`
-                  : `Too-quiet cues are off until you set your ${MODE_LABEL[config.mode].toLowerCase()} volume.`)}{" "}
-              {!live && status !== "demo" && (
+              {!volumeOn
+                ? `No volume feedback in ${modeName}, so there's nothing to set.`
+                : (volumeNote ??
+                  (volumeSet
+                    ? `Your ${modeName} volume is set.`
+                    : `Speak-up cues start once you set your ${modeName} volume.`))}{" "}
+              {volumeOn && !live && status !== "demo" && (
                 <button
                   onClick={() => {
                     setVolumeNote(null);
@@ -755,19 +772,21 @@ export default function CueApp() {
                 <Meter
                   label="Volume"
                   value={
-                    !volume
-                      ? "Measuring once you speak"
-                      : volume.baselineDb === null || volume.expectedDb === null
-                        ? "Set your volume to compare against it"
-                        : volume.db === null
-                          ? "Volume set"
-                          : `${formatDb(volume.db - volume.expectedDb)} from your set volume${
-                              Math.abs(volume.expectedDb - volume.baselineDb) >= 3
-                                ? volume.expectedDb > volume.baselineDb
-                                  ? " for this noisy room"
-                                  : " for this quiet room"
-                                : ""
-                            }`
+                    !volumeOn
+                      ? `Volume feedback is off in ${modeName}`
+                      : !volume
+                        ? "Measuring once you speak"
+                        : volume.baselineDb === null || volume.expectedDb === null
+                          ? "Set your volume to compare against it"
+                          : volume.db === null
+                            ? "Volume set"
+                            : `${formatDb(volume.db - volume.expectedDb)} from your set volume${
+                                Math.abs(volume.expectedDb - volume.baselineDb) >= 3
+                                  ? volume.expectedDb > volume.baselineDb
+                                    ? " for this noisy room"
+                                    : " for this quiet room"
+                                  : ""
+                              }`
                   }
                   frac={
                     volume?.expectedDb != null && volume.db !== null
@@ -1419,6 +1438,7 @@ function DeepgramKey({
 }
 
 const VOLUME_STORAGE = "cue.volumeTarget";
+const VOLUME_CUES_STORAGE = "cue.volumeCues";
 
 /** Legend order: one column per cue family (Voice, Pace, Space). */
 const LEGEND_GRID: (CueKind | null)[] = ["filler_um", "rushing", "no_pause", "too_quiet", null, "long_turn"];
