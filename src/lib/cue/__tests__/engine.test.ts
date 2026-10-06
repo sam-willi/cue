@@ -70,15 +70,6 @@ describe("decision engine (SOFTWARE.md §7, §12–14)", () => {
     expect(s.engineTaps().find((t) => t.id === tap.event.id)?.outcome).toBe("no_change");
   });
 
-  it("counts accidental repetition as a disfluency, not emphasis", () => {
-    const s = new CueSession({ tapOn: "every" });
-    speak(s, ["I I I think we should go", "it is very very important", "and then and then we left"]);
-    expect(s.history.filter((d) => d.event.type === "repetition").map((d) => d.event.reason)).toEqual([
-      '"i" said 3 times in a row',
-      '"and then" repeated',
-    ]);
-  });
-
   it("taps after a long stretch without a pause, and sees when the user pauses", () => {
     const s = new CueSession();
     const long = Array.from({ length: 7 }, () => CLEAN).join(" "); // ~38 s with no pause
@@ -137,14 +128,18 @@ describe("Presentation mode (decision 11)", () => {
     expect(taps(s)).toEqual([]);
   });
 
-  it("detects long turns and repetition but doesn't tap for them", () => {
+  it("detects long turns but doesn't tap for them", () => {
     const s = presenting();
-    speak(s, ["I, I, I think the plan works", ...Array(40).fill(CLEAN)], { gap: 0.4 });
-    const held = (type: string) => s.history.filter((d) => d.event.type === type).map((d) => d.withheldReason);
-    expect(held("repetition")).toContain("mode_off");
-    expect(held("long_turn")).toContain("mode_off");
+    speak(s, Array(40).fill(CLEAN), { gap: 0.4 });
+    const held = s.history.filter((d) => d.event.type === "long_turn").map((d) => d.withheldReason);
+    expect(held).toContain("mode_off");
     expect(taps(s)).not.toContain("long_turn");
-    expect(taps(s)).not.toContain("repetition");
+  });
+
+  it("doesn't treat repeated words as fillers", () => {
+    const s = new CueSession({ tapOn: "every" });
+    speak(s, ["I I I think we should go", "and then and then we left"]);
+    expect(s.history.filter((d) => d.event.type.startsWith("filler_"))).toEqual([]);
   });
 
   it("taps for no pause after 22 s, sooner than Conversation's 30 s", () => {

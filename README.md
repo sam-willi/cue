@@ -10,17 +10,16 @@ This repository is the **software MVP**: a web app that listens through the micr
 
 ## How Cue decides to tap
 
-Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). Detectors notice fillers, repetition, pace, pauses, turn length and volume; a **decision engine** (`src/lib/cue/engine.ts`) asks whether a tap would help right now. There are two modes, switched in the app or by double-tapping the device:
+Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). Detectors notice fillers, pace, pauses, turn length and volume; a **decision engine** (`src/lib/cue/engine.ts`) asks whether a tap would help right now. There are two modes, switched in the app or by double-tapping the device:
 
-|                  | Conversation                                   | Presentation                                                               |
-| ---------------- | ---------------------------------------------- | -------------------------------------------------------------------------- |
-| Fillers          | 3 fillers or repeats within 12 s, or 8 per min | um/uh above 5 per min over the last 60 s; "like"/"lowkey" count half       |
-| Rushing          | 4.5 syl/s, then 20% over your own pace         | 4.0 syl/s, then 10% over your own pace                                     |
-| No pause         | 30 s without a pause                           | 22 s without a ≥0.6 s pause                                                |
-| Long turn        | 90 s                                           | Not live (a talk is one long turn)                                         |
-| Repetition       | Live, as part of the filler pattern            | Not live; shown in the after-session review                                |
-| Too quiet        | 6 dB under your calibrated volume for 3 s      | 6 dB under your calibrated volume for 10 s                                 |
-| Gap between taps | 15 s cooldown (setting: 10–20 s)               | At least 25 s, at most 2 taps per minute; only the highest priority taps\* |
+|                  | Conversation                              | Presentation                                                               |
+| ---------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
+| Fillers          | 3 fillers within 12 s, or 8 per min       | um/uh above 5 per min over the last 60 s; "like"/"lowkey" count half       |
+| Rushing          | 4.5 syl/s, then 20% over your own pace    | 4.0 syl/s, then 10% over your own pace                                     |
+| No pause         | 30 s without a pause                      | 22 s without a ≥0.6 s pause                                                |
+| Long turn        | 90 s                                      | Not live (a talk is one long turn)                                         |
+| Too quiet        | 6 dB under your calibrated volume for 3 s | 6 dB under your calibrated volume for 10 s                                 |
+| Gap between taps | 15 s cooldown (setting: 10–20 s)          | At least 25 s, at most 2 taps per minute; only the highest priority taps\* |
 
 \* Presentation priority when several are due at once: rushing > no pause > filler > too quiet. The Presentation numbers are research-based starting points to test ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 11).
 
@@ -38,7 +37,6 @@ Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). 
 | Quote "like" ("she was like, no way") | On by default, toggle in Settings                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | "About" "like" ("like twenty people") | Off by default, toggle in Settings                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Filler "lowkey"                       | Its own classifier (`lowkeyClassifier.ts`): "it's lowkey good" counts; "keep it low-key" doesn't.                                                                                                                                                                                                                                                                                                                                                                         |
-| Accidental repetition                 | Repeated words or short phrases close together ("I, I, I think"); deliberate emphasis ("very, very important") doesn't count.                                                                                                                                                                                                                                                                                                                                             |
 | Speaking too fast                     | Syllables per second over a rolling 8 s window, pauses over 0.6 s excluded, sustained for 3 s. Thresholds above.                                                                                                                                                                                                                                                                                                                                                          |
 | No pause                              | Time since your last meaningful pause.                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Long turn                             | How long your current speaking turn has run ("give the other person space"). Conversation only.                                                                                                                                                                                                                                                                                                                                                                           |
@@ -46,18 +44,17 @@ Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). 
 
 "um"/"uh" are detected on the first confident result (confidence ≥ 0.8), and a clear filler "like" as soon as the next word is heard; ambiguous cases wait for more words. Detection is not the same as a tap: taps follow the pattern rules above. Each cue's measured delay appears in the app.
 
-### Six cues
+### Five cues
 
 Each behavior has its own rhythm, in three families. Every cue starts with a sharp onset (`src/lib/cue/patterns.ts`).
 
-| Family | Behavior   | Haptic                                         | Action     |
-| ------ | ---------- | ---------------------------------------------- | ---------- |
-| Space  | No pause   | One tap (50 ms)                                | Breathe    |
-| Space  | Long turn  | Two knocks (50 on, 150 off, 50 on)             | Give space |
-| Pace   | Rushing    | Slow steps (three 100 ms pulses, 250 ms apart) | Slow down  |
-| Pace   | Repetition | Rattle (four 30 ms ticks, 60 ms apart)         | Reset      |
-| Voice  | Fillers    | Tap and hum (40 ms tap, 90 ms gap, 280 ms hum) | Pause      |
-| Voice  | Too quiet  | Long push (450 ms)                             | Speak up   |
+| Family | Behavior  | Haptic                                         | Action     |
+| ------ | --------- | ---------------------------------------------- | ---------- |
+| Space  | No pause  | One tap (50 ms)                                | Breathe    |
+| Space  | Long turn | Two knocks (50 on, 150 off, 50 on)             | Give space |
+| Pace   | Rushing   | Slow steps (three 100 ms pulses, 250 ms apart) | Slow down  |
+| Voice  | Fillers   | Tap and hum (40 ms tap, 90 ms gap, 280 ms hum) | Pause      |
+| Voice  | Too quiet | Long push (450 ms)                             | Speak up   |
 
 The **Simpler cues** setting plays only each family's root: one tap (Space), slow steps (Pace), long push (Voice). On screen, each cue is drawn as rings leaving the motor on the 3D device. A faint gray ring means "noticed, not a pattern yet", a testing aid.
 
@@ -115,11 +112,11 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram Flux (v2/listen, flux-gene
                                    parse (src/lib/deepgram/parse.ts)
                                            ▼
        CueSession: bone gate (wearer's words only) ─▶ detectors
-         um/uh · like · lowkey · repetition · pace · no pause · long turn · too quiet
+         um/uh · like · lowkey · pace · no pause · long turn · too quiet
                                            ▼
        DecisionEngine: pattern? confident? mode? gap since last tap? natural break?
                                            ▼
-                                  haptic pattern (six cues)
+                                  haptic pattern (five cues)
 ```
 
 | Path                                  | Role                                                                                        |
@@ -130,7 +127,7 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram Flux (v2/listen, flux-gene
 | `src/lib/cue/lowkeyClassifier.ts`     | Decides whether "lowkey" is a filler                                                        |
 | `src/lib/cue/pace.ts`, `syllables.ts` | Rolling speaking rate                                                                       |
 | `src/lib/cue/loudness.ts`             | Speech loudness, room noise and the too-quiet check                                         |
-| `src/lib/cue/patterns.ts`             | The six haptic cues and the touch-control ramps                                             |
+| `src/lib/cue/patterns.ts`             | The five haptic cues and the touch-control ramps                                            |
 | `src/lib/cue/touch.ts`                | Touch gestures (hold = on/off, double-tap = mode)                                           |
 | `src/lib/cue/evaluate.ts`             | Scores saved sessions and training recordings for `npm run eval`                            |
 | `src/lib/cue/config.ts`               | Defaults and mode presets                                                                   |

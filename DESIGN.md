@@ -3,7 +3,7 @@
 > **Purpose:** Canonical visual and interaction design guidance for Cue. Product, brand, UI, marketing, industrial-design, and image-generation work should follow this file together with [`CUE_CONTEXT.md`](./CUE_CONTEXT.md).
 >
 > **Status:** Direction approved; production artwork remains to be drawn and validated.  
-> **Last updated:** 2026-10-05 (six haptic cues, the 3D device view, and dark-mode app tokens synced with `CUE_CONTEXT.md` §26; see §25)
+> **Last updated:** 2026-10-05 (five haptic cues, the 3D device view, and dark-mode app tokens synced with `CUE_CONTEXT.md` §26; see §25)
 
 ## Contents
 
@@ -485,7 +485,6 @@ Motion should feel like a breath or a gentle cue—not an alarm.
   | Space | No pause | One tap | Breathe |
   | Space | Long turn | Two knocks | Give space |
   | Pace | Rushing | Slow steps (three pulses) | Slow down |
-  | Pace | Repetition | Rattle (four quick ticks) | Reset |
   | Voice | Filler pattern | Tap and hum | Pause |
   | Voice | Too quiet | Long push | Speak up |
 
@@ -760,6 +759,8 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ### 2026-10-05
 
+- **3D device body is matte black (#1C1C1C)** on the site, replacing the dark brown (#3B2F2A) render; the hook stays frosted translucent. Black is one of the hair-matched tones in §14.
+- **Repetition removed** (`CUE_CONTEXT.md` §26, decision 15): the "rattle" cue is gone; §11 lists five cues, and the Pace family is rushing alone. The legend keeps three family columns with an empty Pace slot.
 - **3D device view replaces the big buzz icon.** The app's hero shows the cue word beside a 3D model of the BTE device built from the hardware CAD (`npm run cad` → `public/cad/cue-bte.glb`), in a matte dark brown body (`#3B2F2A`) with a frosted translucent ear hook, internals unchanged (§14, decision 8).
 - **Six haptic cues, drawn as rings from the motor** (`CUE_CONTEXT.md` §26, decision 12). §11 now lists six cues in three families (Space, Pace, Voice) instead of three rhythms; each cue's rings leave the LRA motor on the 3D device in its rhythm, and touch-control ramps show as a neutral glow with no rings.
 - **Noticed ring** as a testing aid: a faint gray ring for a filler that was detected but isn't a pattern yet (§11).

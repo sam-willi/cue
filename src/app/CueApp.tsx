@@ -29,7 +29,6 @@ const LABEL: Record<CueKind, string> = {
   filler_uh: "“uh”",
   filler_like: "filler “like”",
   filler_lowkey: "“lowkey”",
-  repetition: "repeated words",
   no_pause: "no pause",
   long_turn: "a long turn",
   rushing: "speaking fast",
@@ -696,7 +695,8 @@ export default function CueApp() {
                     {family}
                   </p>
                 ))}
-                {LEGEND_GRID.map((kind) => {
+                {LEGEND_GRID.map((kind, k) => {
+                  if (!kind) return <div key={`empty-${k}`} aria-hidden />;
                   const p = patternFor(kind, config.distinctCues);
                   const label = CUE_LEGEND.find((c) => c.kind === kind)!.label;
                   return (
@@ -1175,19 +1175,17 @@ export default function CueApp() {
                     What Cue coaches
                   </legend>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {(["um", "uh", "like", "lowkey", "repetition", "rushing", "pauses", "turns", "quiet"] as const).map(
-                      (k) => (
-                        <Chip
-                          key={k}
-                          on={config.categories[k]}
-                          onClick={() =>
-                            setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))
-                          }
-                        >
-                          {CHIP_LABEL[k] ?? `“${k}”`}
-                        </Chip>
-                      ),
-                    )}
+                    {(["um", "uh", "like", "lowkey", "rushing", "pauses", "turns", "quiet"] as const).map((k) => (
+                      <Chip
+                        key={k}
+                        on={config.categories[k]}
+                        onClick={() =>
+                          setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))
+                        }
+                      >
+                        {CHIP_LABEL[k] ?? `“${k}”`}
+                      </Chip>
+                    ))}
                   </div>
                 </fieldset>
 
@@ -1403,10 +1401,9 @@ function DeepgramKey({
 const VOLUME_STORAGE = "cue.volumeTarget";
 
 /** Legend order: one column per cue family (Voice, Pace, Space). */
-const LEGEND_GRID: CueKind[] = ["filler_um", "rushing", "no_pause", "too_quiet", "repetition", "long_turn"];
+const LEGEND_GRID: (CueKind | null)[] = ["filler_um", "rushing", "no_pause", "too_quiet", null, "long_turn"];
 
 const CHIP_LABEL: Partial<Record<keyof CueConfig["categories"], string>> = {
-  repetition: "Repeating words",
   rushing: "Speaking fast",
   pauses: "No pauses",
   turns: "Long turns",

@@ -15,7 +15,7 @@ export const PACE_PRESETS: Record<Exclude<PaceMode, "custom">, { label: string; 
 
 /**
  * Presentation mode (CUE_CONTEXT.md §26, decision 11). A talk is one long turn, so long turns
- * don't tap, and repetition is left for the after-session review. Fillers tap on rate, not
+ * don't tap and are left for the after-session review. Fillers tap on rate, not
  * clusters: audiences mark speakers down at around 5+ per minute, mostly for um/uh (Laske et
  * al. 2024). Taps are sparser, since one prompt about every 20 s beat continuous feedback
  * (Rhema, Tanveer et al. 2015). When several behaviors are due, the order of consideration
@@ -23,7 +23,7 @@ export const PACE_PRESETS: Record<Exclude<PaceMode, "custom">, { label: string; 
  */
 export const PRESENTATION = {
   /** Behaviors detected but not tapped live in Presentation mode. */
-  notLive: ["repetition", "long_turn"] as const,
+  notLive: ["long_turn"] as const,
   noPauseSec: 22,
   /** Filler taps fire when the weighted rate over the last minute is above this. */
   fillerRatePerMin: 5,
@@ -46,7 +46,6 @@ export interface CueConfig {
     uh: boolean;
     like: boolean;
     lowkey: boolean;
-    repetition: boolean;
     rushing: boolean;
     pauses: boolean;
     turns: boolean;
@@ -57,7 +56,7 @@ export interface CueConfig {
    * "every": tap on each filler, for testing detection.
    */
   tapOn: "patterns" | "every";
-  /** A cluster: this many fillers or repetitions… */
+  /** A cluster: this many fillers… */
   clusterCount: number;
   /** …within this many seconds. */
   clusterWindowSec: number;
@@ -110,7 +109,6 @@ export const DEFAULT_CONFIG: CueConfig = {
     uh: true,
     like: true,
     lowkey: true,
-    repetition: true,
     rushing: true,
     pauses: true,
     turns: true,

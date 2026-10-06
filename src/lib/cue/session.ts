@@ -325,23 +325,6 @@ export class CueSession {
         disfluent(this.event("filler_lowkey", { ...w, end: last.end }, v.confidence, v.reason, words, i));
         continue;
       }
-
-      // Repetition ("I, I, I think", "and then, and then"): judged once the run has ended.
-      if (stable) {
-        const rep = findRepetition(words, i, rightClosed);
-        if (rep && !this.isDecided("repetition", words[rep.from].start, words[rep.from - 1]?.norm ?? "")) {
-          this.markDecided("repetition", words[rep.from].start, words[rep.from - 1]?.norm ?? "");
-          const ev = this.event(
-            "repetition",
-            { ...words[rep.from], end: words[i].end },
-            rep.confidence,
-            rep.reason,
-            words,
-            i,
-          );
-          disfluent(ev);
-        }
-      }
     }
 
     // --- Sustained behaviors -------------------------------------------------
@@ -589,10 +572,6 @@ function contextAround(words: Word[], i: number): string {
     .join(" ");
 }
 
-function isHesitation(w: Word): boolean {
-  return UM_FORMS.has(w.norm) || UH_FORMS.has(w.norm);
-}
-
 /** Seconds of speech in `words`, excluding pauses longer than 0.6 s. */
 function speakingSecondsOf(words: Word[]): number {
   let total = 0;
@@ -620,44 +599,4 @@ function turnStart(all: Word[], isWearer: (w: Word) => boolean): number {
     if (k > 0 && all[k].start - all[k - 1].end >= TURN_GAP) break;
   }
   return start;
-}
-
-/** Words that are often repeated on purpose ("very, very", "no, no", "bye bye"). */
-const INTENTIONAL_REPEATS = new Set(
-  "very really so no yeah yes yep bye ha haha hey ok okay well wow please go come that had is more much bla blah".split(
-    " ",
-  ),
-);
-
-/**
- * Accidental repetition ending at word `i`: a word said 2+ times in a row ("I, I, I think")
- * or a two-word phrase repeated ("and then, and then"). Words often repeated for emphasis
- * don't count. Returns the run's first index and a confidence, once the run has ended.
- */
-function findRepetition(
-  words: Word[],
-  i: number,
-  rightClosed: boolean,
-): { from: number; confidence: number; reason: string } | null {
-  const w = words[i];
-  if (!w || INTENTIONAL_REPEATS.has(w.norm) || isHesitation(w) || w.norm === "like") return null;
-  const next = words[i + 1];
-  // Single word repeated
-  if (words[i - 1]?.norm === w.norm) {
-    if (next?.norm === w.norm) return null; // run continues; judge at its end
-    if (!next && !rightClosed) return null;
-    let from = i;
-    while (from > 0 && words[from - 1].norm === w.norm) from--;
-    const n = i - from + 1;
-    return { from, confidence: n >= 3 ? 0.9 : 0.82, reason: `"${w.norm}" said ${n} times in a row` };
-  }
-  // Two-word phrase repeated: "and then and then"
-  const a = words[i - 3];
-  const b = words[i - 2];
-  const c = words[i - 1];
-  if (a && b && c && a.norm === c.norm && b.norm === w.norm && a.norm !== b.norm && !INTENTIONAL_REPEATS.has(a.norm)) {
-    if (next && words[i + 1]?.norm === a.norm && words[i + 2]?.norm === w.norm) return null; // continues
-    return { from: i - 3, confidence: 0.88, reason: `"${c.norm} ${w.norm}" repeated` };
-  }
-  return null;
 }

@@ -71,7 +71,7 @@ Likely early adopter segments:
 ### Core use cases
 
 - **Everyday training:** Wear Cue during normal conversations and receive sparse, private cues.
-- **Presentation mode:** Use during a talk, pitch, or interview with rarer, prioritized cues (decision 11): rushing, no pause, filler rate, and too quiet are live; long turn and repetition are not (repetition is shown in the after-session review). **Conversation mode** is the everyday default.
+- **Presentation mode:** Use during a talk, pitch, or interview with rarer, prioritized cues (decision 11): rushing, no pause, filler rate, and too quiet are live; long turn is not. **Conversation mode** is the everyday default.
 - **Practice session:** Deliberately record a short speech, review detected events, and train context recognition.
 - **Baseline/calibration:** Speak naturally for several minutes so the system can estimate pace, pause patterns, common fillers, and usable sensor thresholds.
 - **Retention assessment:** Receive no or very little feedback during selected windows so Cue can measure whether improvement persists.
@@ -116,18 +116,17 @@ model updates event history and future intervention rate
 
 **[CONFIRMED]** Keep the live haptic language simple: a small, fixed vocabulary that is learnable mid-conversation.
 
-**[WORKING ASSUMPTION — owner decision 12, 2026-10-05, to validate with users]** Six cues in three families, distinguished by **rhythm** (vibrotactile research finds rhythm is identified far more reliably than intensity or texture). Every cue starts with a sharp onset:
+**[WORKING ASSUMPTION — owner decisions 12 and 15, 2026-10-05, to validate with users]** Five cues in three families, distinguished by **rhythm** (vibrotactile research finds rhythm is identified far more reliably than intensity or texture). Every cue starts with a sharp onset:
 
 | Family | Behavior | Cue | Rhythm | Action |
 |---|---|---|---|---|
 | Space | No pause | **One tap** ("full stop") | 50 ms | Breathe |
 | Space | Long turn | **Two knocks** ("knock-knock, let them in") | 50 on, 150 off, 50 on | Give space |
 | Pace | Rushing | **Slow steps** ("the pace to aim for") | three 100 ms pulses, 250 ms apart (~800 ms) | Slow down |
-| Pace | Repetition | **Rattle** ("I-I-I") | four 30 ms ticks, 60 ms apart | Reset |
 | Voice | Filler pattern | **Tap and hum** ("uh… mmm") | 40 ms tap, 90 ms gap, 280 ms soft hum | Pause |
 | Voice | Too quiet | **Long push** ("push your voice out") | 450 ms | Speak up |
 
-A **Simpler cues** setting plays only each family's root (Space → one tap, Pace → slow steps, Voice → long push), as a fallback for users who find six too many. Planned pilot: at least 8 users learn the set to 80%, are tested while reading aloud and in conversation, and retested after a week; any pair confused more than 15% of the time is merged. Bench checks still open: gap crispness on the VG0832013D motor, whether the soft hum is audible through bone at the mastoid, and whether it is felt while talking. Do not add patterns beyond these six without user testing.
+A **Simpler cues** setting plays only each family's root (Space → one tap, Pace → slow steps, Voice → long push), as a fallback for users who find five too many. Planned pilot: at least 8 users learn the set to 80%, are tested while reading aloud and in conversation, and retested after a week; any pair confused more than 15% of the time is merged. Bench checks still open: gap crispness on the VG0832013D motor, whether the soft hum is audible through bone at the mastoid, and whether it is felt while talking. Do not add patterns beyond these five without user testing.
 
 **[WORKING ASSUMPTION — 2026-10-03]** Touch-control confirmations use **ramps** (smoothly rising or falling vibration with no sharp onset), never taps, so they can't be mistaken for a coaching cue: rising ramp = Cue on, falling ramp = Cue off, one ramp = Conversation mode, two ramps = Presentation mode.
 
@@ -136,7 +135,7 @@ A **Simpler cues** setting plays only each family's root (Space → one tap, Pac
 ### Required behaviors
 
 - **[CONFIRMED]** Detect common fillers including at least “um,” “uh,” and filler-use “like.”
-- **[CONFIRMED — 2026-10-05]** The MVP filler set: “um” and “uh” (also “er,” “erm,” “ah”), “like” in context, “lowkey,” and accidental repetition. “Hmm” is **not** counted (it is often a listening sound). The other fillers in `SOFTWARE.md` §6 (basically, literally, actually, so, you know, I mean, kind of, sort of, right) come later.
+- **[CONFIRMED — 2026-10-05]** The MVP filler set: “um” and “uh” (also “er,” “erm,” “ah”), “like” in context, and “lowkey.” Repeated words (“I, I, I think”) are not coached (decision 15). “Hmm” is **not** counted (it is often a listening sound). The other fillers in `SOFTWARE.md` §6 (basically, literally, actually, so, you know, I mean, kind of, sort of, right) come later.
 - **[CONFIRMED]** Do not treat every lexical occurrence as a filler.
 - **[CONFIRMED]** Example: “I like your shirt” should not trigger merely because it contains “like.”
 - **[CONFIRMED]** Example: “And I was, like… I don’t know” is a likely filler/contextual discourse-marker event.
@@ -153,7 +152,7 @@ These are **[WORKING ASSUMPTION]** features, not guaranteed feasible on final ha
 - Filler classification using surrounding words, timing, prosody, duration, and position in the utterance.
 - Speech rate over a rolling window, ideally using syllables or phonetic timing rather than words alone.
 - Pause duration, phrase length, continuous speaking runs, and change from personal baseline.
-- Filler clusters, repeated phrases, and recent intervention history.
+- Filler clusters and recent intervention history.
 - Post-cue response: whether the user paused, slowed, restarted, or continued unchanged.
 - A “planning pressure” or “pause debt” score inferred from speeding up, shorter pauses, and clustered hesitation.
 
@@ -465,7 +464,7 @@ Detecting **when the wearer is speaking** is easier than reliably identifying **
 
 ### `SpeechEvent.payload` examples
 
-- `behavior_type`: `filler_um`, `filler_uh`, `filler_like`, `filler_lowkey`, `repetition`, `rushing`, `no_pause`, `long_turn`, `too_quiet`.
+- `behavior_type`: `filler_um`, `filler_uh`, `filler_like`, `filler_lowkey`, `rushing`, `no_pause`, `long_turn`, `too_quiet`.
 - `token_text`: nullable and omitted in features-only mode.
 - `start_ms`, `end_ms`, `context_class`, `speech_rate`, `pause_before_ms`, `pause_after_ms`.
 - `wearer_probability`, `audio_quality`, `contact_quality`.
@@ -604,7 +603,7 @@ No numeric product claims should be published until measured in appropriate stud
 
 1. **Private, not secretive.** The cue belongs to the wearer; privacy behavior must still be transparent.
 2. **Awareness, not punishment.** No shocks, scolding, red error states, or shame language.
-3. **One rhythm, one idea.** Each cue has a single meaning (breathe / give space / slow down / reset / pause / speak up), and the vocabulary stays small: six cues in three families (decision 12).
+3. **One rhythm, one idea.** Each cue has a single meaning (breathe / give space / slow down / pause / speak up), and the vocabulary stays small: five cues in three families (decisions 12 and 15).
 4. **Natural voice over perfect speech.** Preserve personality and normal conversational fillers.
 5. **Precision before frequency.** A few trusted cues beat constant questionable taps.
 6. **Progress toward independence.** The product should become quieter as learning improves.
@@ -705,7 +704,7 @@ Do not say Cue is “patent cleared,” “non-infringing,” or “patented” 
 - Identifying or analyzing bystanders.
 - Becoming a general-purpose earbud, music player, hearing aid, or notification device.
 - Showing live transcripts or requiring phone interaction during conversation.
-- Shipping a complex library of vibration codes (the vocabulary is capped at six cues in three families, decision 12).
+- Shipping a complex library of vibration codes (the vocabulary is capped at five cues in three families, decisions 12 and 15).
 - Building custom production hardware before validating user value and the behavioral loop.
 - Claiming that contact sensing alone can perform robust lexical recognition before evidence exists.
 - Promising pre-filler prediction, perfect context detection, or universal accuracy.
@@ -789,10 +788,12 @@ Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
 ### 2026-10-05 — Owner decisions for the software MVP
 
+15. **Repeated words are not coached.** Cue no longer detects or taps for accidental repetition ("I, I, I think", "and then, and then"), and its "rattle" cue is gone, leaving five cues; the Pace family is rushing alone. *Previously:* repetition counted toward the filler pattern in Conversation, with its own rattle cue (decision 12), and was shown after the session in Presentation. *Rationale:* owner decision: the behavior and its fix (pause, then restart the sentence) were unclear to users, and the fix is the same pause the filler cue already asks for.
+
 14. **Tapping on filler patterns, not every filler, is a working assumption to test.** The default stays patterns (`SOFTWARE.md` §7); a small comparison against the "every filler" testing mode decides. *Previously:* **[OPEN QUESTION]** "Should the first cue follow a single high-confidence filler or only a cluster?", while the app already defaulted to patterns. *Rationale:* neither is proven more helpful yet; patterns avoid irritating users, but a reactive cue may teach the association faster.
 13. **Too quiet uses a calibrated volume per mode.** The user sets the target with a short read-aloud ("Set my volume") for each mode, saved on this device only as one loudness number per mode (no audio). Too quiet = at least 6 dB below that target, adjusted for room noise (0.6 dB per dB of noise change, capped at ±10 dB), for 3 s in Conversation or 10 s in Presentation. Without a calibration for the current mode, too-quiet cues are off and the app asks the user to set their volume. *Previously:* decision 3 measured against "the wearer's own normal level", learned from the first 15 s of each session. *Rationale:* a session can't tell whether a person's own normal is already too quiet, so the user sets the target.
-12. **Six distinct haptics in three families.** Supersedes decision 1's three rhythms. Space: no pause → one tap, long turn → two knocks. Pace: rushing → slow steps, repetition → rattle. Voice: filler pattern → tap and hum, too quiet → long push (rhythms and actions in §5). Every cue starts with a sharp onset; confirmations stay smooth ramps. A "Simpler cues" setting plays only each family's root. *Previously:* three rhythms (one tap, two taps, long pulse) with a single-tap setting. *Rationale:* rhythm is the strongest vibrotactile dimension (Brown, Brewster & Purchase 2006); family-based icon sets reach 80–95% identification (Chan, MacLean & McGrenere 2005; Enriquez & MacLean 2008, 86% retained at two weeks); about five patterns is the ceiling on one actuator (Azadi & Jones 2013). Expected ~85–92% after 5–15 minutes of practice, lower mid-conversation. Kept as a **[WORKING ASSUMPTION]**: planned pilot of at least 8 users, merge any pair confused more than 15% of the time; bench checks on the VG0832013D still open.
-11. **Presentation mode, research-based.** Live: rushing (4.0 syl/s, or 10% over the person's own baseline), no pause (22 s without a ≥0.6 s pause), filler rate (um/uh above 5 per minute over a rolling 60 s; "like"/"lowkey" count half; no cluster rule; single fillers never tap), and too quiet (against the Presentation calibration). Not live: long turn (a talk is one long turn) and repetition (shown in the after-session review). Taps are at least 25 s apart and at most 2 per minute; when several are due, only the highest priority taps: rushing > no pause > filler > too quiet. Conversation is unchanged: 3 fillers within 12 s or 8 per minute, 15 s cooldown (setting 10–20 s), no pause 30 s, long turn 90 s, repetition live. *Previously:* "a meeting/presentation mode with a higher intervention threshold", and Presentation changed only the pace threshold. *Rationale:* Rhema (Tanveer et al., IUI 2015: sparse ~20 s feedback beat continuous); Logue (Damian et al., CHI 2015: rate was the effective live signal); Laske et al. 2024 (fillers hurt ratings around 5–12 per minute, mostly um/uh); PowerPoint Speaker Coach (100–165 WPM, repetition reported afterwards); O'Leary & Wingfield 2023 (pauses at phrase boundaries aid recall). The numbers are starting points to test; Cue's syllables/s excludes pauses over 0.6 s, so it reads higher than WPM-based figures, and the 4.0 default needs checking against real recordings.
+12. **Six distinct haptics in three families.** Supersedes decision 1's three rhythms. Space: no pause → one tap, long turn → two knocks. Pace: rushing → slow steps (repetition → rattle was removed by decision 15). Voice: filler pattern → tap and hum, too quiet → long push (rhythms and actions in §5). Every cue starts with a sharp onset; confirmations stay smooth ramps. A "Simpler cues" setting plays only each family's root. *Previously:* three rhythms (one tap, two taps, long pulse) with a single-tap setting. *Rationale:* rhythm is the strongest vibrotactile dimension (Brown, Brewster & Purchase 2006); family-based icon sets reach 80–95% identification (Chan, MacLean & McGrenere 2005; Enriquez & MacLean 2008, 86% retained at two weeks); about five patterns is the ceiling on one actuator (Azadi & Jones 2013). Expected ~85–92% after 5–15 minutes of practice, lower mid-conversation. Kept as a **[WORKING ASSUMPTION]**: planned pilot of at least 8 users, merge any pair confused more than 15% of the time; bench checks on the VG0832013D still open.
+11. **Presentation mode, research-based.** Live: rushing (4.0 syl/s, or 10% over the person's own baseline), no pause (22 s without a ≥0.6 s pause), filler rate (um/uh above 5 per minute over a rolling 60 s; "like"/"lowkey" count half; no cluster rule; single fillers never tap), and too quiet (against the Presentation calibration). Not live: long turn (a talk is one long turn). (Repetition was also not live; it was removed entirely by decision 15.) Taps are at least 25 s apart and at most 2 per minute; when several are due, only the highest priority taps: rushing > no pause > filler > too quiet. Conversation is unchanged: 3 fillers within 12 s or 8 per minute, 15 s cooldown (setting 10–20 s), no pause 30 s, long turn 90 s. *Previously:* "a meeting/presentation mode with a higher intervention threshold", and Presentation changed only the pace threshold. *Rationale:* Rhema (Tanveer et al., IUI 2015: sparse ~20 s feedback beat continuous); Logue (Damian et al., CHI 2015: rate was the effective live signal); Laske et al. 2024 (fillers hurt ratings around 5–12 per minute, mostly um/uh); PowerPoint Speaker Coach (100–165 WPM, repetition reported afterwards); O'Leary & Wingfield 2023 (pauses at phrase boundaries aid recall). The numbers are starting points to test; Cue's syllables/s excludes pauses over 0.6 s, so it reads higher than WPM-based figures, and the 4.0 default needs checking against real recordings.
 10. **The web app is the MVP platform.** Bluetooth to the device uses Web Bluetooth (Chrome on Android and desktop; not iPhone). Native iOS comes later. *Previously:* **[WORKING ASSUMPTION]** "native iOS first" (§17). *Rationale:* the web app already exists and runs the full loop; Web Bluetooth reaches the device without an app-store build.
 9. **Cloud ASR for the MVP only.** Live audio streams to Deepgram Flux (`flux-general-en`) for the prototype and pilots, with clear disclosure. Move toward on-device or phone-local recognition before launch. *Previously:* **[WORKING ASSUMPTION]** "MVP live inference should be phone-local wherever practical", with cloud only for experiments. *Rationale:* Flux keeps fillers and returns results fast enough to test the behavior loop now. The **[CONFIRMED]** rule that Cue "should not depend on continuously uploading conversations" stands for the product; the prototype is a disclosed exception.
 
@@ -824,6 +825,6 @@ Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
 ### 2026-10-03 — Owner decisions during software MVP development
 
-1. *(Superseded by decision 12: six cues in three families.)* **Three haptic rhythms instead of one tap.** Previously **[CONFIRMED]** "Tap = make space" as the single default cue. Now: one tap = filler (pause), two quick taps = too fast (slow down), one long pulse = too quiet (speak up). *Rationale:* each behavior asks for a different action, and a single tap can't say which; rhythm is the most reliably distinguished vibrotactile dimension. Kept as a **[WORKING ASSUMPTION]** to validate with users; the single-tap mode stays available as a setting and test condition.
+1. *(Superseded by decision 12, now five cues in three families after decision 15.)* **Three haptic rhythms instead of one tap.** Previously **[CONFIRMED]** "Tap = make space" as the single default cue. Now: one tap = filler (pause), two quick taps = too fast (slow down), one long pulse = too quiet (speak up). *Rationale:* each behavior asks for a different action, and a single tap can't say which; rhythm is the most reliably distinguished vibrotactile dimension. Kept as a **[WORKING ASSUMPTION]** to validate with users; the single-tap mode stays available as a setting and test condition.
 2. **No button or touch input on the device.** *(Amended by decision 4: touch is back for controls only.)* Previously a **[WORKING ASSUMPTION]** of capacitive touch for self-caught events and pause/mute. *Rationale:* the wearer won't have anything to press mid-conversation; controls live in the app. *Consequence:* the **[CONFIRMED]** goal "device-caught events fall while self-caught events rise" still stands, but self-catches must be inferred from speech (**[OPEN QUESTION]**). The software MVP's "I caught it" button was removed for the same reason.
 3. **Detect speaking too quietly.** New **[CONFIRMED]** target behavior, measured against the wearer's own normal level. Speaking too loudly is out of scope.

@@ -6,14 +6,14 @@
 >
 > **Where this document conflicts with a later owner decision**, the decision wins and is recorded in `CUE_CONTEXT.md` §26. **Where the implementation differs** from this document (as of 2026-10-05):
 >
-> - **§18 Haptic language:** the owner chose **six cues in three families** (decision 12), not a single universal tap. Space: no pause → one tap, long turn → two knocks. Pace: rushing → slow steps, repetition → rattle. Voice: filler pattern → tap and hum, too quiet → long push. A "Simpler cues" setting plays only each family's root.
+> - **§18 Haptic language:** the owner chose **five cues in three families** (decisions 12 and 15), not a single universal tap. Space: no pause → one tap, long turn → two knocks. Pace: rushing → slow steps. Voice: filler pattern → tap and hum, too quiet → long push. A "Simpler cues" setting plays only each family's root.
 > - **§4 Speaker identification:** resolved by hardware (decision 6). The device's **bone-conduction sensor** verifies when the wearer is speaking, the **microphone** captures audio for speech-to-text, and a **vibration motor behind the ear** delivers taps. There is no software voice detection and no voice profile. The web prototype has no bone sensor, so it treats all speech as the wearer's.
 > - **§3 Voice activity detection:** no separate VAD in the app; Deepgram Flux handles speech detection. On the device, the bone sensor gates which words are the wearer's.
-> - **§6 Fillers:** the MVP set is um and uh (also er, erm, ah), "like" in context, "lowkey", and accidental repetition. "Hmm" is not counted (it's often a listening sound). The other fillers listed in §6 come later. "Like" and "lowkey" are judged by readable rules with a reason, not a learned probability; only detections with confidence ≥ 0.8 count.
-> - **§7 Filler density:** fixed thresholds, not relative to a personal baseline filler rate. Conversation: 3 fillers or repeats within 12 s, or 8 in the last minute. Presentation: um/uh above 5 per minute over a rolling 60 s, with "like"/"lowkey" counting half and no cluster rule. Tapping on patterns rather than every filler is a working assumption to test against the "every filler" testing mode (decision 14).
+> - **§6 Fillers:** the MVP set is um and uh (also er, erm, ah), "like" in context, and "lowkey". "Hmm" is not counted (it's often a listening sound). The other fillers listed in §6 come later. "Like" and "lowkey" are judged by readable rules with a reason, not a learned probability; only detections with confidence ≥ 0.8 count.
+> - **§7 Filler density:** fixed thresholds, not relative to a personal baseline filler rate. Conversation: 3 fillers within 12 s, or 8 in the last minute. Presentation: um/uh above 5 per minute over a rolling 60 s, with "like"/"lowkey" counting half and no cluster rule. Tapping on patterns rather than every filler is a working assumption to test against the "every filler" testing mode (decision 14).
 > - **§13 Cooldowns:** 15 s by default, settable from 10 to 20 s; Presentation taps at least 25 s apart and at most 2 per minute; the "every filler" testing mode drops it to 1.5 s. A tap that worked earns extra patience for that behavior.
 > - **§16 Baselines:** learned per session, not across sessions. Pace starts at a preset (4.5 syl/s Conversation, 4.0 Presentation) and after the first minute of speech becomes 20% (Conversation) or 10% (Presentation) over the wearer's own pace, never below 3.6 syl/s. The one exception is volume: the user calibrates a target per mode with a short read-aloud, saved on this device as a single loudness number per mode (decision 13); without it, too-quiet cues are off.
-> - **§20 Sessions and modes:** two modes, Conversation and Presentation, with different rules (decision 11). Presentation: rushing, no pause (22 s), filler rate and too quiet are live; long turn and repetition are not (repetition is shown in the after-session review); when several are due, only the highest priority taps (rushing > no pause > filler > too quiet). Conversation: all behaviors live, no pause 30 s, long turn 90 s.
+> - **§20 Sessions and modes:** two modes, Conversation and Presentation, with different rules (decision 11). Presentation: rushing, no pause (22 s), filler rate and too quiet are live; long turn is not; when several are due, only the highest priority taps (rushing > no pause > filler > too quiet). Conversation: all behaviors live, no pause 30 s, long turn 90 s.
 > - **§21–23 Processing and privacy:** the MVP is a web app (decision 10) that streams live audio to Deepgram Flux for transcription, with disclosure (decision 9); detection and the decision engine run in the browser. On-device or phone-local recognition is the direction before launch. Cue stores nothing on a server. Audio is kept only by the opt-in **training recorder**, which works only when running locally (`npm run dev`) and saves to the developer's own machine; "Download session" files contain words and timings but no audio.
 > - **Not implemented yet:** choosing goals at setup (§15; there are only per-category toggles), adaptive coaching and fading over weeks (§17), cross-session progress and insights in an app (§19), the other session types (§20: interview, date, meeting…), conversation balance and interruptions (§11–12, §27), self-caught events, and a Bluetooth haptic device (a simple Web Bluetooth tap device exists on a branch, untested). Haptics are shown on a 3D model of the device on screen.
 
@@ -330,6 +330,8 @@ That should be one of the central behavioral principles behind the product.
 
 ## 10. Repetition detection
 
+> **Not implemented: removed by owner decision 15 (2026-10-05, `CUE_CONTEXT.md` §26).** Cue does not detect or tap for repeated words. The original text follows.
+
 Another useful signal is repeated language. People often get stuck in patterns such as:
 
 > “I think, I think, I think what I'm trying to say is...”
@@ -496,7 +498,7 @@ At that point, Cue has actually changed behavior. That should be the product's u
 
 ## 18. Haptic language
 
-> **Superseded by owner decision 12 (2026-10-05, `CUE_CONTEXT.md` §5 and §26):** Cue uses six rhythm-coded cues in three families: no pause → one tap (breathe), long turn → two knocks (give space), rushing → slow steps (slow down), repetition → rattle (reset), filler pattern → tap and hum (pause), too quiet → long push (speak up). A "Simpler cues" setting plays only each family's root (one tap, slow steps, long push). This replaced the earlier three rhythms (decision 1). The original text follows.
+> **Superseded by owner decision 12 (2026-10-05, `CUE_CONTEXT.md` §5 and §26):** Cue uses five rhythm-coded cues in three families (decisions 12 and 15): no pause → one tap (breathe), long turn → two knocks (give space), rushing → slow steps (slow down), filler pattern → tap and hum (pause), too quiet → long push (speak up). A "Simpler cues" setting plays only each family's root (one tap, slow steps, long push). This replaced the earlier three rhythms (decision 1). The original text follows.
 
 Cue could eventually use different haptic patterns. However, the MVP should probably remain simple.
 

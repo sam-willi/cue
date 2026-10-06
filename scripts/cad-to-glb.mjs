@@ -172,7 +172,7 @@ const pushView = (typed, target) => {
 // tone and a frosted translucent ear hook. The outer shells are the large parts over the body;
 // the hook is the large part that reaches out past it. Internals keep their CAD colors.
 const hex = (h) => [1, 3, 5].map((k) => linear(parseInt(h.slice(k, k + 2), 16) / 255));
-const BODY = hex("#3B2F2A"); // dark brown
+const BODY = hex("#1C1C1C"); // matte black
 const HOOK = hex("#D8D3CB"); // light warm gray, seen through a frosted sleeve
 const bodyBox = all;
 const roleOf = (p) => {

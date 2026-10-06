@@ -1,20 +1,20 @@
 import type { BehaviorType } from "./types";
 
 /**
- * Cue's haptic vocabulary (CUE_CONTEXT.md §26, decision 12): six rhythm-coded cues in three
+ * Cue's haptic vocabulary (CUE_CONTEXT.md §26, decisions 12 and 15): five rhythm-coded cues in three
  * families, so a mix-up inside a family still points the right way. Rhythm (pulse count and
  * length) is what people tell apart most reliably on one actuator; every cue starts with a
  * sharp onset, and confirmations below are smooth ramps, so they never read as a cue.
  *
  *   Space: no pause → one tap ("full stop"); long turn → two knocks ("let them in")
- *   Pace:  rushing → slow steps (the pace to aim for); repetition → rattle ("I-I-I")
+ *   Pace:  rushing → slow steps (the pace to aim for)
  *   Voice: filler pattern → tap and hum ("uh… mmm"); too quiet → long push
  *
  * Timings are the web stand-in (navigator.vibrate on/off ms). On the device the DRV2605L
  * plays them with overdrive and braking. A working assumption to validate in a pilot: if
  * people confuse pairs, "simpler cues" plays only each family's root.
  */
-export type CuePattern = "tap" | "knock" | "steps" | "rattle" | "hum" | "push";
+export type CuePattern = "tap" | "knock" | "steps" | "hum" | "push";
 export type CueFamily = "space" | "pace" | "voice";
 
 /** Alert kinds that can produce a cue. */
@@ -33,7 +33,6 @@ export const PATTERNS: Record<
     vibrate: [100, 250, 100, 250, 100],
     durationMs: 1500,
   },
-  rattle: { name: "Rattle", action: "Reset", family: "pace", vibrate: [30, 60, 30, 60, 30, 60, 30], durationMs: 900 },
   hum: { name: "Tap and hum", action: "Pause", family: "voice", vibrate: [40, 90, 280], durationMs: 1000 },
   push: { name: "Long push", action: "Speak up", family: "voice", vibrate: [450], durationMs: 1200 },
 };
@@ -42,7 +41,6 @@ const CUE_FOR: Record<CueKind, CuePattern> = {
   no_pause: "tap",
   long_turn: "knock",
   rushing: "steps",
-  repetition: "rattle",
   filler_um: "hum",
   filler_uh: "hum",
   filler_like: "hum",
@@ -64,7 +62,6 @@ export const CUE_LEGEND: { kind: CueKind; label: string }[] = [
   { kind: "filler_um", label: "Filler words" },
   { kind: "too_quiet", label: "Too quiet" },
   { kind: "rushing", label: "Too fast" },
-  { kind: "repetition", label: "Repeating" },
   { kind: "no_pause", label: "No pauses" },
   { kind: "long_turn", label: "Long turn" },
 ];
