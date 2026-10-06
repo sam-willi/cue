@@ -759,6 +759,7 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ### 2026-10-05
 
+- **Web model: sensor windows match the body, and an organic ear hook.** The round motor and sensor parts that show through the skin-side shell now take the body's satin grey. The ear hook on the site is a styled stand-in for the CAD hook: a smooth tube on a teardrop curve, about 3.5 mm thick where it leaves the body and tapering to a rounded tip of about 1.9 mm, with a gentle curl toward the head. It keeps the CAD's attachment point and footprint. The CAD hook in `hardware/rev0/democad.step` hasn't changed yet and should be updated to match (`ORGANIC_HOOK` in `scripts/cad-to-glb.mjs` switches back to it).
 - **"Inside the device" exploded view** from the CAD (`public/cad/cue-bte-exploded.png`) after the cue legend: outer shell, circuit board, coin battery, and the vibration motor in the inner shell, with a caption tying the motor to where taps start on the 3D model.
 - **Body is satin metallic grey** (`CUE_CONTEXT.md` §26, decision 16), replacing matte black (#1C1C1C) on the site: a soft brushed sheen, not chrome. §14 updated. The ear hook stays frosted translucent.
 - **3D device body is matte black (#1C1C1C)** on the site, replacing the dark brown (#3B2F2A) render; the hook stays frosted translucent. Black is one of the hair-matched tones in §14.
