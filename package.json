@@ -2,7 +2,7 @@
   "name": "cue",
   "version": "0.1.0",
   "private": true,
-  "description": "Cue: real-time filler-word and speaking-pace cues (software MVP for a behind-the-ear speech coach).",
+  "description": "Cue: real-time speaking-habit cues (fillers, pace, pauses, turn length, volume). Software MVP for a discreet behind-the-ear (BTE) speech coach.",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=24"

@@ -18,10 +18,12 @@
 
 1. Reproduce it as a test. Add the phrase to the `FILLER` or `SEMANTIC` table in `src/lib/cue/__tests__/likeClassifier.test.ts`, or a streaming case to `session.test.ts`.
 2. Watch it fail (`npm run test:watch`).
-3. Adjust the rule in `src/lib/cue/likeClassifier.ts` (or a word list in `lexicon.ts`). Keep the rule's `reason` string accurate.
+3. Adjust the rule in `src/lib/cue/likeClassifier.ts` (or `lowkeyClassifier.ts`, or a word list in `lexicon.ts`). Pattern, mode and timing rules live in `engine.ts` and `config.ts`. Keep the rule's `reason` string accurate.
 4. Make sure all existing cases still pass. A fix that causes a false buzz elsewhere isn't a fix.
 
 ### Training recordings (best ground truth)
+
+The **Training** section only appears when running locally with `npm run dev`; it is hidden on deployed sites, and the save route refuses outside development.
 
 1. In the app, open **Training** → **Start training recording**, and talk naturally for a few minutes. The mic indicator says "Recording for training".
 2. Select **Stop and label**. Play the recording back and select every word that was a filler (Cue's detections start selected; unselect any it got wrong).
@@ -43,4 +45,8 @@
 rm -rf node_modules package-lock.json && npm install
 ```
 
-**"API key needs the Member role" in the app.** Create a Deepgram key with the Member role or higher; default-role keys can't mint browser tokens.
+**"API key needs the Member role" in the app.** The server's `DEEPGRAM_API_KEY` needs the Member role or higher; default-role keys can't mint browser tokens. Your own key (entered in the app) doesn't need it, because the browser connects with it directly.
+
+**"This site has no Deepgram key" (503 from `/api/deepgram-token`).** The server has no `DEEPGRAM_API_KEY`, which is expected on the public demo. Use **Use your own Deepgram key** in the app, or add a key to `.env.local` and restart `npm run dev`.
+
+**The own-key form keeps reopening.** Deepgram rejected the key (wrong, revoked or out of credit). Check it in the [Deepgram console](https://console.deepgram.com) and paste it again. To forget a saved key, select **remove it** next to the key in the app.
