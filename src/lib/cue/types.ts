@@ -11,15 +11,7 @@ export interface Word {
 }
 
 export type BehaviorType =
-  | "filler_um"
-  | "filler_uh"
-  | "filler_like"
-  | "filler_lowkey"
-  | "repetition"
-  | "rushing"
-  | "no_pause"
-  | "long_turn"
-  | "too_quiet";
+  "filler_um" | "filler_uh" | "filler_like" | "filler_lowkey" | "rushing" | "no_pause" | "long_turn" | "too_quiet";
 
 /**
  * How a particular "like" is being used. Only some of these are fillers;

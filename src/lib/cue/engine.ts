@@ -5,13 +5,13 @@ import type { BehaviorType, CueDecision, SpeechEvent } from "./types";
  * The behavioral decision engine (SOFTWARE.md §12–14). Detectors report what they
  * notice; the engine decides whether a tap would help *right now*:
  *
- *  - Disfluencies (fillers, accidental repetition) only tap as a pattern: a cluster
+ *  - Fillers only tap as a pattern: a cluster
  *    (3 within 12 s) or a high rate (8+ in the last minute), not one at a time (§7).
  *  - Sustained behaviors (rushing, no pause, long turn, too quiet) wait for a natural
  *    break in speech, up to a few seconds, so the tap doesn't land mid-word (§12).
  *  - One tap at a time: a 10–20 s cooldown after any tap (§13). Presentation mode is sparser
  *    (decision 11): 25 s between taps, at most 2 a minute, fillers judged as a rate, and long
- *    turns and repetition left for the review.
+ *    turns left for the review.
  *  - Only confident detections count (§14).
  *  - It checks whether each tap worked (the user paused, slowed, spoke up); if it did,
  *    it waits longer before tapping for that behavior again (§13, §17).
@@ -28,7 +28,7 @@ export interface TapRecord {
   outcome?: Outcome;
 }
 
-export const DISFLUENCIES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like", "filler_lowkey", "repetition"];
+export const DISFLUENCIES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like", "filler_lowkey"];
 export const isDisfluency = (t: BehaviorType) => DISFLUENCIES.includes(t);
 
 const CATEGORY: Record<BehaviorType, keyof CueConfig["categories"]> = {
@@ -36,7 +36,6 @@ const CATEGORY: Record<BehaviorType, keyof CueConfig["categories"]> = {
   filler_uh: "uh",
   filler_like: "like",
   filler_lowkey: "lowkey",
-  repetition: "repetition",
   rushing: "rushing",
   no_pause: "pauses",
   long_turn: "turns",

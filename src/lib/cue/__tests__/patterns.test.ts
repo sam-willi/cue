@@ -6,7 +6,6 @@ describe("patternFor", () => {
     expect(patternFor("filler_um", true)).toBe("hum");
     expect(patternFor("filler_like", true)).toBe("hum");
     expect(patternFor("filler_lowkey", true)).toBe("hum");
-    expect(patternFor("repetition", true)).toBe("rattle");
     expect(patternFor("rushing", true)).toBe("steps");
     expect(patternFor("no_pause", true)).toBe("tap");
     expect(patternFor("long_turn", true)).toBe("knock");
@@ -15,18 +14,17 @@ describe("patternFor", () => {
 
   it("plays each family's root when distinct cues are off", () => {
     expect(patternFor("long_turn", false)).toBe("tap");
-    expect(patternFor("repetition", false)).toBe("steps");
     expect(patternFor("filler_um", false)).toBe("push");
     expect(patternFor("too_quiet", false)).toBe("push");
   });
 });
 
 describe("haptic vocabulary", () => {
-  it("has six cues, each with a different rhythm", () => {
+  it("has five cues, each with a different rhythm", () => {
     const rhythms = Object.values(PATTERNS).map((p) => p.vibrate.join(","));
-    expect(new Set(rhythms).size).toBe(6);
-    expect(CUE_LEGEND).toHaveLength(6);
-    expect(new Set(CUE_LEGEND.map((c) => patternFor(c.kind, true))).size).toBe(6);
+    expect(new Set(rhythms).size).toBe(5);
+    expect(CUE_LEGEND).toHaveLength(5);
+    expect(new Set(CUE_LEGEND.map((c) => patternFor(c.kind, true))).size).toBe(5);
   });
 
   it("keeps every cue under a second", () => {

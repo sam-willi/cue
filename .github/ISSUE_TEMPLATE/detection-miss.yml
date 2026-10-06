@@ -10,7 +10,6 @@ body:
         - Missed a filler (should have buzzed)
         - False buzz (shouldn't have buzzed)
         - Speaking-pace cue was wrong
-        - Repetition cue was wrong
         - Too-quiet cue was wrong
         - No-pause cue was wrong
         - Long-turn cue was wrong
