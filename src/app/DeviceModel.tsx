@@ -51,17 +51,20 @@ function pulsesFor(
   which: "buzz" | "confirm" | "noticed",
 ): Pulse[] {
   if (which === "buzz" && buzz) {
-    const long = buzz.pattern === "long";
-    return segments(PATTERNS[buzz.pattern].vibrate).map<Pulse>((s) => ({
-      at: now + s.at,
-      on: s.on,
-      ring: true,
-      life: long ? 1300 : 700,
-      reach: long ? 4.6 : 3.6,
-      width: long ? 0.22 : 0.14,
-      tone: "cue",
-      strength: 1,
-    }));
+    // One ring per pulse; a sustained pulse (the hum, the long push) sends a slower, wider one.
+    return segments(PATTERNS[buzz.pattern].vibrate).map<Pulse>((s) => {
+      const long = s.on >= 200;
+      return {
+        at: now + s.at,
+        on: s.on,
+        ring: true,
+        life: long ? 1300 : 700,
+        reach: long ? 4.6 : 3.6,
+        width: long ? 0.22 : 0.14,
+        tone: "cue",
+        strength: 1,
+      };
+    });
   }
   if (which === "confirm" && confirm) {
     // Ramps: the glow follows the swelling (or fading) on-times; no rings.

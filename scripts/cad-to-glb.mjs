@@ -168,21 +168,45 @@ const pushView = (typed, target) => {
   return bufferViews.length - 1;
 };
 
+// The visible finish (CUE_CONTEXT.md §26, decision 8): an opaque matte body in a hair-matched
+// tone and a frosted translucent ear hook. The outer shells are the large parts over the body;
+// the hook is the large part that reaches out past it. Internals keep their CAD colors.
+const hex = (h) => [1, 3, 5].map((k) => linear(parseInt(h.slice(k, k + 2), 16) / 255));
+const BODY = hex("#3B2F2A"); // dark brown
+const HOOK = hex("#D8D3CB"); // light warm gray, seen through a frosted sleeve
+const bodyBox = all;
+const roleOf = (p) => {
+  if (Math.max(...p.box.size) <= 15) return null;
+  const outside = p.box.center[0] < bodyBox.min[0] + 0.25 * bodyBox.size[0] || p.box.center[1] > 0.6 * bodyBox.max[1];
+  if (outside) return "ear-hook";
+  return p.box.size[2] > 4 ? "body-shell" : null; // the shell halves, not the frame or board inside
+};
+
 const meshes = [];
 const materials = [];
 const nodes = [];
+let usesTransmission = false;
 parts.forEach((p, i) => {
   const isMotor = motorParts.includes(p);
-  // Shell and ear hook: the visible surfaces, matte and non-metallic (CUE_CONTEXT.md §26, decision 8).
-  const large = Math.max(...p.box.size) > 15;
-  materials.push({
-    name: isMotor ? `motor-${i}` : `part-${i}`,
-    pbrMetallicRoughness: {
-      baseColorFactor: [...p.color, 1],
-      metallicFactor: large ? 0 : 0.15,
-      roughnessFactor: large ? 0.7 : 0.6,
-    },
-  });
+  const role = roleOf(p);
+  const name = isMotor ? `motor-${i}` : role ? `${role}-${i}` : `part-${i}`;
+  if (role === "ear-hook") {
+    usesTransmission = true;
+    materials.push({
+      name,
+      pbrMetallicRoughness: { baseColorFactor: [...HOOK, 1], metallicFactor: 0, roughnessFactor: 0.6 },
+      extensions: { KHR_materials_transmission: { transmissionFactor: 0.55 } },
+    });
+  } else {
+    materials.push({
+      name,
+      pbrMetallicRoughness: {
+        baseColorFactor: [...(role === "body-shell" ? BODY : p.color), 1],
+        metallicFactor: role ? 0 : 0.15,
+        roughnessFactor: role ? 0.75 : 0.6,
+      },
+    });
+  }
   const pos = pushView(p.positions, 34962);
   accessors.push({
     bufferView: pos,
@@ -211,6 +235,7 @@ parts.forEach((p, i) => {
 });
 
 const gltf = {
+  ...(usesTransmission ? { extensionsUsed: ["KHR_materials_transmission"] } : {}),
   asset: {
     version: "2.0",
     generator: "cue scripts/cad-to-glb.mjs",

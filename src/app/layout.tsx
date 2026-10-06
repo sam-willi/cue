@@ -8,7 +8,8 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: "Cue — speak with intention",
-  description: "Real-time filler-word and pace cues.",
+  description:
+    "Private taps behind the ear when a speaking habit shows up: fillers, rushing, no pauses, long turns, speaking too quietly.",
   // Symbol on a bone field for light browser chrome, on an ink field for dark (DESIGN.md §3).
   icons: {
     icon: [

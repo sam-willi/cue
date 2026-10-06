@@ -41,8 +41,8 @@ export const INTENSIFIERS = set(
   "really so totally super very kinda kind sorta literally actually just pretty way insanely crazy lowkey highkey fully completely absolutely genuinely seriously",
 );
 
-/** Hesitation fillers. Backchannels like "uh-huh"/"mhmm" are intentionally excluded. */
-export const UM_FORMS = set("um umm ummm uhm hmm erm");
+/** Hesitation fillers. Backchannels like "uh-huh", "mhmm" and "hmm" (often a listening sound) are excluded. */
+export const UM_FORMS = set("um umm ummm uhm erm");
 export const UH_FORMS = set("uh uhh uhhh er ah");
 
 /** Verbs that introduce speech: "like I said", "like you mentioned". */

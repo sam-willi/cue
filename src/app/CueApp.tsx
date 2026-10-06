@@ -3,10 +3,18 @@
 import Image from "next/image";
 import DeviceModel from "./DeviceModel";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig } from "@/lib/cue/config";
+import { DEFAULT_CONFIG, PACE_PRESETS, toApproxWpm, type CueConfig, type CueMode } from "@/lib/cue/config";
 import type { Pace } from "@/lib/cue/pace";
 import type { Correction, SessionFile } from "@/lib/cue/evaluate";
-import { CONFIRMS, PATTERNS, patternFor, type ConfirmPattern, type CueKind, type CuePattern } from "@/lib/cue/patterns";
+import {
+  CONFIRMS,
+  CUE_LEGEND,
+  PATTERNS,
+  patternFor,
+  type ConfirmPattern,
+  type CueKind,
+  type CuePattern,
+} from "@/lib/cue/patterns";
 import { DOUBLE_TAP_GAP_MS, LONG_PRESS_MS, TAP_MAX_MS, TouchGestures, type TouchAction } from "@/lib/cue/touch";
 import { isDisfluency, type Outcome } from "@/lib/cue/engine";
 import { CueSession, type SessionUpdate, type Signals, type VolumeStatus } from "@/lib/cue/session";
@@ -28,12 +36,10 @@ const LABEL: Record<CueKind, string> = {
   too_quiet: "speaking quietly",
 };
 
-/** The legend's preview entries, one per rhythm. */
-const LEGEND: { kind: CueKind; label: string }[] = [
-  { kind: "filler_um", label: "Filler word" },
-  { kind: "rushing", label: "Too fast" },
-  { kind: "too_quiet", label: "Too quiet" },
-];
+const MODE_LABEL: Record<CueMode, string> = { conversation: "Conversation", presentation: "Presentation" };
+
+/** What Cue asks of you for each kind of alert: the specific cue's action, even when "simpler cues" plays the family root. */
+const actionFor = (kind: CueKind) => PATTERNS[patternFor(kind, true)].action;
 
 const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   low_confidence: "not confident enough",
@@ -41,6 +47,7 @@ const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   muted: "muted",
   category_off: "category off",
   not_a_pattern: "not a pattern yet",
+  mode_off: "not tapped in Presentation mode",
 };
 
 /** Converts between the speech engine's clock (s) and the page clock (performance.now(), ms). */
@@ -80,6 +87,9 @@ export default function CueApp() {
   const [apiKey, setApiKey] = useState("");
   const [rememberKey, setRememberKey] = useState(false);
   const [keyFormOpen, setKeyFormOpen] = useState(false);
+  // "Set my volume" (decision 13): a short read-aloud saves the target level for one mode.
+  const [calibratingFor, setCalibratingFor] = useState<CueMode | null>(null);
+  const [volumeNote, setVolumeNote] = useState<string | null>(null);
   const [pace, setPace] = useState<Pace | null>(null);
   const [volume, setVolume] = useState<VolumeStatus | null>(null);
   const [demoQuiet, setDemoQuiet] = useState(false);
@@ -95,7 +105,7 @@ export default function CueApp() {
   const [corrections, setCorrections] = useState<Correction[]>([]);
   const [speakingSec, setSpeakingSec] = useState(0);
   const [words, setWords] = useState<(Word & { wearer: boolean })[]>([]);
-  const [buzz, setBuzz] = useState<{ n: number; label: string; pattern: CuePattern } | null>(null);
+  const [buzz, setBuzz] = useState<{ n: number; label: string; action: string; pattern: CuePattern } | null>(null);
   const [confirm, setConfirm] = useState<{ n: number; pattern: ConfirmPattern } | null>(null);
   /** A filler Cue detected but didn't buzz for (not a pattern yet, or cooling down). */
   const [heard, setHeard] = useState<{ n: number; label: string } | null>(null);
@@ -152,8 +162,8 @@ export default function CueApp() {
         setConfig((x) => ({ ...x, muted: !c.muted }));
         playConfirm(c.muted ? "ramp_up" : "ramp_down");
       } else {
-        const next = c.paceMode === "presentation" ? "conversation" : "presentation";
-        setConfig((x) => ({ ...x, paceMode: next, paceThreshold: PACE_PRESETS[next].threshold }));
+        const next = c.mode === "presentation" ? "conversation" : "presentation";
+        setConfig((x) => ({ ...x, mode: next, paceMode: next, paceThreshold: PACE_PRESETS[next].threshold }));
         playConfirm(next === "presentation" ? "ramp_twice" : "ramp_once");
       }
     },
@@ -163,7 +173,7 @@ export default function CueApp() {
   const triggerBuzz = useCallback((kind: CueKind, label?: string) => {
     const pattern = patternFor(kind, sessionRef.current.config.distinctCues);
     setConfirm(null);
-    setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: label ?? LABEL[kind], pattern }));
+    setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: label ?? LABEL[kind], action: actionFor(kind), pattern }));
     navigator.vibrate?.(PATTERNS[pattern].vibrate);
     window.clearTimeout(buzzTimer.current);
     buzzTimer.current = window.setTimeout(() => setBuzz(null), PATTERNS[pattern].durationMs + 600);
@@ -245,6 +255,8 @@ export default function CueApp() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage only exists after mount
       if (key) setApiKey(key);
       setRememberKey(saved !== null);
+      const targets = localStorage.getItem(VOLUME_STORAGE);
+      if (targets) setConfig((c) => ({ ...c, volumeTarget: JSON.parse(targets) }));
     } catch {
       // Storage blocked (private window, previews): the key just isn't remembered.
     }
@@ -262,6 +274,30 @@ export default function CueApp() {
       // Storage blocked: the key works until the page closes.
     }
   };
+
+  // Finish "Set my volume" once there's enough read-aloud speech, then save it for that mode.
+  useEffect(() => {
+    if (!calibratingFor) return;
+    if (status === "error" || status === "idle") return;
+    const timer = window.setInterval(() => {
+      const level = sessionRef.current.measuredLevel(4);
+      if (!level) return;
+      const mode = calibratingFor;
+      setConfig((c) => {
+        const volumeTarget = { ...c.volumeTarget, [mode]: { db: level.db, noiseDb: level.noiseDb } };
+        try {
+          localStorage.setItem(VOLUME_STORAGE, JSON.stringify(volumeTarget));
+        } catch {
+          // Storage blocked: the target lasts until the page closes.
+        }
+        return { ...c, volumeTarget };
+      });
+      setVolumeNote(`${MODE_LABEL[mode]} volume set. Cue taps if you drop well below it.`);
+      setCalibratingFor(null);
+      stopAll();
+    }, 400);
+    return () => window.clearInterval(timer);
+  }, [calibratingFor, status, stopAll]);
 
   const startLive = async (opts: { record?: boolean; apiKey?: string } = {}) => {
     stopAll();
@@ -292,6 +328,7 @@ export default function CueApp() {
         if (s === "stopped") return;
         setStatus(s === "error" ? "error" : s);
         if (detail) setError(detail);
+        if (s === "error") setCalibratingFor(null);
         // No usable key: open the field for the visitor's own (the headline says why).
         if (code) setKeyFormOpen(true);
       },
@@ -324,10 +361,12 @@ export default function CueApp() {
       ];
     }
     // Simulated mic level: speech at −20 dBFS (optionally trailing off to −32 for the
-    // last 45%), a quiet room at −60. The demo learns "normal" from its
-    // first ~30% instead of 15 s.
+    // last 45%), a quiet room at −60. The demo's voice is its own volume target.
     const total = sim.at(-1)?.end ?? 0;
-    sessionRef.current.config = { ...config, calibrationSec: Math.min(config.calibrationSec, total * 0.3) };
+    sessionRef.current.config = {
+      ...config,
+      volumeTarget: { ...config.volumeTarget, [config.mode]: { db: -20, noiseDb: -60 } },
+    };
     for (let t = 0; t <= total; t += 0.05) {
       const w = sim.find((x) => t >= x.start && t <= x.end);
       const db = !w ? -60 : demoQuiet && t > total * 0.55 ? -32 : -20;
@@ -405,10 +444,10 @@ export default function CueApp() {
   const sps = pace?.sps ?? 0;
   const paceLimit = signals?.paceLimit ?? config.paceThreshold;
   const paceFrac = Math.min(1, sps / (paceLimit * 1.4));
-  const presetLabel = config.paceMode === "custom" ? "Custom" : PACE_PRESETS[config.paceMode].label;
+  const presetLabel = MODE_LABEL[config.mode];
 
   const live = status === "listening" || status === "connecting";
-  const calibrating = status === "listening" && volume?.expectedDb == null;
+  const volumeSet = !!config.volumeTarget[config.mode];
   const endSession = () => {
     stopAll();
     if (recordAudioRef.current) {
@@ -463,38 +502,42 @@ export default function CueApp() {
   };
 
   // The hero is the cue itself: one word that says what Cue is telling you right now.
-  const heroWord = confirm
-    ? `${CONFIRMS[confirm.pattern].label}.`
-    : buzz
-      ? `${config.distinctCues ? PATTERNS[buzz.pattern].action : "Make space"}.`
-      : status === "connecting"
-        ? "Connecting…"
-        : status === "error"
-          ? "Couldn’t start."
-          : config.muted
-            ? "Cue is off."
-            : status === "demo"
-              ? "Practicing."
-              : status === "listening"
-                ? "Listening."
-                : "Ready when you are.";
-  const heroLine = buzz
-    ? capitalize(buzz.label)
-    : heard && !confirm
-      ? heard.label
+  const heroWord =
+    calibratingFor && live
+      ? "Set your volume."
       : confirm
-        ? ""
-        : status === "error"
-          ? (error ?? "")
-          : config.muted
-            ? "Long-press the device, or switch Cue on below."
-            : calibrating
-              ? "Talk normally for a few seconds so Cue learns your usual volume."
-              : live
-                ? "Talk naturally. You don’t need to watch this screen."
+        ? `${CONFIRMS[confirm.pattern].label}.`
+        : buzz
+          ? `${buzz.action}.`
+          : status === "connecting"
+            ? "Connecting…"
+            : status === "error"
+              ? "Couldn’t start."
+              : config.muted
+                ? "Cue is off."
                 : status === "demo"
-                  ? "Playing your practice sentence."
-                  : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
+                  ? "Practicing."
+                  : status === "listening"
+                    ? "Listening."
+                    : "Ready when you are.";
+  const heroLine =
+    calibratingFor && live
+      ? `Read this aloud at the volume you want for ${calibratingFor === "presentation" ? "presenting to a room" : "conversation"}: “Cue taps when I need to pause, slow down, or speak up.”`
+      : buzz
+        ? capitalize(buzz.label)
+        : heard && !confirm
+          ? heard.label
+          : confirm
+            ? ""
+            : status === "error"
+              ? (error ?? "")
+              : config.muted
+                ? "Long-press the device, or switch Cue on below."
+                : live
+                  ? "Talk naturally. You don’t need to watch this screen."
+                  : status === "demo"
+                    ? "Playing your practice sentence."
+                    : "Cue listens while you talk and taps when you need to pause, slow down, or speak up.";
 
   const totalCues = tapped.length;
   const reviewSummary = words.length
@@ -608,7 +651,7 @@ export default function CueApp() {
             <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
               <Segmented
                 label="Mode"
-                value={config.paceMode === "custom" ? null : config.paceMode}
+                value={config.mode}
                 options={[
                   { value: "conversation", label: "Conversation" },
                   { value: "presentation", label: "Presentation" },
@@ -616,21 +659,46 @@ export default function CueApp() {
                 onChange={(v) =>
                   setConfig((c) => ({
                     ...c,
+                    mode: v,
                     paceMode: v,
-                    paceThreshold: PACE_PRESETS[v as keyof typeof PACE_PRESETS].threshold,
+                    paceThreshold: PACE_PRESETS[v].threshold,
                   }))
                 }
               />
               <Switch label="Cue on" on={!config.muted} onChange={(v) => setConfig((c) => ({ ...c, muted: !v }))} />
               <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
             </div>
+            <p className="mt-4 max-w-md text-body-sm text-muted">
+              {volumeNote ??
+                (volumeSet
+                  ? `Your ${MODE_LABEL[config.mode].toLowerCase()} volume is set.`
+                  : `Too-quiet cues are off until you set your ${MODE_LABEL[config.mode].toLowerCase()} volume.`)}{" "}
+              {!live && status !== "demo" && (
+                <button
+                  onClick={() => {
+                    setVolumeNote(null);
+                    setCalibratingFor(config.mode);
+                    void startLive();
+                  }}
+                  className="underline underline-offset-2 hover:text-text"
+                >
+                  {volumeSet ? "Set it again" : "Set my volume"}
+                </button>
+              )}
+            </p>
 
             {/* What each tap means */}
             <div className="mt-12 w-full">
               <p className="text-body-sm text-muted">What each tap means. Select one to feel it.</p>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {LEGEND.map(({ kind, label }) => {
+                {(["Voice", "Pace", "Space"] as const).map((family) => (
+                  <p key={family} className="text-caption text-muted">
+                    {family}
+                  </p>
+                ))}
+                {LEGEND_GRID.map((kind) => {
                   const p = patternFor(kind, config.distinctCues);
+                  const label = CUE_LEGEND.find((c) => c.kind === kind)!.label;
                   return (
                     <button
                       key={kind}
@@ -643,7 +711,7 @@ export default function CueApp() {
                       }`}
                     >
                       <RhythmGlyph pattern={p} />
-                      <span className="font-medium">{config.distinctCues ? PATTERNS[p].action : "Make space"}</span>
+                      <span className="font-medium">{actionFor(kind)}</span>
                       <span className="text-muted">{label}</span>
                     </button>
                   );
@@ -670,10 +738,10 @@ export default function CueApp() {
                     !volume
                       ? "Measuring once you speak"
                       : volume.baselineDb === null || volume.expectedDb === null
-                        ? `Learning your normal level, ${Math.round(volume.calibration * 100)}%`
+                        ? "Set your volume to compare against it"
                         : volume.db === null
-                          ? "Normal level learned"
-                          : `${formatDb(volume.db - volume.expectedDb)} from your normal${
+                          ? "Volume set"
+                          : `${formatDb(volume.db - volume.expectedDb)} from your set volume${
                               Math.abs(volume.expectedDb - volume.baselineDb) >= 3
                                 ? volume.expectedDb > volume.baselineDb
                                   ? " for this noisy room"
@@ -684,7 +752,7 @@ export default function CueApp() {
                   frac={
                     volume?.expectedDb != null && volume.db !== null
                       ? Math.max(0, Math.min(1, (volume.db - volume.expectedDb + 20) / 27))
-                      : (volume?.calibration ?? 0)
+                      : 0
                   }
                   mark={volume?.expectedDb != null ? (20 - config.quietDropDb) / 27 : undefined}
                   alert={
@@ -794,7 +862,7 @@ export default function CueApp() {
                   </dl>
 
                   <div>
-                    <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                       Transcript
                     </h3>
                     <p className="mt-1 text-body-sm text-muted">
@@ -850,7 +918,7 @@ export default function CueApp() {
                   </div>
 
                   <div>
-                    <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                    <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                       Why Cue acted
                     </h3>
                     <ul className="mt-4 divide-y divide-line">
@@ -930,7 +998,7 @@ export default function CueApp() {
             >
               <div className="space-y-12">
                 <div>
-                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                     Try a sentence
                   </h3>
                   <p className="mt-1 text-body-sm text-muted">Cue reads it word by word, as if you were saying it.</p>
@@ -984,7 +1052,7 @@ export default function CueApp() {
                 </div>
 
                 <div>
-                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                     Try the device’s touch controls
                   </h3>
                   <p className="mt-1 text-body-sm text-muted">
@@ -998,108 +1066,112 @@ export default function CueApp() {
               </div>
             </Disclosure>
 
-            <Disclosure
-              title="Training"
-              summary="Record yourself talking, then mark every filler to teach and test the detector"
-              open={open.training}
-              onToggle={() => toggle("training")}
-            >
-              <div className="space-y-8">
-                <div>
-                  <p className="max-w-prose text-body text-muted">
-                    Talk for a few minutes the way you normally do. Cue records the audio for this session only.
-                    Afterwards, select every word that was a filler, then save it to the training set on this computer.
-                  </p>
-                  <p className="mt-2 max-w-prose text-body-sm text-muted">
-                    Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub.
-                    Only record people who have agreed to it.
-                  </p>
-                  <div className="mt-4">
-                    {live && recordingTraining ? (
-                      <button
-                        onClick={endSession}
-                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
-                      >
-                        Stop and label
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => startLive({ record: true })}
-                        disabled={live || status === "demo"}
-                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
-                      >
-                        Start training recording
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
+            {/* Saving recordings needs the local dev server (/api/training), so Training only shows there. */}
+            {process.env.NODE_ENV === "development" && (
+              <Disclosure
+                title="Training"
+                summary="Record yourself talking, then mark every filler to teach and test the detector"
+                open={open.training}
+                onToggle={() => toggle("training")}
+              >
+                <div className="space-y-8">
                   <div>
-                    <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                      Mark the fillers
-                    </h3>
-                    <p className="mt-1 text-body-sm text-muted">
-                      Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
-                      unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
+                    <p className="max-w-prose text-body text-muted">
+                      Talk for a few minutes the way you normally do. Cue records the audio for this session only.
+                      Afterwards, select every word that was a filler, then save it to the training set on this
+                      computer.
                     </p>
-                    {trainingAudioUrl && (
-                      <audio
-                        controls
-                        src={trainingAudioUrl}
-                        className="mt-4 w-full"
-                        onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
-                        onEnded={() => setPlayhead(null)}
-                      />
-                    )}
-                    <p className="mt-4 text-body leading-9">
-                      {words.map((w, k) => {
-                        const marked = fillerMarks.has(wordKey(w.start));
-                        const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
-                        return (
-                          <span key={k}>
-                            <button
-                              type="button"
-                              aria-pressed={marked}
-                              onClick={() => toggleFillerMark(w.start)}
-                              className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
-                            >
-                              {w.text}
-                            </button>{" "}
-                          </span>
-                        );
-                      })}
+                    <p className="mt-2 max-w-prose text-body-sm text-muted">
+                      Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub.
+                      Only record people who have agreed to it.
                     </p>
-                    <div className="mt-6 flex flex-wrap items-center gap-4">
-                      <button
-                        onClick={saveTraining}
-                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
-                      >
-                        Save to training set
-                      </button>
-                      <span className="text-body-sm text-muted">
-                        {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
-                      </span>
+                    <div className="mt-4">
+                      {live && recordingTraining ? (
+                        <button
+                          onClick={endSession}
+                          className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                        >
+                          Stop and label
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => startLive({ record: true })}
+                          disabled={live || status === "demo"}
+                          className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
+                        >
+                          Start training recording
+                        </button>
+                      )}
                     </div>
-                    {trainingSaved && (
-                      <p className="mt-3 text-body-sm" role="status">
-                        {trainingSaved}
-                      </p>
-                    )}
                   </div>
-                )}
-              </div>
-            </Disclosure>
+
+                  {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
+                    <div>
+                      <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                        Mark the fillers
+                      </h3>
+                      <p className="mt-1 text-body-sm text-muted">
+                        Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
+                        unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
+                      </p>
+                      {trainingAudioUrl && (
+                        <audio
+                          controls
+                          src={trainingAudioUrl}
+                          className="mt-4 w-full"
+                          onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
+                          onEnded={() => setPlayhead(null)}
+                        />
+                      )}
+                      <p className="mt-4 text-body leading-9">
+                        {words.map((w, k) => {
+                          const marked = fillerMarks.has(wordKey(w.start));
+                          const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
+                          return (
+                            <span key={k}>
+                              <button
+                                type="button"
+                                aria-pressed={marked}
+                                onClick={() => toggleFillerMark(w.start)}
+                                className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
+                              >
+                                {w.text}
+                              </button>{" "}
+                            </span>
+                          );
+                        })}
+                      </p>
+                      <div className="mt-6 flex flex-wrap items-center gap-4">
+                        <button
+                          onClick={saveTraining}
+                          className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                        >
+                          Save to training set
+                        </button>
+                        <span className="text-body-sm text-muted">
+                          {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
+                        </span>
+                      </div>
+                      {trainingSaved && (
+                        <p className="mt-3 text-body-sm" role="status">
+                          {trainingSaved}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Disclosure>
+            )}
 
             <Disclosure
               title="Settings"
-              summary={`${presetLabel} mode, ${config.distinctCues ? "three taps" : "one tap for everything"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
+              summary={`${presetLabel} mode, ${config.distinctCues ? "six cues" : "simpler cues"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
               open={open.settings}
               onToggle={() => toggle("settings")}
             >
               <div className="space-y-10 text-body">
                 <fieldset>
-                  <legend className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  <legend className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                     What Cue coaches
                   </legend>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -1120,7 +1192,7 @@ export default function CueApp() {
                 </fieldset>
 
                 <div className="space-y-4">
-                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                     How Cue taps
                   </h3>
                   <Switch
@@ -1134,15 +1206,15 @@ export default function CueApp() {
                     onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
                   />
                   <Switch
-                    label="A different tap for each kind of cue"
-                    hint="Off: one tap for everything, meaning make space."
+                    label="Six different cues"
+                    hint="Off: simpler cues, one per family (Voice, Pace, Space). The screen still says which behavior it was."
                     on={config.distinctCues}
                     onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
                   />
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                     Filler “like”
                   </h3>
                   <Switch
@@ -1160,9 +1232,7 @@ export default function CueApp() {
                 </div>
 
                 <div className="space-y-5">
-                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
-                    Thresholds
-                  </h3>
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">Thresholds</h3>
                   <Slider
                     label="Too fast above"
                     value={config.paceThreshold}
@@ -1188,9 +1258,10 @@ export default function CueApp() {
                   />
                   <Slider
                     label="Quiet time between taps"
+                    hint={config.mode === "presentation" ? "Presentation mode waits at least 25 s." : undefined}
                     value={config.cooldownSec}
-                    min={5}
-                    max={30}
+                    min={10}
+                    max={20}
                     step={1}
                     format={(v) => `${v} s`}
                     onChange={(v) => setConfig((c) => ({ ...c, cooldownSec: v }))}
@@ -1198,7 +1269,7 @@ export default function CueApp() {
                 </div>
 
                 <div>
-                  <h3 className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">Privacy</h3>
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">Privacy</h3>
                   <p className="mt-2 max-w-prose text-muted">
                     While you listen, audio streams to Deepgram to be transcribed. If you add your own Deepgram key, it
                     stays in this browser and goes straight to Deepgram. Cue keeps nothing on its own. A session is only
@@ -1329,6 +1400,11 @@ function DeepgramKey({
   );
 }
 
+const VOLUME_STORAGE = "cue.volumeTarget";
+
+/** Legend order: one column per cue family (Voice, Pace, Space). */
+const LEGEND_GRID: CueKind[] = ["filler_um", "rushing", "no_pause", "too_quiet", "repetition", "long_turn"];
+
 const CHIP_LABEL: Partial<Record<keyof CueConfig["categories"], string>> = {
   repetition: "Repeating words",
   rushing: "Speaking fast",
@@ -1349,19 +1425,31 @@ function describeTap(d: CueDecision): string {
 const capitalize = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
 const formatDb = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(Math.round(x))} dB`;
 
-/** A pattern's rhythm drawn as beats: one, two, or one long. */
+/** A cue's rhythm drawn as beats: each pulse's length and gap to scale, lit in time when played. */
 function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
-  const beats = pattern === "double" ? ["w-1.5", "w-1.5"] : pattern === "long" ? ["w-6"] : ["w-1.5"];
+  const v = PATTERNS[pattern].vibrate;
+  const beats = v.flatMap((ms, k) =>
+    k % 2 === 0 ? [{ start: v.slice(0, k).reduce((a, b) => a + b, 0), ms, gap: v[k + 1] ?? 0 }] : [],
+  );
   return (
-    <span className="flex h-3 items-center gap-1" aria-hidden>
-      {beats.map((w, k) => (
-        <span key={k} className={`beat h-3 ${w} rounded-sm bg-cue opacity-35`} />
+    <span className="flex h-3 items-center" aria-hidden>
+      {beats.map((b, k) => (
+        <span
+          key={k}
+          className="beat h-3 rounded-sm bg-cue opacity-35"
+          style={
+            {
+              width: Math.max(3, Math.round(b.ms / 12)),
+              marginRight: k < beats.length - 1 ? Math.max(2, Math.round(b.gap / 12)) : 0,
+              "--beat-delay": `${b.start}ms`,
+            } as React.CSSProperties
+          }
+        />
       ))}
     </span>
   );
 }
 
-/** Always-visible microphone state (DESIGN.md §12: recording state must be unmistakable). */
 function MicState({ status, recording }: { status: Status; recording: boolean }) {
   const on = status === "listening";
   const text = {
@@ -1373,10 +1461,10 @@ function MicState({ status, recording }: { status: Status; recording: boolean })
   }[status];
   return (
     <span
-      className={`flex min-h-8 items-center gap-2 rounded-full border px-3 text-label ${on ? "border-cue text-text" : "border-line text-muted"}`}
+      className={`flex min-h-8 items-center gap-2 rounded-full border px-3 text-label ${on ? "border-text text-text" : "border-line text-muted"}`}
       role="status"
     >
-      <span className={`h-2 w-2 rounded-full ${on ? "animate-pulse bg-cue" : "bg-line"}`} aria-hidden />
+      <span className={`h-2 w-2 rounded-full ${on ? "motion-safe:animate-pulse bg-text" : "bg-line"}`} aria-hidden />
       {text}
     </span>
   );
@@ -1457,7 +1545,7 @@ function Meter({
       </div>
       <div className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
         <div
-          className={`h-full rounded-full transition-all duration-300 ${learning ? "bg-neutral-soft" : alert ? "bg-cue" : "bg-neutral"}`}
+          className={`h-full rounded-full transition-all duration-300 ${learning ? "bg-neutral-soft" : alert ? "bg-text" : "bg-neutral"}`}
           style={{ width: `${frac * 100}%` }}
         />
         {mark !== undefined && (
@@ -1487,7 +1575,7 @@ function Segmented<T extends string>({
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`min-h-9 rounded-md px-3 text-label transition-colors duration-200 ${
+          className={`min-h-11 rounded-lg px-3 text-label transition-colors duration-200 ${
             value === o.value ? "bg-text text-bg" : "text-muted hover:text-text"
           }`}
         >
@@ -1515,7 +1603,7 @@ function Switch({
       role="switch"
       aria-checked={on}
       onClick={() => onChange(!on)}
-      className="flex min-h-9 items-center gap-3 text-left"
+      className="flex min-h-11 items-center gap-3 text-left"
     >
       <span
         className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ${on ? "bg-cue" : "bg-line"}`}
@@ -1535,6 +1623,7 @@ function Switch({
 
 function Slider(props: {
   label: string;
+  hint?: string;
   value: number;
   min: number;
   max: number;
@@ -1548,6 +1637,7 @@ function Slider(props: {
         {props.label}
         <span className="text-right text-body-sm tabular-nums text-muted">{props.format(props.value)}</span>
       </span>
+      {props.hint && <span className="block text-body-sm text-muted">{props.hint}</span>}
       <input
         type="range"
         min={props.min}
@@ -1566,7 +1656,7 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
     <button
       onClick={onClick}
       aria-pressed={on}
-      className={`min-h-9 rounded-lg border px-3 text-label transition-colors duration-200 ${on ? "border-cue bg-cue-soft text-text" : "border-line text-muted hover:text-text"}`}
+      className={`min-h-11 rounded-lg border px-3 text-label transition-colors duration-200 ${on ? "border-cue bg-cue-soft text-text" : "border-line text-muted hover:text-text"}`}
     >
       {children}
     </button>
@@ -1590,7 +1680,7 @@ function CorrectionButton({ on, onClick, children }: { on: boolean; onClick: () 
     <button
       onClick={onClick}
       aria-pressed={on}
-      className={`mt-3 min-h-8 rounded-lg border px-3 text-label ${on ? "border-text bg-surface-2 text-text" : "border-line text-muted hover:text-text"}`}
+      className={`mt-3 min-h-11 rounded-lg border px-3 text-label ${on ? "border-text bg-surface-2 text-text" : "border-line text-muted hover:text-text"}`}
     >
       {on ? `Marked: ${children.toLowerCase()}` : children}
     </button>

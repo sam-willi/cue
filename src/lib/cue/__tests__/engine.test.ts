@@ -115,3 +115,60 @@ describe("decision engine (SOFTWARE.md §7, §12–14)", () => {
     expect(taps(s2)).toContain("rushing");
   });
 });
+
+describe("Presentation mode (decision 11)", () => {
+  const presenting = (config = {}) => new CueSession({ mode: "presentation", ...config });
+
+  it("doesn't tap for a filler cluster, only for a rate above 5 a minute", () => {
+    const s = presenting();
+    speak(s, ["So, um, I was like working on this project and, um, it was hard."]);
+    expect(taps(s)).toEqual([]);
+    expect(s.history.find((d) => d.event.type === "filler_um")?.trigger).toMatch(/of more than 5 per minute$/);
+
+    const r = presenting();
+    speak(r, ["um this is uh the plan", "um and uh the launch", "um then uh we ship", CLEAN], { gap: 1 });
+    expect(taps(r)).toEqual(["filler_density"]);
+  });
+
+  it("counts 'like' as half an um", () => {
+    // Six filler "like"s count as 3: under the rate.
+    const s = presenting();
+    speak(s, Array(6).fill("i was like going to the store"), { gap: 1 });
+    expect(taps(s)).toEqual([]);
+  });
+
+  it("detects long turns and repetition but doesn't tap for them", () => {
+    const s = presenting();
+    speak(s, ["I, I, I think the plan works", ...Array(40).fill(CLEAN)], { gap: 0.4 });
+    const held = (type: string) => s.history.filter((d) => d.event.type === type).map((d) => d.withheldReason);
+    expect(held("repetition")).toContain("mode_off");
+    expect(held("long_turn")).toContain("mode_off");
+    expect(taps(s)).not.toContain("long_turn");
+    expect(taps(s)).not.toContain("repetition");
+  });
+
+  it("taps for no pause after 22 s, sooner than Conversation's 30 s", () => {
+    // About 24 s of talk with only short (0.3 s) gaps: past 22 s, short of 30 s.
+    const sentences: string[] = [];
+    let length = 0;
+    while (length < 23) {
+      sentences.push(CLEAN);
+      length += simulateWords(CLEAN).at(-1)!.end + 0.3;
+    }
+    expect(length).toBeLessThan(29);
+    const run = (mode: "conversation" | "presentation") => {
+      const s = new CueSession({ mode, categories: { ...new CueSession().config.categories, rushing: false } });
+      speak(s, sentences, { gap: 0.3 });
+      return taps(s);
+    };
+    expect(run("presentation")).toContain("no_pause");
+    expect(run("conversation")).not.toContain("no_pause");
+  });
+
+  it("waits at least 25 s between taps, even with a shorter cooldown set", () => {
+    const s = presenting({ cooldownSec: 10 });
+    speak(s, Array(8).fill("um this is uh the plan um and uh the launch"), { gap: 1 });
+    const at = s.history.filter((d) => d.delivered).map((d) => d.event.end);
+    for (let k = 1; k < at.length; k++) expect(at[k] - at[k - 1]).toBeGreaterThanOrEqual(25);
+  });
+});
