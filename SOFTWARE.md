@@ -4,11 +4,18 @@
 >
 > **Added:** 2026-10-04, as written by the product owner.
 >
-> **Where this document conflicts with a later owner decision**, the decision wins and is recorded in `CUE_CONTEXT.md` §26:
+> **Where this document conflicts with a later owner decision**, the decision wins and is recorded in `CUE_CONTEXT.md` §26. **Where the implementation differs** from this document (as of 2026-10-05):
 >
-> - **§18 Haptic language:** the owner chose **three rhythms** (one tap = pause, two taps = slow down, long pulse = speak up), not a single universal tap. A one-tap mode remains a setting and a test condition.
-> - **§4 Speaker identification:** resolved by hardware (`CUE_CONTEXT.md` §26, decision 6). The device's **bone-conduction sensor** verifies when the wearer is speaking, the **microphone** captures audio for speech-to-text, and a **vibration motor behind the ear** delivers taps. There is no software voice detection and no voice profile.
-> - **§21–23 Processing and privacy:** the software MVP streams audio to Deepgram for transcription; on-device processing is the long-term direction.
+> - **§18 Haptic language:** the owner chose **six cues in three families** (decision 12), not a single universal tap. Space: no pause → one tap, long turn → two knocks. Pace: rushing → slow steps, repetition → rattle. Voice: filler pattern → tap and hum, too quiet → long push. A "Simpler cues" setting plays only each family's root.
+> - **§4 Speaker identification:** resolved by hardware (decision 6). The device's **bone-conduction sensor** verifies when the wearer is speaking, the **microphone** captures audio for speech-to-text, and a **vibration motor behind the ear** delivers taps. There is no software voice detection and no voice profile. The web prototype has no bone sensor, so it treats all speech as the wearer's.
+> - **§3 Voice activity detection:** no separate VAD in the app; Deepgram Flux handles speech detection. On the device, the bone sensor gates which words are the wearer's.
+> - **§6 Fillers:** the MVP set is um and uh (also er, erm, ah), "like" in context, "lowkey", and accidental repetition. "Hmm" is not counted (it's often a listening sound). The other fillers listed in §6 come later. "Like" and "lowkey" are judged by readable rules with a reason, not a learned probability; only detections with confidence ≥ 0.8 count.
+> - **§7 Filler density:** fixed thresholds, not relative to a personal baseline filler rate. Conversation: 3 fillers or repeats within 12 s, or 8 in the last minute. Presentation: um/uh above 5 per minute over a rolling 60 s, with "like"/"lowkey" counting half and no cluster rule. Tapping on patterns rather than every filler is a working assumption to test against the "every filler" testing mode (decision 14).
+> - **§13 Cooldowns:** 15 s by default, settable from 10 to 20 s; Presentation taps at least 25 s apart and at most 2 per minute; the "every filler" testing mode drops it to 1.5 s. A tap that worked earns extra patience for that behavior.
+> - **§16 Baselines:** learned per session, not across sessions. Pace starts at a preset (4.5 syl/s Conversation, 4.0 Presentation) and after the first minute of speech becomes 20% (Conversation) or 10% (Presentation) over the wearer's own pace, never below 3.6 syl/s. The one exception is volume: the user calibrates a target per mode with a short read-aloud, saved on this device as a single loudness number per mode (decision 13); without it, too-quiet cues are off.
+> - **§20 Sessions and modes:** two modes, Conversation and Presentation, with different rules (decision 11). Presentation: rushing, no pause (22 s), filler rate and too quiet are live; long turn and repetition are not (repetition is shown in the after-session review); when several are due, only the highest priority taps (rushing > no pause > filler > too quiet). Conversation: all behaviors live, no pause 30 s, long turn 90 s.
+> - **§21–23 Processing and privacy:** the MVP is a web app (decision 10) that streams live audio to Deepgram Flux for transcription, with disclosure (decision 9); detection and the decision engine run in the browser. On-device or phone-local recognition is the direction before launch. Cue stores nothing on a server. Audio is kept only by the opt-in **training recorder**, which works only when running locally (`npm run dev`) and saves to the developer's own machine; "Download session" files contain words and timings but no audio.
+> - **Not implemented yet:** choosing goals at setup (§15; there are only per-category toggles), adaptive coaching and fading over weeks (§17), cross-session progress and insights in an app (§19), the other session types (§20: interview, date, meeting…), conversation balance and interruptions (§11–12, §27), self-caught events, and a Bluetooth haptic device (a simple Web Bluetooth tap device exists on a branch, untested). Haptics are shown on a 3D model of the device on screen.
 
 Cue should not be designed as a simple filler-word detector.
 
@@ -149,6 +156,8 @@ Because Cue is ear-worn, hardware could eventually make this easier too. The dev
 Those signals could help differentiate the wearer’s voice from other people nearby.
 
 For the MVP, however, speaker recognition can probably be handled primarily through software.
+
+> **Now (decision 6):** speaker identification is done by hardware, with the bone-conduction sensor; there is no voice calibration or voice profile.
 
 ## 5. Speech-to-text
 
@@ -487,7 +496,7 @@ At that point, Cue has actually changed behavior. That should be the product's u
 
 ## 18. Haptic language
 
-> **Superseded by owner decision (2026-10-03, `CUE_CONTEXT.md` §26):** Cue uses three rhythms (one tap = pause, two taps = slow down, long pulse = speak up), with a one-tap mode as a setting. The original text follows.
+> **Superseded by owner decision 12 (2026-10-05, `CUE_CONTEXT.md` §5 and §26):** Cue uses six rhythm-coded cues in three families: no pause → one tap (breathe), long turn → two knocks (give space), rushing → slow steps (slow down), repetition → rattle (reset), filler pattern → tap and hum (pause), too quiet → long push (speak up). A "Simpler cues" setting plays only each family's root (one tap, slow steps, long push). This replaced the earlier three rhythms (decision 1). The original text follows.
 
 Cue could eventually use different haptic patterns. However, the MVP should probably remain simple.
 
@@ -546,6 +555,8 @@ Different modes could eventually change the coaching rules.
 
 That could eventually become a powerful system. For the MVP, however, a generic session mode is enough.
 
+> **Now (decision 11):** the MVP has two modes, Conversation and Presentation, with different live behaviors, thresholds and tap limits (see the list at the top of this document).
+
 ## 21. On-device vs phone processing
 
 For the first version of Cue, it probably does not make sense to put an entire AI speech model inside the behind-the-ear (BTE) device. The hardware should stay small, lightweight, and power-efficient.
@@ -569,6 +580,8 @@ Cue haptic motor taps the user
 ```
 
 This allows the phone to perform the heavy computation. Later, some processing could move onto the Cue hardware, for example voice activity detection, wearer voice detection, and basic acoustic features. More expensive language processing could remain on the phone.
+
+> **Now (decisions 9 and 10):** the MVP is a web app that streams audio to Deepgram Flux in the cloud, with disclosure, and will reach the device over Web Bluetooth. Moving recognition on-device or phone-local comes before launch.
 
 ## 22. Latency
 

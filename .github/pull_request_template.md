@@ -8,7 +8,7 @@
 
 ## Detection changes
 
-<!-- If you touched likeClassifier, session, or pace: list example phrases that now behave differently. Delete if not applicable. -->
+<!-- If you touched anything under src/lib/cue: list example phrases or situations that now behave differently. Delete if not applicable. -->
 
 | Phrase | Before | After |
 | ------ | ------ | ----- |

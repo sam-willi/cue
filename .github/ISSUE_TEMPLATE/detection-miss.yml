@@ -1,5 +1,5 @@
 name: Detection miss or false buzz
-description: Cue buzzed when it shouldn't have, or missed a filler / fast speech.
+description: Cue tapped when it shouldn't have, or missed a filler, rushing, or another behavior.
 labels: [detection]
 body:
   - type: dropdown
@@ -10,6 +10,11 @@ body:
         - Missed a filler (should have buzzed)
         - False buzz (shouldn't have buzzed)
         - Speaking-pace cue was wrong
+        - Repetition cue was wrong
+        - Too-quiet cue was wrong
+        - No-pause cue was wrong
+        - Long-turn cue was wrong
+        - Tapped too often
     validations:
       required: true
   - type: input
