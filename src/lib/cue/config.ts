@@ -94,6 +94,8 @@ export interface CueConfig {
    * a session can't tell whether the wearer's own normal is already too quiet.
    */
   volumeTarget: Partial<Record<CueMode, { db: number; noiseDb: number | null }>>;
+  /** Volume feedback per mode. Off: no too-quiet cues in that mode and no need to set a volume. */
+  volumeCues: Record<CueMode, boolean>;
   /** "Too quiet" = this many dB below the target level… */
   quietDropDb: number;
   /** …for at least this long, seconds. */
@@ -132,6 +134,7 @@ export const DEFAULT_CONFIG: CueConfig = {
   paceSustainSec: 3,
   cooldownSec: 15,
   volumeTarget: {},
+  volumeCues: { conversation: true, presentation: true },
   quietDropDb: 6,
   quietSustainSec: 3,
   muted: false,
