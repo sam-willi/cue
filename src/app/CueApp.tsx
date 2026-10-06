@@ -682,6 +682,57 @@ export default function CueApp() {
               <Switch label={`Volume feedback in ${modeName}`} on={volumeOn} onChange={setVolumeCues} />
               <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
             </div>
+
+            {/* Right under the controls, so it's on screen while you talk. */}
+            {showTranscript && (
+              <div className="mt-6 w-full rounded-lg border border-dashed border-line p-4 text-left">
+                <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
+                {signals && (
+                  <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
+                    <div>
+                      <dt className="inline">Fillers in the last minute: </dt>
+                      <dd className="inline tabular-nums text-text">{signals.fillersLastMinute}</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Since your last pause: </dt>
+                      <dd className="inline tabular-nums text-text">{Math.round(signals.secondsSincePause)} s</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">This turn: </dt>
+                      <dd className="inline tabular-nums text-text">{Math.round(signals.turnSeconds)} s</dd>
+                    </div>
+                    <div>
+                      <dt className="inline">Your normal pace: </dt>
+                      <dd className="inline tabular-nums text-text">
+                        {signals.paceBaseline === null ? "learning" : `${signals.paceBaseline.toFixed(1)} syllables/s`}
+                      </dd>
+                    </div>
+                  </dl>
+                )}
+                <p className="mt-2 text-body">
+                  {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
+                  {words.map((w, k) => {
+                    const d = flagged.get(wordKey(w.start));
+                    return (
+                      <span
+                        key={k}
+                        className={
+                          !w.wearer
+                            ? "italic text-muted/70"
+                            : d
+                              ? d.delivered
+                                ? "rounded bg-cue-soft px-1 text-cue"
+                                : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
+                              : undefined
+                        }
+                      >
+                        {w.text}{" "}
+                      </span>
+                    );
+                  })}
+                </p>
+              </div>
+            )}
             <p className="mt-4 max-w-md text-body-sm text-muted">
               {!volumeOn
                 ? `No volume feedback in ${modeName}, so there's nothing to set.`
@@ -801,56 +852,6 @@ export default function CueApp() {
                   }
                   learning={volume?.expectedDb == null}
                 />
-              </div>
-            )}
-
-            {showTranscript && (
-              <div className="mt-10 w-full rounded-lg border border-dashed border-line p-4 text-left">
-                <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
-                {signals && (
-                  <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
-                    <div>
-                      <dt className="inline">Fillers in the last minute: </dt>
-                      <dd className="inline tabular-nums text-text">{signals.fillersLastMinute}</dd>
-                    </div>
-                    <div>
-                      <dt className="inline">Since your last pause: </dt>
-                      <dd className="inline tabular-nums text-text">{Math.round(signals.secondsSincePause)} s</dd>
-                    </div>
-                    <div>
-                      <dt className="inline">This turn: </dt>
-                      <dd className="inline tabular-nums text-text">{Math.round(signals.turnSeconds)} s</dd>
-                    </div>
-                    <div>
-                      <dt className="inline">Your normal pace: </dt>
-                      <dd className="inline tabular-nums text-text">
-                        {signals.paceBaseline === null ? "learning" : `${signals.paceBaseline.toFixed(1)} syllables/s`}
-                      </dd>
-                    </div>
-                  </dl>
-                )}
-                <p className="mt-2 text-body">
-                  {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
-                  {words.map((w, k) => {
-                    const d = flagged.get(wordKey(w.start));
-                    return (
-                      <span
-                        key={k}
-                        className={
-                          !w.wearer
-                            ? "italic text-muted/70"
-                            : d
-                              ? d.delivered
-                                ? "rounded bg-cue-soft px-1 text-cue"
-                                : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
-                              : undefined
-                        }
-                      >
-                        {w.text}{" "}
-                      </span>
-                    );
-                  })}
-                </p>
               </div>
             )}
           </section>
