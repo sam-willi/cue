@@ -199,6 +199,26 @@ def box_symbol(ref, p):
     return lid, body, pins, width, height
 
 
+# ------------------------------------------------------------------ sourcing fields (MFG / DIST)
+MFG_NAMES = {
+    "Samsung": "Samsung Electro-Mechanics", "onsemi": "onsemi", "GCT": "GCT", "JST": "JST", "Samtec": "Samtec",
+    "XFCN": "XFCN", "Murata": "Murata Electronics", "UniOhm": "UNI-ROYAL (Uniroyal Elec)", "Omron": "Omron",
+    "Ezurio": "Ezurio", "Nordic": "Nordic Semiconductor", "ST": "STMicroelectronics", "TDK": "TDK InvenSense",
+    "TI": "Texas Instruments",
+}
+
+
+def dist_fields(ref):
+    """MFG, MFG P/N, DIST, DIST P/N for a part in devboard_circuit.SOURCING (empty list if it isn't bought)."""
+    if ref not in C.SOURCING:
+        return []
+    mpn, lcsc, _ = C.SOURCING[ref]
+    brand, pn = mpn.split(" ", 1)
+    pn = pn.split(" (")[0]  # drop the "(1uF 25V X5R 0402)" description
+    dist = "LCSC" if lcsc else "Newark"  # U1 isn't stocked at LCSC
+    return [("MFG", MFG_NAMES[brand]), ("MFG P/N", pn), ("DIST", dist), ("DIST P/N", lcsc)]
+
+
 # ------------------------------------------------------------------ placement
 def footprint_id(p):
     if p["lib"] == C.CUE:
@@ -295,6 +315,7 @@ def sch():
         props = [("Reference", ref, 0, -fh / 2 + 2.54, False), ("Value", p["value"], 0, fh / 2 - 2.54, False),
                  ("Footprint", footprint_id(p), 0, 0, True), ("Datasheet", "", 0, 0, True),
                  ("MPN", p["mpn"], 0, 0, True)]
+        props += [(k, v, 0, 0, True) for k, v in dist_fields(ref)]
         if p["note"]:
             props.append(("Note", p["note"], 0, 0, True))
         if lid in TWO_PIN or lid == "Device:D_Zener":
