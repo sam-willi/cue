@@ -11,6 +11,7 @@ import devboard_circuit as C
 
 def parse(path):
     text = open(path).read()
+    text = re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", re.sub(r"\s+", " ", text)))  # KiCad 8+ writes one token per line
     nets = {}
     for m in re.finditer(r'\(net \(code "?\d+"?\) \(name "([^"]*)"\)(.*?)\)\s*(?=\(net |\)\s*\)\s*$)', text, re.S):
         name = m.group(1).lstrip("/")
@@ -30,6 +31,9 @@ def main(path):
         problems.append(f"parts missing from schematic: {sorted(missing)}")
     if extra:
         problems.append(f"extra parts in schematic: {sorted(extra)}")
+    # a net drawn only with wires gets an auto name ("Net-(U2-SW1)"); match it to the circuit net with the same pads
+    by_pads = {frozenset(v): n for n, v in want.items()}
+    nets = {by_pads.get(frozenset(v), n) if n.startswith("Net-(") else n: v for n, v in nets.items()}
     got = {n: v for n, v in nets.items() if not n.startswith("unconnected-") and not n.startswith("Net-(")}
     stray = {n: v for n, v in nets.items() if n.startswith("Net-(") or n.startswith("unconnected-")}
     for n, v in stray.items():
