@@ -4,6 +4,9 @@ Status: design agreed 2026-10-08, ready to model in Zoo. Covers the electronics 
 hook and retention, and what's still open. Board files: `hardware/devboard/`. Enclosure prompts: `ZOO_PROMPTS.md`
 in this folder.
 
+> **The product shape is a different design:** see [`slim/SLIM_BODY.md`](slim/SLIM_BODY.md), a slim
+> hearing-aid-style body that needs a new, narrow board. This document covers only the test mule.
+
 The test mule is a working device worn behind the right ear for real-world testing: microphone, bone conduction,
 haptics and comfort. It is deliberately bigger than the final product. It's built around the current 33 × 21 mm
 board, and a smaller board is the route to a final-size body.
@@ -243,6 +246,30 @@ Not modelled: the outward tipping from the battery being on the outer side, and 
    - Bend tighter if it reads under about 40 g.
    - Bend looser if it reads over about 80 g, or the ear root is sore after an hour.
 3. Record the setting for each size.
+
+## Build status in Zoo (2026-10-09)
+
+Modelled in Zoo Design Studio and checked against the board model with `sim/fitcheck.py`.
+
+- **Steps 1–2 pass** (two-part body, internal snaps, five foam-tipped hold-down fingers):
+  - no collisions; board edge clearance 0.145–0.15 mm
+  - board flat on the floor under U3 and E1
+  - walls at least 0.6–0.7 mm
+  - 52 × 25.55 × 11.8 mm
+- **Step 3 (openings) is partly done.** The USB-C opening and mic channel are in the right place, with fixes
+  requested:
+  - USB opening entirely in the cover, starting at the seam
+  - no plug recess
+  - mic channel rising inside the forward wall to a slot on the forward face
+  - no feathered edges
+  - cord hole through a solid corner
+- **Exterior shaping in Zoo was not adopted.** Rounding the box after the fact failed (lofts and fillets failed,
+  and the last attempt grew to about 53 × 30.5 mm). The mule stays a plain rounded pebble.
+- Also changed:
+  - the top-end hold-down finger is a post from the cover ceiling
+  - the motor pocket moves to X −5.3, Y 6.0, to clear a snap arm
+- Still to do: finish the Step 3 fixes, then buttons, motor pocket, hook slot, antenna pocket, hook bases and fit
+  gauges.
 
 ## 5. Decisions
 
