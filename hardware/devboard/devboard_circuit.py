@@ -9,7 +9,7 @@ Differences from the rev0 cuff netlist:
   - USB-C (J1) replaces the case pogo pads; nPM1300 CC1/CC2 detect the charger.
   - JST-PH battery (J2) and JST-SH LRA (J3) connectors replace soldered cell and motor.
   - Knowles V2S200D and Azoteq IQS227 are not on this board; their signals
-    (PDM, I2C, 3V0) come out on the expansion header (J5) for eval boards.
+    (PDM, I2C) come out on back-side test pads (TP9-TP13); the J5 header and 3V0 rail were dropped.
   - The T5838 mic is powered through nPM1300 load switch 1 (MIC_1V8). Firmware sets
     BUCK1 to 1.8 V before closing the switch, so the 1.98 V-max mic is protected
     even if the BUCK1 start-up voltage were wrong.
@@ -28,7 +28,7 @@ CUE = "CUE_LOCAL"  # replaced with the project footprint library path at build t
 # rail -> (vmin, vmax)
 RAILS = {
     "VBUS": (4.75, 5.25), "VBAT": (3.0, 4.2), "VSYS": (3.0, 5.25),  # VSYS may follow VBUS while charging
-    "1V8": (1.8, 1.8), "3V0": (3.0, 3.0), "MIC_1V8": (1.8, 1.8),
+    "1V8": (1.8, 1.8), "MIC_1V8": (1.8, 1.8),
 }
 
 # ref: dict(lib, fp, value, mpn, pins{pad: net}, supply[(pad, vmin, vmax)], i2c, note, status)
@@ -74,22 +74,23 @@ part("U1", CUE, "Ezurio_BL54L15_453-00044", "BL54L15", "Ezurio 453-00044", u1,
 # --- U2 PMIC: Nordic nPM1300 QFN32 (pin numbers from Nordic product spec). EP = AVSS.
 part("U2", FP + "Package_DFN_QFN.pretty", "QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm", "nPM1300",
      "Nordic NPM1300-QEAA-R", {
-         "1": "1V8", "2": "GND", "3": "SW1", "4": "VSYS", "5": "SW2", "6": "GND",
+         "1": "1V8", "2": "GND", "3": "SW1", "4": "VSYS", "6": "GND",
          "7": "PMIC_INT", "12": "1V8", "13": "I2C_SDA", "14": "I2C_SCL", "15": "SHPHLD",
-         "16": "VSET2", "17": "VSET1", "18": "NTC", "19": "VBAT", "20": "VSYS", "21": "VBUS", "22": "VBUSOUT",
-         "23": "CC1", "24": "CC2", "28": "1V8", "29": "MIC_1V8", "30": "GND", "31": "GND", "32": "3V0", "33": "GND"},
+         "16": "GND", "17": "VSET1", "18": "NTC", "19": "VBAT", "20": "VSYS", "21": "VBUS", "22": "VBUSOUT",
+         "23": "CC1", "24": "CC2", "28": "1V8", "29": "MIC_1V8", "30": "GND", "31": "GND", "32": "VSYS", "33": "GND"},
      supply=[("21", 4.0, 5.5)], i2c=0x6B,
-     nc=["8", "9", "10", "11", "25", "26", "27"],
-     note="I2C 0x6B. BUCK1=1V8 (VSET1), BUCK2=3V0 (VSET2), LS1 gates MIC_1V8. "
-          "Matches nPM1300 PS v1.2.1 Configuration 1 (Table 38/39). LOADSW2 unused: LSIN2/LSOUT2 to GND "
-          "per Fig. 57/58. NTC: 10k B3380 thermistor RT1 (Table 11); select it in ADCNTCRSEL. EP size: KiCad 3.45 mm vs 3.5 mm nominal on sister nPM1304 - confirm.")
+     nc=["5", "8", "9", "10", "11", "25", "26", "27"],
+     note="I2C 0x6B. BUCK1=1V8 (VSET1), LS1 gates MIC_1V8. BUCK2 unused (nothing needs 3.0 V once J5 went): "
+          "SW2 open, VSET2 to GND (= off at start-up), VOUT2 to VSYS per PS Configuration 2 (Fig. 57). "
+          "BUCK1 and VSYS caps per PS v1.2.1 Configuration 1 (Table 38/39). LOADSW2 unused: LSIN2/LSOUT2 to GND "
+          "per Fig. 57/58. NTC: 10k B3380 thermistor RT1 (Table 11); select it in ADCNTCRSEL. EP: KiCad 3.45 mm, inside the PS QFN32 E2/D2 range 3.40-3.60 mm.")
 
 # --- U3 IMU + bone conduction: ST LSM6DSV16BX LGA-14 (pins from ST AN5845)
 part("U3", FP + "Package_LGA.pretty", "LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y", "LSM6DSV16BX",
      "ST LSM6DSV16BXTR", {
          "1": "GND", "2": "TDM_DIN", "3": "TDM_BCLK", "4": "IMU_INT1", "5": "1V8", "6": "QVAR1",
-         "7": "GND", "8": "1V8", "11": "TDM_WCLK", "12": "1V8", "13": "I2C_SCL", "14": "I2C_SDA"},
-     supply=[("8", 1.71, 3.6), ("5", 1.08, 3.6)], i2c=0x6A, nc=["9", "10"],
+         "7": "GND", "8": "1V8", "9": "GND", "11": "TDM_WCLK", "12": "1V8", "13": "I2C_SCL", "14": "I2C_SDA"},
+     supply=[("8", 1.71, 3.6), ("5", 1.08, 3.6)], i2c=0x6A, nc=["10"],
      note="SA0=GND -> 0x6A. CS=1V8 -> I2C mode. Confirm ST land pattern matches KiCad LGA-14 3x2.5.")
 
 # --- U4 mic: TDK T5838 (pins from TDK DS-000383), bottom port -> board hole
@@ -107,7 +108,7 @@ part("U5", CUE, "VSSOP-10_3x3mm_P0.5mm", "DRV2605L", "TI DRV2605LDGSR", {
 
 # --- Connectors
 part("J1", FP + "Connector_USB.pretty", "USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal", "USB-C (power)",
-     "GCT USB4125-GF-A", {"A9": "VBUS", "B9": "VBUS", "A12": "GND", "B12": "GND", "A5": "CC1", "B5": "CC2", "S1": "GND"},
+     "GCT USB4125-GF-A", {"A9": "VBUS", "B9": "VBUS", "A12": "GND", "B12": "GND", "A5": "CC1", "B5": "CC2", "SH": "GND"},
      note="Charge-only USB-C. CC pull-downs (Rd) are inside the nPM1300.")
 part("J2", CUE, "JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal", "BATT",
      "JST S2B-PH-SM4-TB", {"1": "VBAT", "2": "GND"}, nc=["MP"],
@@ -118,18 +119,12 @@ part("J3", FP + "Connector_JST.pretty", "JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_H
 part("J4", FP + "Connector_PinHeader_1.27mm.pretty", "PinHeader_2x05_P1.27mm_Vertical_SMD", "SWD",
      "2x5 1.27 mm SMD header", {"1": "1V8", "2": "SWDIO", "3": "GND", "4": "SWDCLK", "5": "GND", "9": "GND", "10": "nRESET"},
      nc=["6", "7", "8"], note="ARM Cortex 10-pin debug pinout. VTref = 1V8.")
-part("J5", FP + "Connector_PinHeader_2.54mm.pretty", "PinHeader_2x05_P2.54mm_Vertical", "EXP",
-     "2x5 2.54 mm header", {"1": "VSYS", "2": "GND", "3": "1V8", "4": "3V0", "5": "I2C_SDA", "6": "I2C_SCL",
-                             "7": "PDM_CLK", "8": "PDM_DIN", "9": "EXP_P0_01"}, nc=["10"],
-     note="Expansion: V2S200D eval (PDM left channel), IQS227 eval (3V0), scope probing.")
 
 # --- Protection, passives
 part("D1", FP + "Diode_SMD.pretty", "D_SOD-523", "TVS 5V", "onsemi ESD5Z5.0T1G", {"1": "VBUS", "2": "GND"},
      note="Pad 1 = cathode to VBUS.")
 part("L1", FP + "Inductor_SMD.pretty", "L_0805_2012Metric", "2.2uH", "Murata DFE201210U-2R2M=P2", {"1": "SW1", "2": "1V8"},
      note="BUCK1. Nordic ref: 2.2 uH, DCR < 400 mOhm. Confirm Murata land pattern vs 0805.")
-part("L2", FP + "Inductor_SMD.pretty", "L_0805_2012Metric", "2.2uH", "Murata DFE201210U-2R2M=P2", {"1": "SW2", "2": "3V0"},
-     note="BUCK2.")
 
 C0402, C0603, R0402 = (FP + "Capacitor_SMD.pretty", "C_0402_1005Metric"), (FP + "Capacitor_SMD.pretty", "C_0603_1608Metric"), \
     (FP + "Resistor_SMD.pretty", "R_0402_1005Metric")
@@ -147,7 +142,6 @@ cap("C20", "10uF", "VSYS", C0603, note="nPM1300 ref C3 (PVSS2 side)")
 cap("C21", "10uF", "VSYS", C0603, note="nPM1300 ref C4")
 cap("C22", "100nF", "1V8", note="nPM1300 VDDIO pin 12, ref C13")
 cap("C6", "10uF", "1V8", C0603); cap("C18", "10uF", "1V8", C0603)
-cap("C7", "10uF", "3V0", C0603)
 cap("C8", "100nF", "1V8", note="U3 VDD"); cap("C9", "100nF", "1V8", note="U3 VDD_IO")
 cap("C10", "100nF", "MIC_1V8", note="U4 VDD, X7R, closest part to pin 7")
 cap("C19", "1uF", "MIC_1V8", note="Load switch 1 output")
@@ -162,7 +156,6 @@ def res(ref, val, a, b, note=""):
 
 res("R1", "4.7k", "I2C_SDA", "1V8"); res("R2", "4.7k", "I2C_SCL", "1V8")
 res("R3", "47k", "VSET1", "GND", note="VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table")
-res("R4", "150k", "VSET2", "GND", note="VSET2 per Nordic reference circuit (BUCK2 3.0 V) - confirm in PS table")
 part("RT1", R0402[0], R0402[1], "10k NTC", "Murata NCP15XH103F03RC", {"1": "NTC", "2": "GND"},
      note="10k 1% B25/50 3380 K (nPM1300 PS Table 11). Next to U2: with the cell on a lead it senses board temperature.")
 res("R6", "0R", "QVAR1", "TOUCH_E", note="Qvar series element, value TBC with ST guidance")
@@ -177,10 +170,10 @@ part("SW1", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "USER", "Omron
 part("SW2", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "SHIP/WAKE", "Omron B3U-1000P",
      {"1": "SHPHLD", "2": "GND"}, status="DNP", note="Hold to leave ship mode / power on. Hand-solder: out of stock at LCSC.")
 
-for i, n in enumerate(["VBUS", "VBAT", "VSYS", "1V8", "3V0", "MIC_1V8", "GND", "PMIC_INT", "I2C_SDA", "I2C_SCL"], start=1):
+# TP5 (3V0) went with BUCK2; TP11-TP13 replace the J5 expansion header (back side)
+for i, n in {1: "VBUS", 2: "VBAT", 3: "VSYS", 4: "1V8", 6: "MIC_1V8", 7: "GND", 8: "PMIC_INT", 9: "I2C_SDA",
+             10: "I2C_SCL", 11: "PDM_CLK", 12: "PDM_DIN", 13: "EXP_P0_01"}.items():
     part(f"TP{i}", FP + "TestPoint.pretty", "TestPoint_Pad_D1.0mm", f"TP {n}", "Test pad", {"1": n})
-for i in range(1, 4):
-    part(f"FID{i}", FP + "Fiducial.pretty", "Fiducial_0.5mm_Mask1mm", "FID", "Fiducial", {})
 
 
 # --------------------------------------------------------------------------- checks
@@ -264,7 +257,7 @@ SOURCING = {}
 for refs, mpn, lcsc, note in [
     ("C1 C4 C19 C11 C12 C17", "Samsung CL05A105KA5NQNC (1uF 25V X5R 0402)", "C52923", "Basic"),
     ("C16", "Samsung CL05A475MP5NRNC (4.7uF 10V X5R 0402)", "C23733", "Basic"),
-    ("C2 C5 C20 C21 C6 C18 C7", "Samsung CL10A106MA8NRNC (10uF 25V X5R 0603)", "C96446", "Basic"),
+    ("C2 C5 C20 C21 C6 C18", "Samsung CL10A106MA8NRNC (10uF 25V X5R 0603)", "C96446", "Basic"),
     ("C22 C8 C9 C10", "Samsung CL05B104KO5NNNC (100nF 16V X7R 0402)", "C1525", "Basic"),
     ("C3", "Samsung CL10A225KO8NNNC (2.2uF 16V X5R 0603)", "C23630", "Basic"),
     ("D1", "onsemi ESD5Z5.0T1G", "C82044", "Extended"),
@@ -272,11 +265,9 @@ for refs, mpn, lcsc, note in [
     ("J2", "JST S2B-PH-SM4-TB(LF)(SN)", "C295747", "Extended"),
     ("J3", "JST SM02B-SRSS-TB(LF)(SN)", "C160402", "Extended"),
     ("J4", "Samtec FTSH-105-01-L-DV-K-P-TR", "C2932107", "Extended; check land pattern"),
-    ("J5", "XFCN PZ254V-12-10P", "C492422", "Extended; through-hole"),
-    ("L1 L2", "Murata DFE201210U-2R2M=P2", "C2049745", "Extended"),
+    ("L1", "Murata DFE201210U-2R2M=P2", "C2049745", "Extended"),
     ("R1 R2", "UniOhm 0402WGF4701TCE", "C25900", "Basic"),
     ("R3", "UniOhm 0402WGF4702TCE", "C25792", "Basic"),
-    ("R4", "UniOhm 0402WGF1503TCE", "C25755", "Extended"),
     ("R6", "UniOhm 0402WGF0000TCE", "C17168", "Basic"),
     ("R7 R8", "UniOhm 0402WGF3300TCE", "C25104", "Basic"),
     ("RT1", "Murata NCP15XH103F03RC", "C77131", "Extended"),

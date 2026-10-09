@@ -1,6 +1,6 @@
 Comment,Designator,Footprint,LCSC Part #,Manufacturer Part,Qty,Status,Sourcing,Notes
 1uF,"C1,C4,C11,C12,C17,C19",C_0402_1005Metric,C52923,Samsung CL05A105KA5NQNC (1uF 25V X5R 0402),6,FIT,Basic,Load switch 1 output | U5 REG | U5 VDD | nPM1300 VBUSOUT must be decoupled
-10uF,"C2,C5,C6,C7,C18,C20,C21",C_0603_1608Metric,C96446,Samsung CL10A106MA8NRNC (10uF 25V X5R 0603),7,FIT,Basic,"PVDD, nPM1300 ref C2 (PVSS1 side) | nPM1300 ref C3 (PVSS2 side) | nPM1300 ref C4"
+10uF,"C2,C5,C6,C18,C20,C21",C_0603_1608Metric,C96446,Samsung CL10A106MA8NRNC (10uF 25V X5R 0603),6,FIT,Basic,"PVDD, nPM1300 ref C2 (PVSS1 side) | nPM1300 ref C3 (PVSS2 side) | nPM1300 ref C4"
 2.2uF,C3,C_0603_1608Metric,C23630,Samsung CL10A225KO8NNNC (2.2uF 16V X5R 0603),1,FIT,Basic,nPM1300 ref C6
 4.7uF,C16,C_0402_1005Metric,C23733,Samsung CL05A475MP5NRNC (4.7uF 10V X5R 0402),1,FIT,Basic,U1 VDD bulk
 100nF,"C8,C9,C10,C22",C_0402_1005Metric,C1525,Samsung CL05B104KO5NNNC (100nF 16V X7R 0402),4,FIT,Basic,"U3 VDD | U3 VDD_IO | U4 VDD, X7R, closest part to pin 7 | nPM1300 VDDIO pin 12, ref C13"
@@ -9,15 +9,13 @@ USB-C (power),J1,USB_C_Receptacle_GCT_USB4125-xx-x_6P_TopMnt_Horizontal,C5246813
 BATT,J2,JST_PH_S2B-PH-SM4-TB_1x02-1MP_P2.00mm_Horizontal,C295747,JST S2B-PH-SM4-TB(LF)(SN),1,FIT,Extended,JST-PH for the Adafruit #1570 LiPo. Pin 1 = + (silk '+'). JST-PH battery leads are not standardised: meter the cell's plug before connecting; red must land on '+'.
 LRA,J3,JST_SH_SM02B-SRSS-TB_1x02-1MP_P1.00mm_Horizontal,C160402,JST SM02B-SRSS-TB(LF)(SN),1,FIT,Extended,Coin LRA on a pigtail (Vybronics VG0832013D).
 SWD,J4,PinHeader_2x05_P1.27mm_Vertical_SMD,C2932107,Samtec FTSH-105-01-L-DV-K-P-TR,1,FIT,Extended; check land pattern,ARM Cortex 10-pin debug pinout. VTref = 1V8.
-EXP,J5,PinHeader_2x05_P2.54mm_Vertical,C492422,XFCN PZ254V-12-10P,1,FIT,Extended; through-hole,"Expansion: V2S200D eval (PDM left channel), IQS227 eval (3V0), scope probing."
-2.2uH,"L1,L2",L_0805_2012Metric,C2049745,Murata DFE201210U-2R2M=P2,2,FIT,Extended,"BUCK1. Nordic ref: 2.2 uH, DCR < 400 mOhm. Confirm Murata land pattern vs 0805. | BUCK2."
+2.2uH,L1,L_0805_2012Metric,C2049745,Murata DFE201210U-2R2M=P2,1,FIT,Extended,"BUCK1. Nordic ref: 2.2 uH, DCR < 400 mOhm. Confirm Murata land pattern vs 0805."
 4.7k,"R1,R2",R_0402_1005Metric,C25900,UniOhm 0402WGF4701TCE,2,FIT,Basic,
 47k,R3,R_0402_1005Metric,C25792,UniOhm 0402WGF4702TCE,1,FIT,Basic,VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table
-150k,R4,R_0402_1005Metric,C25755,UniOhm 0402WGF1503TCE,1,FIT,Extended,VSET2 per Nordic reference circuit (BUCK2 3.0 V) - confirm in PS table
 0R,R6,R_0402_1005Metric,C17168,UniOhm 0402WGF0000TCE,1,FIT,Basic,"Qvar series element, value TBC with ST guidance"
 330R,"R7,R8",R_0402_1005Metric,C25104,UniOhm 0402WGF3300TCE,2,FIT,Basic,Cuff (BL54L15u) Ezurio Note 7: >=330 R series on P1.09-P1.12; kept so the boards match
 10k NTC,RT1,R_0402_1005Metric,C77131,Murata NCP15XH103F03RC,1,FIT,Extended,10k 1% B25/50 3380 K (nPM1300 PS Table 11). Next to U2: with the cell on a lead it senses board temperature.
-nPM1300,U2,QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm,C7466043,Nordic NPM1300-QEAA-R,1,FIT,"Listed, out of stock: pre-order / global sourcing","I2C 0x6B. BUCK1=1V8 (VSET1), BUCK2=3V0 (VSET2), LS1 gates MIC_1V8. Matches nPM1300 PS v1.2.1 Configuration 1 (Table 38/39). LOADSW2 unused: LSIN2/LSOUT2 to GND per Fig. 57/58. NTC: 10k B3380 thermistor RT1 (Table 11); select it in ADCNTCRSEL. EP size: KiCad 3.45 mm vs 3.5 mm nominal on sister nPM1304 - confirm."
+nPM1300,U2,QFN-32-1EP_5x5mm_P0.5mm_EP3.45x3.45mm,C7466043,Nordic NPM1300-QEAA-R,1,FIT,"Listed, out of stock: pre-order / global sourcing","I2C 0x6B. BUCK1=1V8 (VSET1), LS1 gates MIC_1V8. BUCK2 unused (nothing needs 3.0 V once J5 went): SW2 open, VSET2 to GND (= off at start-up), VOUT2 to VSYS per PS Configuration 2 (Fig. 57). BUCK1 and VSYS caps per PS v1.2.1 Configuration 1 (Table 38/39). LOADSW2 unused: LSIN2/LSOUT2 to GND per Fig. 57/58. NTC: 10k B3380 thermistor RT1 (Table 11); select it in ADCNTCRSEL. EP: KiCad 3.45 mm, inside the PS QFN32 E2/D2 range 3.40-3.60 mm."
 LSM6DSV16BX,U3,LGA-14_3x2.5mm_P0.5mm_LayoutBorder3x4y,C5267394,ST LSM6DSV16BXTR,1,FIT,Extended; in stock at LCSC (2nd listing; C5381401 is the dead one),SA0=GND -> 0x6A. CS=1V8 -> I2C mode. Confirm ST land pattern matches KiCad LGA-14 3x2.5.
 T5838,U4,TDK_T5838,C7230692,TDK MMICT5838-00-012,1,FIT,Extended,SELECT=GND -> right channel (data after the falling clock edge). Bottom port: 0.6 mm board hole (TDK: 0.5-1.0).
 DRV2605L,U5,VSSOP-10_3x3mm_P0.5mm,C527464,TI DRV2605LDGSR,1,FIT,Extended,"I2C 0x5A, 1.8 V logic thresholds (VIH 1.3 V min). EN high before register writes. Supplied from VBAT (3.0-4.2 V): VSYS can approach VBUS while charging, above the 5.2 V max."

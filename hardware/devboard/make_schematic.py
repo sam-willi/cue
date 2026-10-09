@@ -5,8 +5,10 @@ Write the Cue rev A dev board schematic (KiCad 7 .kicad_sch) from devboard_circu
 
 One A2 sheet, five blocks (Power, Radio, Sensors, Haptics, Headers & test). Passives use the
 stock KiCad Device/Switch/Connector symbols; ICs and connectors are drawn as pin boxes with
-real pin names where the datasheet gives them. Every pin connects through a net label, so the
-schematic is generated from - and checked against - the same pad-level netlist as the PCB.
+real pin names where the datasheet gives them. The power block is drawn with wires, laid out like
+the nPM1300 PS block diagram; elsewhere pins connect through net labels. Ground is the GND symbol
+everywhere. The schematic is generated from - and checked against - the same pad-level netlist as
+the PCB.
 """
 import os
 import re
@@ -16,7 +18,7 @@ import devboard_circuit as C
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "cue_devboard.kicad_sch")
-SYMDIR = "/usr/share/kicad/symbols"
+SYMDIR = os.environ.get("KICAD7_SYMBOL_DIR", "/usr/share/kicad/symbols")
 NS = uuid.UUID("6f1d3c2e-8a4b-4c1e-9d2f-5b7a6c3e1f00")
 ROOT = str(uuid.uuid5(NS, "root"))
 G = 2.54
@@ -53,16 +55,22 @@ def u1_names():
 NAMES = {"U1": u1_names(), "U2": NPM1300, "U5": DRV2605L, "U4": T5838}
 
 # left / right pin order for the big parts (pads); anything not listed goes on the right
+# None leaves an empty row, so parts hanging off one pin's wire clear the next pin
 SIDES = {
-    "U2": (["21", "23", "24", "19", "18", "15", "17", "16", "12", "13", "14", "7", "8", "9", "10", "11"],
-           ["20", "4", "22", "3", "1", "5", "32", "28", "29", "30", "31", "25", "26", "27", "2", "6", "33"]),
+    "U2": (["21", None, "23", "24", None, "22", None, None, None, None, None, None, "19", "18", None, None, "15", None, None,
+            "7", "8", "9", "10", "11", "25", "26", "27"],
+           ["20", "4", None, "3", "1", "12", "28", "17", "2", None, None, None, "5", "32", "16", "6", None, None,
+            None, "14", "13", None, "29", None, "30", "31", None, "33"]),
+    "J1": ([], ["A9", "B9", "A5", "B5", "A12", "B12", "S1"]),
+    "J2": ([], ["1", "2", "MP"]),
     "U5": (["10", "6", "5", "4", "2", "3"], ["7", "9", "1", "8"]),
     "U4": (["7", "6", "1", "3"], ["4", "5", "2"]),
 }
 
 # ------------------------------------------------------------------ blocks
+POWER_TITLE = "POWER - USB-C, nPM1300 (PS v1.2.1 Config 1), battery"
 BLOCKS = [
-    ("POWER - USB-C, nPM1300 (PS v1.2.1 Config 1), battery",
+    (POWER_TITLE,
      ["J1", "D1", "C1", "C2", "U2", "C3", "RT1", "J2", "C4", "C5", "C20", "C21", "C17", "L1", "C6", "C18",
       "L2", "C7", "R3", "R4", "C19", "C22", "R1", "R2", "SW2"]),
     ("RADIO - Ezurio BL54L15 453-00044 (nRF54L15, MHF4 antenna connector)",
@@ -177,6 +185,8 @@ def box_symbol(ref, p):
     pins_def, pins = [], {}
     for side, lst in (("L", left), ("R", right)):
         for i, pad in enumerate(lst):
+            if pad is None:
+                continue
             y = top - G - i * G
             if side == "L":
                 x, ang = -width / 2 - G, 0
@@ -197,6 +207,220 @@ def box_symbol(ref, p):
             f'        (stroke (width 0.254) (type default)) (fill (type background))))\n'
             f'    (symbol "{ref}_1_1"\n' + "\n".join(pins_def) + "\n    )\n  )")
     return lid, body, pins, width, height
+
+
+# ------------------------------------------------------------------ sourcing fields (MFG / DIST)
+MFG_NAMES = {
+    "Samsung": "Samsung Electro-Mechanics", "onsemi": "onsemi", "GCT": "GCT", "JST": "JST", "Samtec": "Samtec",
+    "XFCN": "XFCN", "Murata": "Murata Electronics", "UniOhm": "UNI-ROYAL (Uniroyal Elec)", "Omron": "Omron",
+    "Ezurio": "Ezurio", "Nordic": "Nordic Semiconductor", "ST": "STMicroelectronics", "TDK": "TDK InvenSense",
+    "TI": "Texas Instruments",
+}
+
+
+def dist_fields(ref):
+    """MFG, MFG P/N, DIST, DIST P/N for a part in devboard_circuit.SOURCING (empty list if it isn't bought)."""
+    if ref not in C.SOURCING:
+        return []
+    mpn, lcsc, _ = C.SOURCING[ref]
+    brand, pn = mpn.split(" ", 1)
+    pn = pn.split(" (")[0]  # drop the "(1uF 25V X5R 0402)" description
+    dist = "LCSC" if lcsc else "Newark"  # U1 isn't stocked at LCSC
+    return [("MFG", MFG_NAMES[brand]), ("MFG P/N", pn), ("DIST", dist), ("DIST P/N", lcsc)]
+
+
+# ------------------------------------------------------------------ ground symbol (KiCad 7 power:GND)
+POWER_PROPS = """      (property "Footprint" "" (at 0 0 0) (effects (font (size 1.27 1.27)) hide))
+      (property "Datasheet" "" (at 0 0 0) (effects (font (size 1.27 1.27)) hide))"""
+GND_LIB = """(symbol "power:GND" (power) (pin_numbers hide) (pin_names (offset 0) hide) (in_bom yes) (on_board yes)
+      (property "Reference" "#PWR" (at 0 -6.35 0) (effects (font (size 1.27 1.27)) hide))
+      (property "Value" "GND" (at 0 -3.81 0) (effects (font (size 1.27 1.27))))
+""" + POWER_PROPS + """
+      (property "Description" "Power symbol creates a global label with name \\"GND\\" , ground" (at 0 0 0) (effects (font (size 1.27 1.27)) hide))
+      (property "ki_keywords" "global power" (at 0 0 0) (effects (font (size 1.27 1.27)) hide))
+      (symbol "GND_0_1"
+        (polyline (pts (xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27))
+          (stroke (width 0) (type default)) (fill (type none))))
+      (symbol "GND_1_1"
+        (pin power_in line (at 0 0 270) (length 0)
+          (name "" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))))
+    )"""
+# PWR_FLAG on GND tells ERC the ground net is driven (by the battery / USB connector)
+FLAG_LIB = """(symbol "power:PWR_FLAG" (power) (pin_numbers hide) (pin_names (offset 0) hide) (in_bom yes) (on_board yes)
+      (property "Reference" "#FLG" (at 0 1.905 0) (effects (font (size 1.27 1.27)) hide))
+      (property "Value" "PWR_FLAG" (at 0 3.81 0) (effects (font (size 1.27 1.27))))
+""" + POWER_PROPS + """
+      (property "Description" "Special symbol for telling ERC where power comes from" (at 0 0 0) (effects (font (size 1.27 1.27)) hide))
+      (property "ki_keywords" "flag power" (at 0 0 0) (effects (font (size 1.27 1.27)) hide))
+      (symbol "PWR_FLAG_0_0"
+        (pin power_out line (at 0 0 90) (length 0)
+          (name "" (effects (font (size 1.27 1.27))))
+          (number "1" (effects (font (size 1.27 1.27))))))
+      (symbol "PWR_FLAG_0_1"
+        (polyline (pts (xy 0 0) (xy 0 1.27) (xy -1.016 1.905) (xy 0 2.54) (xy 1.016 1.905) (xy 0 1.27))
+          (stroke (width 0) (type default)) (fill (type none))))
+    )"""
+# label angle (direction away from the part) -> GND symbol rotation that points the same way
+GND_ROT = {0: 90, 180: 270, 90: 180, 270: 0}
+
+
+# ------------------------------------------------------------------ power block, drawn with wires
+POWER_W, POWER_H = 66 * G, 44 * G
+
+
+def power_block(ox, oy):
+    """Lay out the power block with wires, like nPM1300 PS Figure 2 (block diagram).
+
+    U2 sits in the middle: USB-C, battery, NTC and the ship button on the left; VSYS, both bucks
+    (inductor, output caps, VSET resistor), I2C pull-ups and the load switches on the right. Only
+    nets that continue into other blocks get a label. Returns parts, wires, GND points and labels.
+    """
+    parts, wires, gnds, labels = {}, [], [], []
+
+    def at(xg, yg):
+        return ox + xg * G, oy + yg * G
+
+    def place(ref, rot, pad, x, y):
+        """Place ref so its pad lands on (x, y); returns {pad: (x, y)} in sheet coordinates."""
+        p = C.PARTS[ref]
+        lid = stock_for(ref, p)
+        if lid:
+            pins = STOCK[lid][1]
+        else:
+            lid, _, pins, bw, bh = box_symbol(ref, p)
+        pins = {k: rot_pin(*v, rot) for k, v in pins.items()}
+        cx, cy = x - pins[pad][0], y + pins[pad][1]
+        sheet = {k: (cx + v[0], cy - v[1]) for k, v in pins.items()}
+        parts[ref] = (lid, pins, rot, cx, cy, sheet)
+        return sheet
+
+    def wire(*pts):
+        wires.extend(zip(pts, pts[1:]))
+
+    def hang(ref, x, y, ground=True):
+        """Two-pin part hanging down from a wire at (x, y): pad 1 on the wire, pad 2 to GND."""
+        rot = 0 if ref[0] in "RCL" else 270  # D1: cathode (pad 1) up
+        pin = place(ref, rot, "1", x, y)
+        if ground:
+            gnds.append((pin["2"], 0))
+        return pin
+
+    # U2, rows read off the symbol
+    u2 = place("U2", 0, "21", *at(25, 11))
+    lx, rx = u2["21"][0], u2["20"][0]  # pin tips, left and right
+
+    def row(pad):
+        return u2[pad][1]
+
+    # ---- left: USB-C (J1) straight into VBUS / CC1 / CC2, VBUS caps on a rail above
+    j1 = place("J1", 0, "A9", lx - 21 * G, row("21"))
+    wire(j1["A9"], u2["21"])
+    wire(j1["B9"], (j1["B9"][0] + G, j1["B9"][1]), (j1["B9"][0] + G, row("21")))
+    wire(j1["A5"], u2["23"])
+    wire(j1["B5"], u2["24"])
+    gx = j1["A12"][0] + G
+    for pad in ("A12", "B12", "S1"):
+        wire(j1[pad], (gx, j1[pad][1]))
+    wire((gx, j1["A12"][1]), (gx, j1["S1"][1]))
+    gnds.append(((gx, j1["S1"][1]), 0))
+    flag = (gx, j1["S1"][1])
+    rail = row("21") - 6 * G
+    wire((lx - 2 * G, row("21")), (lx - 2 * G, rail), (lx - 14 * G, rail))
+    for ref, dx in (("C1", 5), ("C2", 8), ("D1", 11)):
+        hang(ref, lx - dx * G, rail)
+    labels.append(("VBUS", (lx - 14 * G, rail), 180))
+
+    # VBUSOUT: one cap
+    wire(u2["22"], (lx - 3 * G, row("22")))
+    hang("C17", lx - 3 * G, row("22"))
+
+    # battery (J2), VBAT cap, NTC thermistor, ship-mode button
+    j2 = place("J2", 0, "1", j1["A9"][0], row("19"))
+    wire(j2["1"], u2["19"])
+    hang("C3", lx - 15 * G, row("19"))
+    labels.append(("VBAT", (lx - 9 * G, row("19")), 0))
+    wire(j2["2"], (j2["2"][0] + 2 * G, j2["2"][1]))
+    gnds.append(((j2["2"][0] + 2 * G, j2["2"][1]), 0))
+    wire(u2["18"], (lx - 11 * G, row("18")))
+    hang("RT1", lx - 11 * G, row("18"))
+    sw = place("SW2", 180, "1", lx - 2 * G, row("15"))
+    wire(u2["15"], sw["1"])
+    wire(sw["2"], (sw["2"][0] - 2 * G, sw["2"][1]))  # ground clear of the button's name
+    gnds.append(((sw["2"][0] - 2 * G, sw["2"][1]), 0))
+    wire(u2["7"], (lx - 3 * G, row("7")))
+    labels.append(("PMIC_INT", (lx - 3 * G, row("7")), 180))
+
+    # ---- right: VSYS and PVDD to a rail of caps above
+    vx = rx + 2 * G
+    rail = row("20") - 6 * G
+    wire(u2["20"], (vx, row("20")))
+    wire(u2["4"], (vx, row("4")), (vx, rail), (rx + 17 * G, rail))
+    for ref, dx in (("C4", 5), ("C5", 8), ("C20", 11), ("C21", 14)):
+        hang(ref, rx + dx * G, rail)
+    labels.append(("VSYS", (rx + 17 * G, rail), 0))
+
+    # BUCK1: SW1 -> L1 -> 1V8; VOUT1, VDDIO and LSIN1 tie to it; output caps and I2C pull-ups hang off 1V8
+    l1 = place("L1", 90, "1", rx + 3 * G, row("3"))
+    wire(u2["3"], l1["1"])
+    wire(l1["2"], (rx + 25 * G, row("3")))
+    bx = rx + 7 * G
+    for pad in ("1", "12", "28"):
+        wire(u2[pad], (bx, row(pad)))
+    wire((bx, row("28")), (bx, row("3")))
+    for ref, dx in (("C6", 10), ("C18", 13), ("C22", 16)):
+        hang(ref, rx + dx * G, row("3"))
+    labels.append(("1V8", (rx + 25 * G, row("3")), 0))
+    wire(u2["17"], (rx + 3 * G, row("17")))
+    hang("R3", rx + 3 * G, row("17"))
+    wire(u2["2"], (rx + G, row("2")))
+    gnds.append(((rx + G, row("2")), 0))
+
+    # BUCK2: SW2 -> L2 -> 3V0
+    l2 = place("L2", 90, "1", rx + 3 * G, row("5"))
+    wire(u2["5"], l2["1"])
+    wire(l2["2"], (rx + 12 * G, row("5")))
+    wire(u2["32"], (bx, row("32")), (bx, row("5")))
+    hang("C7", rx + 9 * G, row("5"))
+    labels.append(("3V0", (rx + 12 * G, row("5")), 0))
+    wire(u2["16"], (rx + 3 * G, row("16")))
+    hang("R4", rx + 3 * G, row("16"))
+    wire(u2["6"], (rx + G, row("6")))
+    gnds.append(((rx + G, row("6")), 0))
+
+    # I2C: pull-ups from the 1V8 wire down to SCL / SDA
+    for ref, pad, dx in (("R2", "14", 21), ("R1", "13", 23)):
+        r = place(ref, 180, "2", rx + dx * G, row("3"))  # pad 2 (1V8) up on the wire, pad 1 down to I2C
+        wire(r["1"], (r["1"][0], row(pad)), u2[pad])
+        labels.append(("I2C_SCL" if pad == "14" else "I2C_SDA", (rx + 10 * G, row(pad)), 0))
+
+    # LOADSW1 -> MIC_1V8; LOADSW2 unused, both ends to GND (PS Fig. 57/58); exposed pad
+    wire(u2["29"], (rx + 6 * G, row("29")))
+    hang("C19", rx + 3 * G, row("29"))
+    labels.append(("MIC_1V8", (rx + 6 * G, row("29")), 0))
+    wire(u2["30"], (rx + G, row("30")), (rx + G, row("31")))
+    wire(u2["31"], (rx + G, row("31")))
+    gnds.append(((rx + G, row("31")), 0))
+    wire(u2["33"], (rx + G, row("33")))
+    gnds.append(((rx + G, row("33")), 0))
+    return parts, wires, gnds, labels, flag
+
+
+def split_wires(wires, points):
+    """Split every wire at any connection point lying inside it, so T-joins connect."""
+    out = []
+    for a, b in wires:
+        if a == b:
+            continue
+        cuts = [a, b]
+        for q in points:
+            if q not in (a, b) and min(a[0], b[0]) - 1e-6 <= q[0] <= max(a[0], b[0]) + 1e-6 \
+                    and min(a[1], b[1]) - 1e-6 <= q[1] <= max(a[1], b[1]) + 1e-6 \
+                    and abs((b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0])) < 1e-6:
+                cuts.append(q)
+        cuts = sorted(set(cuts), key=lambda q: (q[0] - a[0]) ** 2 + (q[1] - a[1]) ** 2)
+        out += list(zip(cuts, cuts[1:]))
+    return out
 
 
 # ------------------------------------------------------------------ placement
@@ -224,13 +448,17 @@ def build():
     lib_defs, items, blocks_out = {}, [], []
     # columns: power | radio + haptics | sensors + headers
     cols = [[0], [1, 3], [2, 4]]
-    col_x = [12.7, 149.86, 284.48]
-    col_w = [127.0, 124.0, 120.0]
+    col_x = [12.7, 195.58, 330.2]
+    col_w = [POWER_W, 124.0, 120.0]
     for ci, col in enumerate(cols):
         cy = 33.02
         for bi in col:
             title, refs = BLOCKS[bi]
             bx, right = col_x[ci], col_x[ci] + col_w[ci]
+            if title == POWER_TITLE:  # wired by hand
+                blocks_out.append((title, bx - 5.08, cy, col_w[ci] + 7.62, POWER_H))
+                cy += POWER_H + 7.62
+                continue
             parts = []
             for ref in refs:
                 p = C.PARTS[ref]
@@ -280,7 +508,17 @@ def build():
 
 def sch():
     lib_defs, items, blocks = build()
-    out = ['(kicad_sch (version 20230121) (generator eeschema)', f'  (uuid {ROOT})', '  (paper "A3")',
+    # power block: wired by hand (power_block), placed inside the frame build() reserved for it
+    px0, py0 = next((x + 5.08, y) for t, x, y, w, h in blocks if t == POWER_TITLE)
+    wparts, pwires, pgnds, plabels, flag = power_block(px0, py0)
+    for ref, (lid, pins, rot, cx, cy, _) in wparts.items():
+        lib_defs[lid] = STOCK[lid][0] if lid in STOCK else box_symbol(ref, C.PARTS[ref])[1]
+        h = max(v[1] for v in pins.values()) - min(v[1] for v in pins.values()) + G
+        items.append((ref, lid, pins, rot, cx, cy, 0, h + 10.16))
+    lib_defs["power:GND"] = GND_LIB
+    lib_defs["power:PWR_FLAG"] = FLAG_LIB
+    gnd_syms = list(pgnds)
+    out = ['(kicad_sch (version 20230121) (generator eeschema)', f'  (uuid {ROOT})', '  (paper "A2")',
            '  (title_block (title "Cue rev A dev board") (date "2026-10-05") (rev "A")',
            '    (company "Cue")', '    (comment 1 "Source: hardware/devboard/devboard_circuit.py")',
            '    (comment 2 "Radio module footprint: see README for status"))',
@@ -295,6 +533,7 @@ def sch():
         props = [("Reference", ref, 0, -fh / 2 + 2.54, False), ("Value", p["value"], 0, fh / 2 - 2.54, False),
                  ("Footprint", footprint_id(p), 0, 0, True), ("Datasheet", "", 0, 0, True),
                  ("MPN", p["mpn"], 0, 0, True)]
+        props += [(k, v, 0, 0, True) for k, v in dist_fields(ref)]
         if p["note"]:
             props.append(("Note", p["note"], 0, 0, True))
         if lid in TWO_PIN or lid == "Device:D_Zener":
@@ -303,11 +542,23 @@ def sch():
         if lid == "Connector:TestPoint":
             props[0] = ("Reference", ref, 0, -2.54, False)
             props[1] = ("Value", p["value"], 0, 0, True)
+        tang = rot
+        if ref in wparts:  # hand-placed: horizontal text beside the part
+            tang = 90 if rot in (90, 270) else 0  # field angles follow the symbol's rotation
+            if lid in ("Device:L",):  # "L1 2.2uH" above the coil, clear of the VOUT wire below
+                props[0] = ("Reference", ref, -0.635, -2.54, False, "right")
+                props[1] = ("Value", p["value"], 0.635, -2.54, False, "left")
+            elif lid == "Switch:SW_Push":
+                props[0] = ("Reference", ref, 0, -3.81, False)
+                props[1] = ("Value", p["value"], 0, 2.54, False)
+            elif lid in TWO_PIN or lid == "Device:D_Zener":
+                props[0] = ("Reference", ref, 1.905, -1.27, False, "left")
+                props[1] = ("Value", p["value"], 1.905, 1.27, False, "left")
         s = [f'  (symbol (lib_id "{lid}") (at {cx:g} {cy:g} {rot}) (unit 1)',
              f'    (in_bom {bom}) (on_board yes) (dnp no) (uuid {uid("sym", ref)})']
         for k, v, dx, dy, hide, *j in props:
             just = f" (justify {j[0]})" if j else ""
-            s.append(f'    (property "{k}" "{esc(v)}" (at {cx + dx:g} {cy + dy:g} {rot})'
+            s.append(f'    (property "{k}" "{esc(v)}" (at {cx + dx:g} {cy + dy:g} {tang})'
                      f' (effects (font (size 1.27 1.27)){just}{" hide" if hide else ""}))')
         for pad in pins:
             s.append(f'    (pin "{pad}" (uuid {uid("pin", ref, pad)}))')
@@ -319,12 +570,62 @@ def sch():
             if pad in p["nc"] or pad not in p["pins"]:
                 out.append(f'  (no_connect (at {ex:g} {ey:g}) (uuid {uid("nc", ref, pad)}))')
                 continue
+            if ref in wparts:
+                continue  # wired
             net = p["pins"][pad]
             # pin points into the body along `ang`; the label faces away from the body
             la, just = {0: (180, "right"), 180: (0, "left"), 270: (90, "left"), 90: (270, "right")}[ang]
+            if net == "GND":
+                gnd_syms.append(((ex, ey), GND_ROT[la]))
+                continue
             out.append(f'  (label "{esc(net)}" (at {ex:g} {ey:g} {la}) (fields_autoplaced)'
                        f' (effects (font (size 1.27 1.27)) (justify {just} bottom)) (uuid {uid("lab", ref, pad)}))')
             labels += 1
+    # power-block wires, junctions and labels; GND symbols everywhere
+    pin_pts = [sheet[pad] for ref, (*_, sheet) in wparts.items() for pad in sheet
+               if pad in C.PARTS[ref]["pins"]]
+    gnd_pts = [q for q, _ in gnd_syms]
+    lab_pts = [q for _, q, _ in plabels]
+    ends = [q for w in pwires for q in w]
+    segs = split_wires(pwires, pin_pts + gnd_pts + lab_pts + ends)
+    deg = {}
+    for q in [q for w in segs for q in w] + pin_pts + [q for q in gnd_pts if q in set(pin_pts + ends)]:
+        k = (round(q[0], 3), round(q[1], 3))
+        deg[k] = deg.get(k, 0) + 1
+    for i, (a, b) in enumerate(segs):
+        out.append(f'  (wire (pts (xy {a[0]:g} {a[1]:g}) (xy {b[0]:g} {b[1]:g}))'
+                   f' (stroke (width 0) (type default)) (uuid {uid("w", a, b)}))')
+    for k, n in sorted(deg.items()):
+        if n >= 3:
+            out.append(f'  (junction (at {k[0]:g} {k[1]:g}) (diameter 0) (color 0 0 0 0) (uuid {uid("j", k)}))')
+    for net, (x, y), ang in plabels:
+        just = "left" if ang == 0 else "right"
+        out.append(f'  (label "{esc(net)}" (at {x:g} {y:g} {ang}) (fields_autoplaced)'
+                   f' (effects (font (size 1.27 1.27)) (justify {just} bottom)) (uuid {uid("plab", net, x, y)}))')
+        labels += 1
+    for i, ((x, y), grot) in enumerate(gnd_syms, 1):
+        ref = f"#PWR{i:03d}"
+        vx, vy = rot_pin(0, -3.81, 0, grot)[:2]
+        out += [f'  (symbol (lib_id "power:GND") (at {x:g} {y:g} {grot}) (unit 1)',
+                f'    (in_bom yes) (on_board yes) (dnp no) (uuid {uid("gnd", x, y)})',
+                f'    (property "Reference" "{ref}" (at {x:g} {y + 6.35:g} 0) (effects (font (size 1.27 1.27)) hide))',
+                f'    (property "Value" "GND" (at {x + vx:g} {y - vy:g} 0) (effects (font (size 1.27 1.27))))',
+                f'    (property "Footprint" "" (at {x:g} {y:g} 0) (effects (font (size 1.27 1.27)) hide))',
+                f'    (property "Datasheet" "" (at {x:g} {y:g} 0) (effects (font (size 1.27 1.27)) hide))',
+                f'    (pin "1" (uuid {uid("gndpin", x, y)}))',
+                f'    (instances (project "cue_devboard" (path "/{ROOT}" (reference "{ref}") (unit 1))))',
+                '  )']
+    fx, fy = flag  # pointing right, clear of the ground symbol below it
+    out += [f'  (symbol (lib_id "power:PWR_FLAG") (at {fx:g} {fy:g} 270) (unit 1)',
+            f'    (in_bom yes) (on_board yes) (dnp no) (uuid {uid("flag")})',
+            f'    (property "Reference" "#FLG01" (at {fx + 1.905:g} {fy:g} 0) (effects (font (size 1.27 1.27)) hide))',
+            f'    (property "Value" "PWR_FLAG" (at {fx + 3.81:g} {fy:g} 90)'
+            f' (effects (font (size 1.27 1.27)) (justify left)))',
+            f'    (property "Footprint" "" (at {fx:g} {fy:g} 0) (effects (font (size 1.27 1.27)) hide))',
+            f'    (property "Datasheet" "" (at {fx:g} {fy:g} 0) (effects (font (size 1.27 1.27)) hide))',
+            f'    (pin "1" (uuid {uid("flagpin")}))',
+            f'    (instances (project "cue_devboard" (path "/{ROOT}" (reference "#FLG01") (unit 1))))',
+            '  )']
     for title, x, y, w, h in blocks:
         out.append(f'  (rectangle (start {x:g} {y:g}) (end {x + w:g} {y + h:g})'
                    f' (stroke (width 0.3) (type dash)) (fill (type none)) (uuid {uid("blk", title)}))')

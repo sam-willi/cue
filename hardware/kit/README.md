@@ -8,32 +8,32 @@ How to wire the off-the-shelf parts we have to test bone conduction before the c
 
 Links checked Oct 4, 2026.
 
-| Part | Buy | Price |
-| --- | --- | --- |
-| Seeed Studio XIAO nRF54L15 Sense | [OpenELAB](https://openelab.com/products/seeed-studio-xiao-nrf54l15-sense) (or search seeedstudio.com) · [wiki](https://wiki.seeedstudio.com/xiao_nrf54l15_sense_getting_started/) | ~$16 |
-| Knowles/Syntiant V2S200D eval board, KAS-700-0177 (bone-conduction sensor, face pressed against the skin) | [Digi-Key](https://www.digikey.com/en/products/detail/syntiant/KAS-700-0177/18670178) | |
-| TinyCircuits LRA Wireling (vibration motor + DRV2605 driver, I2C 0x5A) | [TinyCircuits](https://tinycircuits.com/products/lra-wireling-drv2605) | $14.95 |
-| TinyCircuits 0.1" Breakout I2C Wireling | [TinyCircuits](https://tinycircuits.com/products/0-1-breakout-i2c-wireling) | $2.95 |
-| TinyCircuits 5-pin Wireling cable | [TinyCircuits](https://tinycircuits.com/products/5-pin-extension-cable) | from $0.99 |
-| Adafruit 3.7 V 100 mAh LiPo (#1570, JST-PH plug) | [Adafruit](https://www.adafruit.com/product/1570) | $5.95 |
-| Mini breadboard | [SparkFun](https://www.sparkfun.com/breadboard-mini-modular-blue.html) | $4.60 |
-| Female-to-male jumper wires | [Adafruit #1954](https://www.adafruit.com/product/1954) | $1.95 |
+| Part                                                                                                      | Buy                                                                                                                                                                                | Price      |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Seeed Studio XIAO nRF54L15 Sense                                                                          | [OpenELAB](https://openelab.com/products/seeed-studio-xiao-nrf54l15-sense) (or search seeedstudio.com) · [wiki](https://wiki.seeedstudio.com/xiao_nrf54l15_sense_getting_started/) | ~$16       |
+| Knowles/Syntiant V2S200D eval board, KAS-700-0177 (bone-conduction sensor, face pressed against the skin) | [Digi-Key](https://www.digikey.com/en/products/detail/syntiant/KAS-700-0177/18670178)                                                                                              |            |
+| TinyCircuits LRA Wireling (vibration motor + DRV2605 driver, I2C 0x5A)                                    | [TinyCircuits](https://tinycircuits.com/products/lra-wireling-drv2605)                                                                                                             | $14.95     |
+| TinyCircuits 0.1" Breakout I2C Wireling                                                                   | [TinyCircuits](https://tinycircuits.com/products/0-1-breakout-i2c-wireling)                                                                                                        | $2.95      |
+| TinyCircuits 5-pin Wireling cable                                                                         | [TinyCircuits](https://tinycircuits.com/products/5-pin-extension-cable)                                                                                                            | from $0.99 |
+| Adafruit 3.7 V 100 mAh LiPo (#1570, JST-PH plug)                                                          | [Adafruit](https://www.adafruit.com/product/1570)                                                                                                                                  | $5.95      |
+| Mini breadboard                                                                                           | [SparkFun](https://www.sparkfun.com/breadboard-mini-modular-blue.html)                                                                                                             | $4.60      |
+| Female-to-male jumper wires                                                                               | [Adafruit #1954](https://www.adafruit.com/product/1954)                                                                                                                            | $1.95      |
 
 The bare sensor chips for the custom board are in [`../rev0/SENSORS.md`](../rev0/SENSORS.md).
 
 ## Wire list
 
-| #   | From              | To                              | What it is                     |
-| --- | ----------------- | ------------------------------- | ------------------------------ |
-| 1   | XIAO 3V3          | V2S VDD, breakout 3V3           | 3V3 rail                       |
-| 2   | XIAO GND          | V2S GND, V2S SEL, breakout GND  | Ground rail                    |
-| 3   | XIAO D0 (P1.04)   | V2S CLK                         | Sensor clock (clock pin)       |
-| 4   | XIAO D4 (P1.10)   | V2S DATA                        | Sensor data                    |
-| 5   | XIAO D5 (P1.11)   | Breakout SCL                    | Motor I2C clock (clock pin)    |
-| 6   | XIAO D3 (P1.07)   | Breakout SDA                    | Motor I2C data                 |
-| 7   | Breakout          | LRA Wireling                    | 5-pin Wireling cable           |
-| 8   | LiPo red (+)      | BAT+ pad, underside             | Solder; check polarity         |
-| 9   | LiPo black (−)    | BAT− pad, underside             | Solder                         |
+| #   | From            | To                             | What it is                  |
+| --- | --------------- | ------------------------------ | --------------------------- |
+| 1   | XIAO 3V3        | V2S VDD, breakout 3V3          | 3V3 rail                    |
+| 2   | XIAO GND        | V2S GND, V2S SEL, breakout GND | Ground rail                 |
+| 3   | XIAO D0 (P1.04) | V2S CLK                        | Sensor clock (clock pin)    |
+| 4   | XIAO D4 (P1.10) | V2S DATA                       | Sensor data                 |
+| 5   | XIAO D5 (P1.11) | Breakout SCL                   | Motor I2C clock (clock pin) |
+| 6   | XIAO D3 (P1.07) | Breakout SDA                   | Motor I2C data              |
+| 7   | Breakout        | LRA Wireling                   | 5-pin Wireling cable        |
+| 8   | LiPo red (+)    | BAT+ pad, underside            | Solder; check polarity      |
+| 9   | LiPo black (−)  | BAT− pad, underside            | Solder                      |
 
 ## Notes
 
