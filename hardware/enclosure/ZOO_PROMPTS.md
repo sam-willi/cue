@@ -47,13 +47,15 @@ Board bottom face (Z = 0): flat, only bare copper pads, no parts. Two areas matt
 - Bone-conduction sensor U3 sits above X 16.0-19.0, Y 5.6-9.2: the board must press firmly against the
   head-side wall here so skull vibration reaches it (solid contact, no foam, no air gap).
 - Wear-detection pad E1 (bare copper) at X 10.6-14.6, Y 4.2-7.2: it senses skin, so the wall under it must be
-  thin (0.8 mm) and touch the board.
+  thin (0.6 mm) and touch the board.
 
 Other contents:
 - Battery: Adafruit #1570 LiPo pouch, 31 x 11.5 x 3.8 mm, 3 g, with a 105 mm lead ending in a JST-PH plug.
   Do NOT shorten the lead; leave a space to tuck the extra wire.
 - Vibration motor: Vybronics VG0832022D coin LRA, 8.0 mm diameter x 3.25 mm thick, on 100 mm leads that plug into
   J3. It vibrates perpendicular to its flat face, so the flat face goes against the head-side wall.
+- Antenna: Taoglas FXP830 flexible strip, 42 x 7 x 0.1 mm, stuck inside the outer face; its 1.13 mm cable
+  (100 mm) plugs into the radio's socket at X 10.3, Y 18.5.
 - The device indicates on/off and coaching only by vibrating. There are no lights and no speaker.
 
 Just confirm you understand; don't build anything yet.
