@@ -74,7 +74,8 @@ Inside layout:
   supports the whole board bottom; the board rests directly on it (no standoffs) so the bone-conduction area is
   in solid contact.
 - The base floor wall is 1.0 mm thick (Z -1.0 to 0), except a 0.6 mm thin window under the wear pad E1
-  (X 10.6-14.6, Y 4.2-7.2).
+  (X 10.6-14.6, Y 4.2-7.2). Make the window by recessing the OUTSIDE (head-side) surface by 0.4 mm, so the
+  inside floor stays flat and the board still rests on it.
 - The battery lies flat on top of the parts, over the board's forward half: X 0.5-31.5, Y 10.0-21.5,
   Z 5.6-9.4. Add a shallow cradle in the cover to hold it, with 0.5 mm clearance around it (LiPo pouches can
   swell slightly).
