@@ -15,6 +15,7 @@ mounting pads 0.2 mm from the edge. The schematic and PCB are now hand-edited in
 `build_board.py` reproduce the older 42 × 32 board only.
 
 Changes in the 33 × 21 board:
+
 - J5 expansion header removed; PDM_CLK, PDM_DIN and EXP_P0_01 moved to test pads TP11–TP13 (back side).
 - BUCK2 removed (the 3.0 V rail only fed J5): L2, C7, R4, TP5 gone; SW2 open, VSET2 to GND (off at start-up),
   VOUT2 to VSYS, per nPM1300 PS Configuration 2 (Fig. 57).
@@ -22,6 +23,7 @@ Changes in the 33 × 21 board:
 - J1 shield pads are "SH" (KiCad 10 footprint) and on GND. Fiducials removed (JLCPCB adds them on the edge rails).
 
 Open before or at order:
+
 - J4: Arm's keyed 10-pin cable needs position 7 empty. Order FTSH-105-01-L-DV-**007**-K (check -P-TR availability)
   or pull pin 7.
 - Radio keep-out: a 1V8 via at (71.8, 93.3) and the end of PMIC_INT (B.Cu, ~0.8 mm) sit under the BL54L15's RF end.
@@ -37,20 +39,20 @@ board is `cue_devboard.kicad_pcb`. A PDF of the schematic is in `fab/schematic.p
 
 ## Order it (JLCPCB)
 
-| File | Upload as |
-| --- | --- |
-| `fab/cue_devboard_gerbers.zip` | Gerber files (4 layers, 1.6 mm) |
-| `fab/bom.csv` | BOM (has an `LCSC Part #` column) |
-| `fab/cpl.csv` | CPL / pick-and-place |
+| File                           | Upload as                         |
+| ------------------------------ | --------------------------------- |
+| `fab/cue_devboard_gerbers.zip` | Gerber files (4 layers, 1.6 mm)   |
+| `fab/bom.csv`                  | BOM (has an `LCSC Part #` column) |
+| `fab/cpl.csv`                  | CPL / pick-and-place              |
 
 Not stocked at LCSC (checked 2026-10-05), so use JLCPCB **global sourcing** or buy them and send them in (consigned parts). Standard PCBA is needed.
 
-| Ref | Part | Where |
-| --- | --- | --- |
-| U1 | Ezurio BL54L15 **453-00044C** (radio module, MHF4) | **Not assembled by JLCPCB** (left out of `bom.csv` / `cpl.csv`). Buy from Newark (184 in stock, ~US$4, 2026-10-05) and hand-solder; see below |
-| U2 | Nordic nPM1300-QEAA-R (power) | LCSC C7466043 (check stock) |
-| SW1, SW2 | Omron B3U-1000P buttons | Out of stock at LCSC: left out of `bom.csv` / `cpl.csv`; hand-solder |
-| J1 | GCT USB4125-GF-A-0190 (USB-C) | C5246813 showed 0 stock in the JLCPCB BOM check (2026-10-05): search "USB4125" and pick any in-stock USB4125-GF-A variant (same footprint), or untick it and hand-solder one from Digi-Key |
+| Ref      | Part                                               | Where                                                                                                                                                                                      |
+| -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| U1       | Ezurio BL54L15 **453-00044C** (radio module, MHF4) | **Not assembled by JLCPCB** (left out of `bom.csv` / `cpl.csv`). Buy from Newark (184 in stock, ~US$4, 2026-10-05) and hand-solder; see below                                              |
+| U2       | Nordic nPM1300-QEAA-R (power)                      | LCSC C7466043 (check stock)                                                                                                                                                                |
+| SW1, SW2 | Omron B3U-1000P buttons                            | Out of stock at LCSC: left out of `bom.csv` / `cpl.csv`; hand-solder                                                                                                                       |
+| J1       | GCT USB4125-GF-A-0190 (USB-C)                      | C5246813 showed 0 stock in the JLCPCB BOM check (2026-10-05): search "USB4125" and pick any in-stock USB4125-GF-A variant (same footprint), or untick it and hand-solder one from Digi-Key |
 
 **Hand-soldering U1:** the module has castellated pads on three edges only (none underneath), 0.75 mm pitch.
 JLCPCB's stencil still pastes the U1 pads, so they arrive pre-tinned; if the module rocks, flatten them with wick. Align
@@ -73,16 +75,15 @@ U4's port over the sound hole. Choose "edge rails added by JLCPCB" (connectors a
 **Battery polarity:** J2 pin 1 is + (silk "+"). JST-PH battery leads are not standardised, so meter the cell's plug
 before connecting: red (+) must land on the "+" pin.
 
-
 Everything else has an LCSC number in `fab/bom.csv` (from `devboard_circuit.SOURCING`). The LSM6DSV16BX is in stock
 under its second LCSC listing, C5267394 (the older C5381401 listing is dead).
 
 LCSC-stocked alternatives, if you want everything sourced through JLCPCB (each needs a redesign):
 
-| Instead of | Alternative | LCSC | What changes |
-| --- | --- | --- | --- |
-| BL54L15 module | u-blox BMD-340 (nRF52840) | C5456944 (19 in stock) | New footprint and pin map, nRF52 firmware port, more current. No nRF54L15 module is stocked at LCSC. |
-| nPM1300 | TI BQ25180 charger + TPS62840 1.8 V buck + TPS7A0230 3.0 V LDO | C3682423, C2071859, C3747031 | Three chips instead of one; new power section. |
+| Instead of     | Alternative                                                    | LCSC                         | What changes                                                                                         |
+| -------------- | -------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| BL54L15 module | u-blox BMD-340 (nRF52840)                                      | C5456944 (19 in stock)       | New footprint and pin map, nRF52 firmware port, more current. No nRF54L15 module is stocked at LCSC. |
+| nPM1300        | TI BQ25180 charger + TPS62840 1.8 V buck + TPS7A0230 3.0 V LDO | C3682423, C2071859, C3747031 | Three chips instead of one; new power section.                                                       |
 
 ## Design notes
 
@@ -127,6 +128,7 @@ The BL54L15 footprint, pin map and placement were re-checked by a second reviewe
 errors. DRC: 0 violations, 0 unconnected; board = circuit pad for pad (56 parts).
 
 Firmware must:
+
 - select the 10k NTC and a 32 mA charge current before enabling charging;
 - enable LOADSW1 (mic supply) only after BUCK1 is confirmed at 1.8 V;
 - keep P1.09–P1.12 below 1 MHz (cuff rule; harmless here);
@@ -158,14 +160,14 @@ python3 via_off_pads.py          # move any via that touches an SMD pad
 python3 export_fab.py            # fab/
 ```
 
-| File | What it does |
-| --- | --- |
-| `devboard_circuit.py` | Parts, pad-level nets, sourcing, electrical checks (rails, I2C, clock pins, Note 7) |
-| `make_footprints.py` | `Cue.pretty`: BL54L15 (dev board), BL54L15µ (cuff), TDK T5838, touch pad |
-| `make_schematic.py` / `check_schematic.py` | Schematic generator and netlist cross-check |
-| `build_board.py` | Placement, plane fan-out, Freerouting, pours, stitching, DRC |
-| `export_fab.py` | Gerbers, drill, JLCPCB BOM and CPL, assembly and schematic PDFs |
-| `via_off_pads.py` | Nudges vias off SMD pads after routing |
+| File                                       | What it does                                                                        |
+| ------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `devboard_circuit.py`                      | Parts, pad-level nets, sourcing, electrical checks (rails, I2C, clock pins, Note 7) |
+| `make_footprints.py`                       | `Cue.pretty`: BL54L15 (dev board), BL54L15µ (cuff), TDK T5838, touch pad            |
+| `make_schematic.py` / `check_schematic.py` | Schematic generator and netlist cross-check                                         |
+| `build_board.py`                           | Placement, plane fan-out, Freerouting, pours, stitching, DRC                        |
+| `export_fab.py`                            | Gerbers, drill, JLCPCB BOM and CPL, assembly and schematic PDFs                     |
+| `via_off_pads.py`                          | Nudges vias off SMD pads after routing                                              |
 
 The committed `cue_devboard.kicad_pcb` is the source of truth for fabrication. After the scripted build it was finished
 by hand: C8 moved 0.4 mm right and QVAR1 re-routed so U3 pin 7 reaches ground, the via between R4 and RT1 removed (R4's

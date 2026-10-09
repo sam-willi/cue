@@ -2,11 +2,11 @@
 
 Three stages of the same design, from what you can wire today to the finished cuff:
 
-| Folder | What it is | Status |
-| --- | --- | --- |
-| [`kit/`](kit/) | Off-the-shelf parts (XIAO nRF54L15 Sense, V2S200D eval board, LRA Wireling, LiPo) wired on a breadboard to test bone conduction now. Wiring diagram and buy links. | Wiring final; firmware not written |
+| Folder                   | What it is                                                                                                                                                                                                                          | Status                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [`kit/`](kit/)           | Off-the-shelf parts (XIAO nRF54L15 Sense, V2S200D eval board, LRA Wireling, LiPo) wired on a breadboard to test bone conduction now. Wiring diagram and buy links.                                                                  | Wiring final; firmware not written                                      |
 | [`devboard/`](devboard/) | **Rev A dev board**: a 42 × 32 mm custom PCB with the cuff's real chips (radio: the larger BL54L15, see below) plus USB-C, battery and motor connectors, debug and expansion headers. KiCad schematic, layout and JLCPCB fab files. | **Pre-manufacturing**: DRC clean, ready for a human review and ordering |
-| [`rev0/`](rev0/) | The finished cuff's electronics as a checked netlist and parts list (coin cell, pogo-pin charging, no connectors). | Netlist only; not laid out |
+| [`rev0/`](rev0/)         | The finished cuff's electronics as a checked netlist and parts list (coin cell, pogo-pin charging, no connectors).                                                                                                                  | Netlist only; not laid out                                              |
 
 The dev board and the cuff use the same chips and the same nRF54L15 pin map, so firmware written for the dev board carries
 over. One exception: the BL54L15µ radio module is out of stock until about Dec 2026, so the dev board uses the larger
@@ -15,14 +15,14 @@ the µ.
 
 ## The chips
 
-| Job | Part |
-| --- | --- |
-| Bluetooth + processor | Ezurio BL54L15µ module (Nordic nRF54L15, chip antenna, pre-certified); dev board: BL54L15 453-00044 |
-| Power: charger, 1.8 V and 3.0 V rails | Nordic nPM1300 |
-| Hearing words | TDK T5838 PDM microphone |
-| Bone conduction + touch | ST LSM6DSV16BX (TDM audio-band accelerometer, Qvar touch) |
-| Tap | TI DRV2605L driver + LRA vibration motor |
-| Optional bone-conduction comparison | Knowles V2S200D (eval board on the dev board's expansion header) |
+| Job                                   | Part                                                                                                |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Bluetooth + processor                 | Ezurio BL54L15µ module (Nordic nRF54L15, chip antenna, pre-certified); dev board: BL54L15 453-00044 |
+| Power: charger, 1.8 V and 3.0 V rails | Nordic nPM1300                                                                                      |
+| Hearing words                         | TDK T5838 PDM microphone                                                                            |
+| Bone conduction + touch               | ST LSM6DSV16BX (TDM audio-band accelerometer, Qvar touch)                                           |
+| Tap                                   | TI DRV2605L driver + LRA vibration motor                                                            |
+| Optional bone-conduction comparison   | Knowles V2S200D (eval board on the dev board's expansion header)                                    |
 
 Where to buy each sensor: [`rev0/SENSORS.md`](rev0/SENSORS.md).
 
