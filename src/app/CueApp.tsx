@@ -23,6 +23,7 @@ import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
 import { encodeWav } from "@/lib/audio/wav";
+import { confirmTones, cueTones, EarconPlayer, setAudioSession } from "@/lib/cue/earcon";
 
 const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
@@ -136,6 +137,72 @@ export default function CueApp() {
   const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
 
+  /** Cue sounds: each cue also plays as a quiet tone in headphones (AirPods), for testing before the device exists. */
+  const [sound, setSound] = useState<SoundSettings>(DEFAULT_SOUND);
+  const soundRef = useRef(sound);
+  const earconRef = useRef<EarconPlayer | null>(null);
+  /** The microphone chosen in Settings (empty = the browser's default). */
+  const [micChoice, setMicChoice] = useState<MicChoice>({ deviceId: "", label: "" });
+  /** Name of the mic in use (or last used). Volume targets are saved per mic: AirPods hear your voice at a different level. */
+  const [micLabel, setMicLabel] = useState("");
+  const micLabelRef = useRef("");
+  const [mics, setMics] = useState<{ deviceId: string; label: string }[]>([]);
+  /** Saved volume targets, by mic name ("" = saved before mics were told apart). */
+  const [volumeByMic, setVolumeByMic] = useState<Record<string, CueConfig["volumeTarget"]>>({});
+
+  const earcon = useCallback(() => (earconRef.current ??= new EarconPlayer()), []);
+  /** Call from a click: lets later cues play sound (browsers block audio until the page is clicked). */
+  const unlockSound = useCallback(() => {
+    if (soundRef.current.on) earcon().unlock();
+  }, [earcon]);
+
+  const saveSound = (next: SoundSettings) => {
+    setSound(next);
+    soundRef.current = next;
+    if (next.on) earcon().unlock();
+    try {
+      localStorage.setItem(SOUND_STORAGE, JSON.stringify(next));
+    } catch {
+      // Storage blocked: the choice lasts until the page closes.
+    }
+  };
+
+  const refreshMics = useCallback(async () => {
+    try {
+      const all = await navigator.mediaDevices.enumerateDevices();
+      setMics(
+        all
+          .filter((d) => d.kind === "audioinput" && d.deviceId !== "default" && d.deviceId !== "communications")
+          .map((d) => ({ deviceId: d.deviceId, label: d.label })),
+      );
+    } catch {
+      // No media devices (insecure page, old browser): only the default mic is offered.
+    }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- device list only exists in the browser
+    void refreshMics();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshMics);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshMics);
+  }, [refreshMics]);
+
+  const rememberMic = useCallback((label: string) => {
+    micLabelRef.current = label;
+    setMicLabel(label);
+    try {
+      localStorage.setItem(MIC_LABEL_STORAGE, label);
+    } catch {
+      // Storage blocked.
+    }
+  }, []);
+
+  // The volume targets in effect are the ones saved for the mic in use.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- derived from the mic and saved targets
+    setConfig((c) => ({ ...c, volumeTarget: volumeByMic[micLabel] ?? {} }));
+  }, [micLabel, volumeByMic]);
+
   const configRef = useRef(config);
   useEffect(() => {
     sessionRef.current.config = config;
@@ -147,6 +214,7 @@ export default function CueApp() {
     setBuzz(null);
     setConfirm((c) => ({ n: (c?.n ?? 0) + 1, pattern }));
     navigator.vibrate?.(CONFIRMS[pattern].vibrate);
+    if (soundRef.current.on) earconRef.current?.play(confirmTones(pattern), soundRef.current.volume);
     // The motor shakes the bone sensor: tell the session so it isn't read as speech.
     sessionRef.current.hapticPlayed(CONFIRMS[pattern].vibrate.reduce((x, y) => x + y, 0) / 1000);
     window.clearTimeout(buzzTimer.current);
@@ -174,6 +242,7 @@ export default function CueApp() {
     setConfirm(null);
     setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: label ?? LABEL[kind], action: actionFor(kind), pattern }));
     navigator.vibrate?.(PATTERNS[pattern].vibrate);
+    if (soundRef.current.on) earconRef.current?.play(cueTones(pattern), soundRef.current.volume);
     window.clearTimeout(buzzTimer.current);
     buzzTimer.current = window.setTimeout(() => setBuzz(null), PATTERNS[pattern].durationMs + 600);
   }, []);
@@ -242,6 +311,7 @@ export default function CueApp() {
     transcriberRef.current = null;
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+    setAudioSession("auto");
     setStatus("idle");
   }, []);
 
@@ -254,8 +324,24 @@ export default function CueApp() {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage only exists after mount
       if (key) setApiKey(key);
       setRememberKey(saved !== null);
-      const targets = localStorage.getItem(VOLUME_STORAGE);
-      if (targets) setConfig((c) => ({ ...c, volumeTarget: JSON.parse(targets) }));
+      // Volume targets per mic; one saved before mics were told apart stays under "".
+      const byMic = JSON.parse(localStorage.getItem(VOLUME_BY_MIC_STORAGE) ?? "{}");
+      const legacy = localStorage.getItem(VOLUME_STORAGE);
+      if (legacy && !("" in byMic)) byMic[""] = JSON.parse(legacy);
+      setVolumeByMic(byMic);
+      const lastMic = localStorage.getItem(MIC_LABEL_STORAGE);
+      if (lastMic) {
+        micLabelRef.current = lastMic;
+        setMicLabel(lastMic);
+      }
+      const chosen = localStorage.getItem(MIC_STORAGE);
+      if (chosen) setMicChoice(JSON.parse(chosen));
+      const savedSound = localStorage.getItem(SOUND_STORAGE);
+      if (savedSound) {
+        const next = { ...DEFAULT_SOUND, ...JSON.parse(savedSound) };
+        soundRef.current = next;
+        setSound(next);
+      }
       const cues = localStorage.getItem(VOLUME_CUES_STORAGE);
       if (cues) setConfig((c) => ({ ...c, volumeCues: { ...c.volumeCues, ...JSON.parse(cues) } }));
     } catch {
@@ -284,16 +370,17 @@ export default function CueApp() {
       const level = sessionRef.current.measuredLevel(4);
       if (!level) return;
       const mode = calibratingFor;
-      setConfig((c) => {
-        const volumeTarget = { ...c.volumeTarget, [mode]: { db: level.db, noiseDb: level.noiseDb } };
+      const mic = micLabelRef.current;
+      setVolumeByMic((all) => {
+        const next = { ...all, [mic]: { ...all[mic], [mode]: { db: level.db, noiseDb: level.noiseDb } } };
         try {
-          localStorage.setItem(VOLUME_STORAGE, JSON.stringify(volumeTarget));
+          localStorage.setItem(VOLUME_BY_MIC_STORAGE, JSON.stringify(next));
         } catch {
           // Storage blocked: the target lasts until the page closes.
         }
-        return { ...c, volumeTarget };
+        return next;
       });
-      setVolumeNote(`${MODE_LABEL[mode]} volume set. Cue taps if you drop well below it.`);
+      setVolumeNote(`${MODE_LABEL[mode]} volume set${mic ? ` for ${mic}` : ""}. Cue taps if you drop well below it.`);
       setCalibratingFor(null);
       stopAll();
     }, 400);
@@ -303,6 +390,9 @@ export default function CueApp() {
   const startLive = async (opts: { record?: boolean; apiKey?: string } = {}) => {
     stopAll();
     reset();
+    unlockSound();
+    // iPhone: listen and play cue sounds at once, even with the ring switch on silent.
+    setAudioSession("play-and-record");
     recordAudioRef.current = !!opts.record;
     setRecordingTraining(!!opts.record);
     audioChunksRef.current = [];
@@ -325,6 +415,10 @@ export default function CueApp() {
         levelsRef.current.push([t, db]);
         sessionRef.current.ingestLevel(t, db);
       },
+      onMic: ({ label }) => {
+        rememberMic(label);
+        void refreshMics(); // names are only visible once the mic is allowed
+      },
       onStatus: (s, detail, code) => {
         if (s === "stopped") return;
         setStatus(s === "error" ? "error" : s);
@@ -338,12 +432,13 @@ export default function CueApp() {
     setRecorded(0);
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
     transcriberRef.current = t;
-    await t.start({ apiKey: (opts.apiKey ?? apiKey) || undefined });
+    await t.start({ apiKey: (opts.apiKey ?? apiKey) || undefined, deviceId: micChoice.deviceId || undefined });
   };
 
   const runDemo = (text = demoText) => {
     stopAll();
     reset();
+    unlockSound();
     setStatus("demo");
     const demoStart = performance.now();
     clockRef.current = { toPage: (x) => demoStart + x * 1000, toAudio: (ms) => (ms - demoStart) / 1000 };
@@ -389,6 +484,24 @@ export default function CueApp() {
       }, endAt),
     );
   };
+
+  // Keep the screen on while listening: a phone that locks stops the microphone.
+  useEffect(() => {
+    if (status !== "listening") return;
+    let lock: WakeLockSentinel | null = null;
+    let cancelled = false;
+    void navigator.wakeLock
+      ?.request("screen")
+      .then((l) => {
+        if (cancelled) void l.release();
+        else lock = l;
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      void lock?.release().catch(() => {});
+    };
+  }, [status]);
 
   const busy = status === "listening" || status === "connecting" || status === "demo";
 
@@ -645,6 +758,12 @@ export default function CueApp() {
                   ? "Practice doesn’t use the microphone."
                   : "Your audio goes to Deepgram to be transcribed. Cue doesn’t store it."}
               </p>
+              {live && micLabel && (
+                <p className="max-w-md text-body-sm text-muted" role="status">
+                  Listening with {micLabel}
+                  {sound.on ? ", cue sounds on" : ""}.
+                </p>
+              )}
               {status !== "demo" && !live && (
                 <DeepgramKey
                   value={apiKey}
@@ -679,6 +798,7 @@ export default function CueApp() {
                 }
               />
               <Switch label="Cue on" on={!config.muted} onChange={(v) => setConfig((c) => ({ ...c, muted: !v }))} />
+              <Switch label="Cue sounds in AirPods" on={sound.on} onChange={(on) => saveSound({ ...sound, on })} />
               <Switch label={`Volume feedback in ${modeName}`} on={volumeOn} onChange={setVolumeCues} />
               <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
             </div>
@@ -738,8 +858,8 @@ export default function CueApp() {
                 ? `No volume feedback in ${modeName}, so there's nothing to set.`
                 : (volumeNote ??
                   (volumeSet
-                    ? `Your ${modeName} volume is set.`
-                    : `Speak-up cues start once you set your ${modeName} volume.`))}{" "}
+                    ? `Your ${modeName} volume is set${micLabel ? ` for ${micLabel}` : ""}.`
+                    : `Speak-up cues start once you set your ${modeName} volume${micLabel ? ` with ${micLabel}` : ""}.`))}{" "}
               {volumeOn && !live && status !== "demo" && (
                 <button
                   onClick={() => {
@@ -756,7 +876,9 @@ export default function CueApp() {
 
             {/* What each tap means */}
             <div className="mt-12 w-full">
-              <p className="text-body-sm text-muted">What each tap means. Select one to feel it.</p>
+              <p className="text-body-sm text-muted">
+                What each tap means. Select one to {sound.on ? "hear" : "feel"} it.
+              </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 {(["Voice", "Pace", "Space"] as const).map((family) => (
                   <p key={family} className="text-caption text-muted">
@@ -771,6 +893,7 @@ export default function CueApp() {
                     <button
                       key={kind}
                       onClick={() => {
+                        unlockSound();
                         triggerBuzz(kind);
                         sessionRef.current.hapticPlayed(PATTERNS[p].vibrate.reduce((x, y) => x + y, 0) / 1000);
                       }}
@@ -1205,7 +1328,7 @@ export default function CueApp() {
 
             <Disclosure
               title="Settings"
-              summary={`${presetLabel} mode, ${config.distinctCues ? "five cues" : "simpler cues"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}`}
+              summary={`${presetLabel} mode, ${config.distinctCues ? "five cues" : "simpler cues"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}${sound.on ? ", cue sounds on" : ""}`}
               open={open.settings}
               onToggle={() => toggle("settings")}
             >
@@ -1304,6 +1427,77 @@ export default function CueApp() {
                     format={(v) => `${v} s`}
                     onChange={(v) => setConfig((c) => ({ ...c, cooldownSec: v }))}
                   />
+                </div>
+
+                <div className="space-y-5">
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                    Testing with AirPods
+                  </h3>
+                  <p className="max-w-prose text-body-sm text-muted">
+                    Until the device exists, AirPods (or any headphones with a mic) can stand in for it: their mic
+                    listens, and each cue plays as a quiet sound in your ear with the same rhythm as the tap. Set your
+                    volume again with the AirPods in, since their mic hears you at a different level. Keep this page
+                    open while you talk.
+                  </p>
+                  <Switch
+                    label="Play cues as sounds"
+                    hint="Each family has its own pitch: Space high, Pace middle, Voice low. Confirmations swell in softly."
+                    on={sound.on}
+                    onChange={(on) => saveSound({ ...sound, on })}
+                  />
+                  <Slider
+                    label="Cue sound volume"
+                    value={Math.round(sound.volume * 100)}
+                    min={10}
+                    max={100}
+                    step={5}
+                    format={(v) => `${v}%`}
+                    onChange={(v) => saveSound({ ...sound, volume: v / 100 })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      earcon().unlock();
+                      earcon().play(cueTones("hum"), sound.volume);
+                    }}
+                    className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
+                  >
+                    Play a test cue
+                  </button>
+                  <label className="block">
+                    <span className="text-body">Microphone</span>
+                    <select
+                      value={micChoice.deviceId}
+                      disabled={live}
+                      onChange={(e) => {
+                        const pick = mics.find((m) => m.deviceId === e.target.value);
+                        const next = { deviceId: e.target.value, label: pick?.label ?? "" };
+                        setMicChoice(next);
+                        if (next.label) rememberMic(next.label);
+                        try {
+                          localStorage.setItem(MIC_STORAGE, JSON.stringify(next));
+                        } catch {
+                          // Storage blocked: the choice lasts until the page closes.
+                        }
+                      }}
+                      className="mt-2 block min-h-11 w-full max-w-sm rounded-lg border border-line bg-surface px-3 text-body"
+                    >
+                      <option value="">Default microphone</option>
+                      {mics.map((m, k) => (
+                        <option key={m.deviceId} value={m.deviceId}>
+                          {m.label || `Microphone ${k + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="mt-1 block text-body-sm text-muted">
+                      {mics.some((m) => m.label)
+                        ? micLabel
+                          ? `Last used: ${micLabel}.`
+                          : "Pick the AirPods, or leave the default."
+                        : "Names appear after you allow the microphone once (Start listening)."}{" "}
+                      On iPhone, connected AirPods are used automatically.
+                    </span>
+                  </label>
                 </div>
 
                 <div>
@@ -1439,6 +1633,23 @@ function DeepgramKey({
 }
 
 const VOLUME_STORAGE = "cue.volumeTarget";
+const VOLUME_BY_MIC_STORAGE = "cue.volumeTargetByMic";
+const MIC_STORAGE = "cue.mic";
+const MIC_LABEL_STORAGE = "cue.micLabel";
+const SOUND_STORAGE = "cue.sound";
+
+interface SoundSettings {
+  on: boolean;
+  /** 0–1. */
+  volume: number;
+}
+const DEFAULT_SOUND: SoundSettings = { on: false, volume: 0.5 };
+
+interface MicChoice {
+  /** Empty: the browser's default microphone. */
+  deviceId: string;
+  label: string;
+}
 const VOLUME_CUES_STORAGE = "cue.volumeCues";
 
 /** Legend order: one column per cue family (Voice, Pace, Space). */
