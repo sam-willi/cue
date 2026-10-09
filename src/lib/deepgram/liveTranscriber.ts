@@ -12,6 +12,8 @@ export interface TranscriberHandlers {
   /** Every 16 kHz PCM chunk sent to Deepgram, for opt-in training recordings. */
   onAudio?: (pcm: Int16Array) => void;
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string, code?: KeyProblem) => void;
+  /** The microphone actually in use, by its name (e.g. "AirPods Pro"), once capture starts. */
+  onMic?: (mic: { label: string; deviceId: string }) => void;
 }
 
 /** Why listening couldn't start for want of a usable Deepgram key. */
@@ -56,7 +58,7 @@ export class LiveTranscriber {
    * Deepgram directly and the key never reaches this app's server. Without it, the server
    * mints a short-lived token from its own DEEPGRAM_API_KEY, if it has one.
    */
-  async start(opts: { apiKey?: string } = {}) {
+  async start(opts: { apiKey?: string; deviceId?: string } = {}) {
     this.stopped = false;
     this.sentSec = 0;
     this.clockZero = Infinity;
@@ -78,8 +80,18 @@ export class LiveTranscriber {
       this.stream = await navigator.mediaDevices.getUserMedia({
         // Gain control and noise suppression are off: they would boost quiet speech and erase the
         // room noise Cue measures for "too quiet". Deepgram copes with unprocessed audio.
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: false },
+        // Echo cancellation stays on so cue sounds played into headphones aren't heard back.
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: false,
+          autoGainControl: false,
+          // A chosen mic (AirPods, say). If it's gone, the browser's default is used instead.
+          ...(opts.deviceId ? { deviceId: { ideal: opts.deviceId } } : {}),
+        },
       });
+      const track = this.stream.getAudioTracks()[0];
+      if (track) this.h.onMic?.({ label: track.label, deviceId: track.getSettings().deviceId ?? "" });
       this.ctx = new AudioContext();
       await this.ctx.audioWorklet.addModule("/pcm-worklet.js");
       const src = this.ctx.createMediaStreamSource(this.stream);

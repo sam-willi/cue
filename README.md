@@ -64,6 +64,24 @@ The **Simpler cues** setting plays only each family's root: one tap (Space), slo
 
 A detection is withheld (not tapped) when confidence is too low, when it isn't a pattern yet, within the gap after the last tap, while muted, when its category is off, or when the behavior isn't live in the current mode. Withheld detections still show in the app's "Why Cue acted" log.
 
+## Testing with AirPods
+
+Until the device exists, AirPods (or any headphones with a mic) can stand in for it in user tests. This is a testing
+stand-in, not the product: Cue stays one behind-the-ear device that taps.
+
+1. Connect the AirPods, open the app, and switch on **Cue sounds in AirPods**. Each cue then also plays as a quiet sound
+   in the ear, with the same rhythm as its tap and one pitch per family (Space high, Pace middle, Voice low).
+   Confirmations swell in softly so they never sound like a cue. Volume and a test sound are in **Settings → Testing
+   with AirPods**.
+2. On a laptop, pick the AirPods under **Settings → Microphone**. On iPhone, connected AirPods are used automatically.
+   While listening, the app shows which mic it's using.
+3. **Set my volume** again with the AirPods in. Volume targets are saved per microphone, because the AirPods mic hears
+   you at a different level from a laptop or phone mic.
+4. Keep the page open while you talk: the screen stays on while listening, because a locked phone stops the mic.
+
+Limits: the AirPods mic still picks up other people (more quietly), so their fillers can tap too; Bluetooth adds a
+little delay to each sound; on iPhone, test with the ring switch both ways the first time.
+
 ## Quick start
 
 Requires Node 24 (see `.nvmrc`). A Deepgram key on the server is optional.
