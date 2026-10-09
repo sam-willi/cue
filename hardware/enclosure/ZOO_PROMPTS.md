@@ -17,9 +17,11 @@ How to use:
 ```
 I'm designing a 3D-printed enclosure for a wearable test prototype called Cue: a small device worn behind the
 RIGHT ear, hanging from a separate ear hook. It holds a 32.9 x 20.8 x 1.6 mm circuit board (corner radius 1 mm),
-a small LiPo battery and a coin vibration motor. It will be printed in resin (SLA) or FDM, so use 1.2 mm walls
-by default, 0.3 mm clearance around parts, and no overhangs that need internal supports where possible.
-Units are millimetres.
+a small LiPo battery and a coin vibration motor. It will be printed on a RESIN printer (SLA/MSLA) in a tough or
+ABS-like resin. Use 1.0 mm walls by default (0.8 mm where space is tight, 0.6 mm only for the thin windows I
+call out), 0.15 mm clearance around parts, 0.2 mm for snap and sliding fits, a 0.5 mm minimum feature size and
+0.6 mm minimum hole size. Keep the head-side face and the outer face smooth (they'll be printed without supports
+on those faces). Units are millimetres.
 
 Coordinate system (matches the imported board model):
 - X runs along the board's length, 0 to 32.9. Y runs across it, 0 to 20.8. Z is up.
@@ -65,14 +67,15 @@ Create the enclosure as two parts that meet just above the board's top face:
 1) a BASE (head side) that the board drops into, and 2) a COVER (outer side).
 
 Inside layout:
-- The board sits flat on the base's inner floor at Z = 0 with 0.3 mm clearance around its outline. The floor
+- The board sits flat on the base's inner floor at Z = 0 with 0.15 mm clearance around its outline. The floor
   supports the whole board bottom; the board rests directly on it (no standoffs) so the bone-conduction area is
   in solid contact.
-- The base floor wall is 1.2 mm thick (Z -1.2 to 0), except a 0.8 mm thin window under the wear pad E1
+- The base floor wall is 1.0 mm thick (Z -1.0 to 0), except a 0.6 mm thin window under the wear pad E1
   (X 10.6-14.6, Y 4.2-7.2).
 - The battery lies flat on top of the parts, over the board's forward half: X 0.5-31.5, Y 10.0-21.5,
-  Z 5.6-9.4. Add a shallow cradle in the cover to hold it, and a 0.5 mm clearance around it.
-- The cover's inner ceiling is at Z 9.6 and its outer face at Z 10.8.
+  Z 5.6-9.4. Add a shallow cradle in the cover to hold it, with 0.5 mm clearance around it (LiPo pouches can
+  swell slightly).
+- The cover's inner ceiling is at Z 9.6 and its outer face at Z 10.6.
 - Extend the body 10 mm past the X = 0 end (to about X -10) for the motor and ear-hook socket (later steps).
 - At the X = 32.9 end, the back half (Y 0-10) extends to about X 41 for the battery plug and the coiled extra
   battery wire (a pocket roughly 8 x 9 x 6 mm). The forward half (Y 10-21) stays short so the USB-C port sits
@@ -80,7 +83,7 @@ Inside layout:
 
 Outside shape: a smooth, rounded behind-the-ear body. Round all outer edges generously (2-3 mm radii), keep the
 head-side face gently curved to sit against the skull, and make the overall form taper slightly toward the top.
-Roughly 51 mm long, 25 mm wide and 12 mm thick overall. Keep all inner keep-out boxes from Step 0 clear.
+Roughly 50 mm long, 24 mm wide and 11.6 mm thick overall. Keep all inner keep-out boxes from Step 0 clear.
 ```
 
 Check: board model drops in without touching anything; battery box clears J1 and the radio's cable socket;
@@ -93,7 +96,8 @@ floor is flat under U3 with 0.8 mm under E1.
 ```
 Join the base and cover with a snap fit that can be opened by hand (it gets opened to reprogram the board):
 - 4 cantilever snap hooks on the cover (two on each long side), latching into matching windows or ledges in the
-  base. Size them for resin/FDM: hook arm about 1.2 mm thick, 6 mm long, 0.6 mm catch.
+  base. Size them for tough resin, keeping bending strain low: hook arm 1.0 mm thick, 7 mm long, 0.4 mm catch
+  with a 30-degree lead-in, and a 0.5 mm fillet where the arm meets the wall.
 - Add a small pry notch at the seam on the back (Y = 0) edge.
 - Add a 0.8 mm alignment lip around the seam.
 - Add 4 small ribs or pins on the underside of the cover that press the board down onto the floor, landing
@@ -111,16 +115,16 @@ Check: hooks don't land on a component; ribs touch bare board edge only; the cov
 Add these openings and channels:
 
 1) USB-C charging opening in the bottom end wall (the X = 32.9 end), centred at Y 14.9, Z 3.4:
-   9.4 x 3.9 mm with 1.6 mm corner radius. The wall in front of the port is at most 1.0 mm thick.
+   9.2 x 3.7 mm with 1.5 mm corner radius. The wall in front of the port is 0.8 mm thick.
    Add an outside recess 12.5 x 7.0 mm, 1.0 mm deep, around it so a USB-C cable's plug body fits.
 
 2) Microphone sound path. The mic hears through a hole in the board's bottom face at X 13.23, Y 9.14.
    The head-side face can't have the port (skin and hair would block it), so:
    - On the base's inner floor, add a gasket seat around that point: a ring 3.0 mm outside diameter,
      1.2 mm inside diameter, recessed 0.5 mm, so a thin foam or silicone gasket seals board to floor.
-   - From the ring, cut a channel 1.0 mm wide and 0.6 mm deep in the floor, running in +Y to the forward
-     edge (Y = 20.8), staying at X 13.2. Thicken the floor locally to 1.8 mm along the channel.
-   - The channel exits through the forward side wall as a 1.0 mm round port, facing forward and slightly
+   - From the ring, cut a channel 0.8 mm wide and 0.5 mm deep in the floor, running in +Y to the forward
+     edge (Y = 20.8), staying at X 13.2. Thicken the floor locally to 1.5 mm along the channel.
+   - The channel exits through the forward side wall as a 0.8 mm round port, facing forward and slightly
      down toward the mouth, with a 2.5 mm wide, 0.3 mm deep outside recess for an acoustic mesh sticker.
 
 3) Battery plug and wire pocket in the bottom-end extension (back half, Y 0-10, X 32.5-41):
@@ -140,7 +144,8 @@ area (X 16-19); the battery plug fits.
 
 ```
 Add two press buttons on the cover's outer face, each a flexing tab with a plunger that reaches down to its
-switch on the board (the switch tops are at Z 3.2; the cover's outer face is at Z 10.8):
+switch on the board (the switch tops are at Z 3.2; the cover's outer face is at Z 10.6). Make each flexure a
+U-shaped cut 0.5 mm wide around a tab 0.8 mm thick and at least 6 mm long, so it bends gently in tough resin:
 - POWER over SW2, plunger centred at X 22.4, Y 8.6: a raised round button, 4 mm diameter, standing 0.6 mm
   proud of the surface, on a U-shaped flexure cut into the cover. Plunger 1.5 mm diameter, ending 0.2 mm above
   the switch.
@@ -162,7 +167,7 @@ Check: both plungers line up with the switch centres in the board model; flexure
 ```
 Add the vibration motor pocket and finish the head-side face:
 - Motor pocket in the top extension (X -9 to -1), against the head-side wall: a round seat 8.4 mm diameter,
-  3.4 mm deep, with the wall between motor and skin 0.8 mm thick so the buzz is felt clearly. It sits as far
+  3.4 mm deep, with the wall between motor and skin 0.6 mm thick so the buzz is felt clearly. It sits as far
   from the microphone (X 13.2, Y 9.1) and the bone sensor (X 17.5, Y 7.4) as possible; centre it near
   X -5, Y 5.
 - Add a 1.5 mm wide wire channel from the motor pocket along the inside of the back (Y = 0) wall to the motor
@@ -186,7 +191,7 @@ through-hole for the wire and a 0.8 mm lip on one end. The wire's end is bent 90
 inside the base so it can't rotate.
 
 Add a keyed slot for the hook base at the top end (X = -10 end) of the body:
-- A rectangular pocket 4.2 x 3.2 mm (0.1 mm clearance per side), 6 mm deep, open at the seam so the base drops
+- A rectangular pocket 4.2 x 3.2 mm (0.1 mm clearance per side; it's a sliding fit), 6 mm deep, open at the seam so the base drops
   in from the cover side, with a matching recess for the 0.8 mm lip.
 - When the cover snaps shut, it closes over the base and traps it: no twisting, no pulling out, no glue.
   Opening the cover lets you swap hook sizes.
@@ -195,7 +200,7 @@ Add a keyed slot for the hook base at the top end (X = -10 end) of the body:
 - Place the slot near the forward-top corner of the top end. Angle its axis forward (toward +Y) about
   20 degrees and toward the head (toward -Z) about 10 degrees, so the hook arches over the top of the right ear
   root and sits close to the head.
-- At least 1.5 mm of material around the slot. Keep it clear of the motor pocket.
+- At least 1.2 mm of material around the slot. Keep it clear of the motor pocket.
 ```
 
 Check: the hook base drops in only one way and is locked once the cover is on; the slot doesn't break into the
@@ -212,9 +217,12 @@ Reserve space for the radio's stick-on antenna as a parametric pocket (size TBD,
 - Make the pocket size easy to change.
 
 Then:
-- Check the board model fits with 0.3 mm clearance everywhere and nothing intersects.
-- Check wall thickness is at least 1.0 mm everywhere except the 0.8 mm windows (E1 area, motor).
-- Export the base and cover as separate STL files (and STEP), oriented flat for printing.
+- Check the board model fits with 0.15 mm clearance everywhere and nothing intersects.
+- Check wall thickness is at least 0.8 mm everywhere except the 0.6 mm windows (E1 area, motor).
+- Check there are no fully enclosed hollow pockets (resin gets trapped); add a 1 mm drain hole if there are.
+- Export the base and cover as separate STL files (and STEP). For printing, tilt each part about 30 degrees with
+  supports only on the inside and on the seam; keep supports off the head-side face, the outer face and the
+  button flexures.
 ```
 
 ---

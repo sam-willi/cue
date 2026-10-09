@@ -101,13 +101,13 @@ The board model (`models/cue_board_v6_all_parts.glb`) has its corner at the orig
 
 - **Board:** sits flat on the base floor, with the back pressed directly on the head-side wall (no standoffs).
   - Wall under the bone sensor U3 (X 16–19, Y 5.6–9.2): solid contact.
-  - Wall under the wear pad E1 (X 10.6–14.6, Y 4.2–7.2): 0.8 mm thick.
+  - Wall under the wear pad E1 (X 10.6–14.6, Y 4.2–7.2): 0.6 mm thick.
 - **Battery:** Adafruit #1570, 31 × 11.5 × 3.8 mm, 100 mAh. Lies flat over the component side, on the forward half
   (X 0.5–31.5, Y 10–21.5, Z 5.6–9.4), above the tallest parts beneath it.
   - The 105 mm lead is **not shortened**: cutting LiPo leads risks a short (Tanisha).
   - The extra lead coils in a pocket at the bottom end.
 - **Motor:** coin LRA, about Ø8 × 3.2 mm (verify). In a pocket against the skin at the top end (about X −5, Y 5),
-  with a 0.8 mm wall. It's as far as possible from the mic and the bone sensor. A wire channel runs to J3.
+  with a 0.6 mm wall. It's as far as possible from the mic and the bone sensor. A wire channel runs to J3.
 - **Microphone:** sound enters from the board's bottom face. A gasket seat around the hole leads to a sealed
   channel in the floor, then to a 1 mm port on the forward edge pointing toward the mouth (with a mesh recess).
   It isn't on the head side, where skin and hair would block it.
@@ -127,8 +127,16 @@ The board model (`models/cue_board_v6_all_parts.glb`) has its corner at the orig
 - Two parts: a **base** (head side) and a **cover** (outer side). Snap fit with 4 hooks, a pry notch, an alignment
   lip, and ribs that press the board down.
 - Smooth, rounded behind-the-ear form with a gently convex head-side face. **No silicone pads** (see section 4).
-- About **51 × 25 × 12 mm**. This is set by the board, the battery stacked on top, and the battery/USB connectors.
-- Printed in resin (SLA) or FDM: 1.2 mm walls, 0.3 mm part clearance, 0.8 mm windows only where noted.
+- About **50 × 24 × 11.6 mm**. This is set by the board, the battery stacked on top, and the battery/USB connectors.
+- **Resin printed (SLA/MSLA), in a tough or ABS-like resin.** Standard resin is too brittle for the snap hooks
+  and button flexures.
+  - Walls 1.0 mm (0.8 mm where tight), thin windows 0.6 mm (wear pad, motor).
+  - Clearance 0.15 mm around parts, 0.2 mm for snap and sliding fits; 0.5 mm minimum feature, 0.6 mm minimum hole.
+  - Print each part tilted about 30° with supports only inside and on the seam, keeping the head-side face, the
+    outer face and the flexures support-free. No trapped hollow pockets.
+  - **Skin contact:** wash and fully post-cure, since under-cured resin can irritate skin during hours of wear.
+    Use a skin-safe resin if available.
+  - Print a small tolerance test (the hook slot and one snap hook) first: resins shrink differently.
 
 ## 4. Retention: ear hook and squeeze
 
@@ -230,7 +238,7 @@ Not modelled: the outward tipping from the battery being on the outer side, and 
 
 | Decision                                                                                       | By                   |
 | ---------------------------------------------------------------------------------------------- | -------------------- |
-| Wearable test mule, function first; resin or FDM print                                         | Sam                  |
+| Wearable test mule, function first; resin print (tough/ABS-like)                               | Sam                  |
 | Right ear; flat on the mastoid; must work with glasses                                         | Sam                  |
 | Back of board to the head; snap-fit two-part shell                                             | Sam                  |
 | Vibration as the only on/off indicator (no LED, no board change)                               | Sam                  |
@@ -254,7 +262,7 @@ Not modelled: the outward tipping from the battery being on the outer side, and 
    certification. Decide with Tanisha and Big A.
 
 2. **Motor size:** about Ø8 × 3.2 mm is assumed from the part number (Vybronics VG0832013D). Measure the real part.
-3. **Size and weight:** about 51 × 25 × 12 mm and 10–15 g. Fine for a mule; a final-size body needs a smaller board.
+3. **Size and weight:** about 50 × 24 × 11.6 mm and 10–15 g. Fine for a mule; a final-size body needs a smaller board.
 4. **Battery tipping:** the battery on the outer side shifts weight away from the head. The squeeze counters it,
    but watch for tipping in testing.
 5. **Wear detection through the shell is untested.** It may need a thinner window or an opening over E1.
