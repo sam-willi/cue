@@ -118,8 +118,12 @@ The board model (`models/cue_board_v6_all_parts.glb`) has its corner at the orig
   - **POWER:** raised, round, 4 mm.
   - **CALIBRATE:** flush, rounded-square, 3.5 mm, with a raised ring.
   - Each has a small embossed icon (power symbol, sound wave). No other markings.
-- **Antenna:** a parametric pocket on the inside of the outer face over the board's back half, away from the
-  battery and head. Size TBD (see open item 1).
+- **Antenna:** Taoglas FXP830 flexible strip, 42 × 7 × 0.1 mm, MHF4 plug on a 100 mm, 1.13 mm cable. It lies in a
+  flat pocket on the inside of the outer face over the board's back half (beside the battery, away from the head),
+  with a cable channel to the radio's socket and a small coil recess for the extra cable.
+  - It isn't on Ezurio's certified list. That's fine for internal test mules (Sam, 2026-10-08), not for devices
+    that are sold.
+  - Backup: Kyocera AVX 1003893FT (40 × 8 mm), offered with a 25 mm cable. Check that it comes with an MHF4 plug.
 - **Safety-cord loop:** 1.5 mm hole at the bottom end, for tethering during active tests.
 
 ### Shape, size, material
@@ -247,19 +251,20 @@ Not modelled: the outward tipping from the battery being on the outer side, and 
 | USB-C opening for charging                                                                     | Sam                  |
 | Adafruit #1570 battery, lead not shortened, tuck space for the wire                            | Tanisha              |
 | No debug-port opening; open the shell to reprogram                                             | Tanisha              |
+| Antenna: Taoglas FXP830 strip, non-certified OK for internal mules                             | Sam                  |
 | Wrap hook S/M/L, ~0.6 N squeeze, no pads, wire hooks as modular units (Monte Carlo + research) | Sam, with simulation |
 | Board: J5 → test pads, BUCK2 removed, U3 pin 9 to GND, 33 × 21 mm layout                       | Big A, Sam           |
 
 ## 6. Open items and risks
 
-1. **Antenna: no good fit yet.** Ezurio's approved antennas for the BL54L15 are too big for this body:
+1. **Antenna: decided for the mule.** Taoglas FXP830 (42 × 7 × 0.1 mm), not certified with the module, which is
+   acceptable for internal testing. The Ezurio-approved ones don't fit the body:
    - [mFlexPIFA](https://www.ezurio.com/internal-antennas/24-5-6-ghz-wi-fi-and-bluetooth/mflexpifa-flexible-adhesive-backed-pifa-internal-antenna)
-     is 29.5 × 26.5 × 2.6 mm, designed for metal surfaces, and needs about 8 mm clearance.
+     is 29.5 × 26.5 mm and made for metal surfaces.
    - [NanoBlue](https://www.ezurio.com/internal-antennas/24-5-6-ghz-wi-fi-and-bluetooth/nanoblue-series-bluetooth-internal-antenna)
-     is 44.5 × 12.7 × 0.8 mm.
+     is 44.5 × 12.7 mm.
 
-   A small generic 2.4 GHz flex antenna with an MHF4 plug fits a test mule, but it's outside the module's
-   certification. Decide with Tanisha and Big A.
+   Check the radio range in the worn position on the first mule.
 
 2. **Motor size:** about Ø8 × 3.2 mm is assumed from the part number (Vybronics VG0832013D). Measure the real part.
 3. **Size and weight:** about 50 × 24 × 11.6 mm and 10–15 g. Fine for a mule; a final-size body needs a smaller board.
@@ -282,6 +287,7 @@ Not modelled: the outward tipping from the battery being on the outer side, and 
 6. **Wear detection:** does E1 reliably tell on-head from on-desk through the shell?
 7. **Mic:** speech clarity through the forward port; noise during buzzes.
 8. **Buzz:** is it clearly felt but private?
+9. **Radio range:** Bluetooth link to a phone or laptop in a pocket, across a room, and behind the head.
 
 ## 8. Files
 

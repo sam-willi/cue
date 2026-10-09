@@ -208,13 +208,18 @@ motor pocket.
 
 ---
 
-## Step 7: antenna space and final check (antenna still to be decided)
+## Step 7: antenna pocket and final check
 
 ```
-Reserve space for the radio's stick-on antenna as a parametric pocket (size TBD, default 25 x 8 x 1 mm):
-- On the inside of the cover's outer face over the board's back half (Y 0-10), as far from the battery and
-  the head as possible, with a channel for its 1.13 mm cable to the socket at X 10.3, Y 18.5.
-- Make the pocket size easy to change.
+Add a pocket for the radio's stick-on antenna: a Taoglas FXP830 flexible strip, 42 x 7 x 0.1 mm, with a 1.13 mm
+coaxial cable (100 mm long) ending in a small MHF4 plug.
+- Put a flat pocket 43 x 8 mm, 0.4 mm deep, on the inside of the cover's outer face over the board's back half
+  (about X -3 to 40, Y 1-9), running along the body's length. It must not sit over the battery (battery starts at
+  Y 10.0) and should be as far from the head as possible.
+- Add a 1.4 mm wide channel for the cable from the pocket to the radio's antenna socket at X 10.3, Y 18.5,
+  going around the end of the battery, not over it.
+- Add a small recess (about 10 x 6 x 2 mm) next to the battery-wire pocket or under the battery's end where the
+  extra cable can be coiled with a 5 mm minimum bend radius.
 
 Then:
 - Check the board model fits with 0.15 mm clearance everywhere and nothing intersects.
@@ -224,6 +229,9 @@ Then:
   supports only on the inside and on the seam; keep supports off the head-side face, the outer face and the
   button flexures.
 ```
+
+Check: the antenna strip lies flat away from the battery and head; the cable reaches the socket without sharp
+bends.
 
 ---
 
@@ -244,10 +252,8 @@ Create these small separate parts to print:
 
 ## Still open (decide before printing for real)
 
-1. **Antenna.** Ezurio's approved antennas for this radio don't suit a behind-the-ear body. The mFlexPIFA is
-   29.5 x 26.5 x 2.6 mm, designed to stick to metal, with ~8 mm clearance; the NanoBlue is 44.5 x 12.7 x 0.8 mm.
-   For a test mule, a small generic 2.4 GHz flex antenna with an MHF4 plug would fit. That's fine for testing,
-   but it isn't covered by the module's certification. Ask Tanisha and Big A.
+1. **Antenna: decided.** Taoglas FXP830 strip (not certified with the module; fine for internal test mules).
+   Check the radio range in the worn position on the first print.
 2. **Motor size.** 8 x 3.2 mm is assumed from the part number (Vybronics VG0832013D). Measure the real one.
 3. **Size.** This mule comes out around 51 x 25 x 12 mm, mostly because of the 33 x 21 mm board, the
    battery stacked on top, and the big battery and USB connectors. A smaller board is the way to get a
