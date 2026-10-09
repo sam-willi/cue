@@ -106,8 +106,14 @@ The board model (`models/cue_board_v6_all_parts.glb`) has its corner at the orig
   (X 0.5–31.5, Y 10–21.5, Z 5.6–9.4), above the tallest parts beneath it.
   - The 105 mm lead is **not shortened**: cutting LiPo leads risks a short (Tanisha).
   - The extra lead coils in a pocket at the bottom end.
-- **Motor:** coin LRA, about Ø8 × 3.2 mm (verify). In a pocket against the skin at the top end (about X −5, Y 5),
-  with a 0.6 mm wall. It's as far as possible from the mic and the bone sensor. A wire channel runs to J3.
+- **Motor:** Vybronics coin LRA, **8.0 × 3.25 mm**, 1.8 V rms, 235 Hz. The VG0832013D is named in
+  `devboard_circuit.py` and `CUE_CONTEXT.md`.
+  - **Order the VG0832022D:** the same motor with 100 mm leads. The 013D's short leads may not reach J3, about
+    25–30 mm away.
+  - The leads are bare wire. Solder them to a JST-SH 2-pin pigtail (heat-shrink the joints) to plug into J3.
+  - It vibrates perpendicular to its flat face, so the flat face goes against the skin. It's held by its own
+    adhesive tape in a pocket at the top end (about X −5, Y 5) with a 0.6 mm wall to the skin.
+  - It sits as far as possible from the mic and the bone sensor, with a wire channel to J3.
 - **Microphone:** sound enters from the board's bottom face. A gasket seat around the hole leads to a sealed
   channel in the floor, then to a 1 mm port on the forward edge pointing toward the mouth (with a mesh recess).
   It isn't on the head side, where skin and hair would block it.
@@ -266,7 +272,8 @@ Not modelled: the outward tipping from the battery being on the outer side, and 
 
    Check the radio range in the worn position on the first mule.
 
-2. **Motor size:** about Ø8 × 3.2 mm is assumed from the part number (Vybronics VG0832013D). Measure the real part.
+2. **Motor: confirmed** as the Vybronics VG0832013D (8.0 × 3.25 mm). Order the 022D variant (100 mm leads) plus
+   a JST-SH 2-pin pigtail.
 3. **Size and weight:** about 50 × 24 × 11.6 mm and 10–15 g. Fine for a mule; a final-size body needs a smaller board.
 4. **Battery tipping:** the battery on the outer side shifts weight away from the head. The squeeze counters it,
    but watch for tipping in testing.
