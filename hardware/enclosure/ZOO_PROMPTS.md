@@ -52,7 +52,8 @@ Board bottom face (Z = 0): flat, only bare copper pads, no parts. Two areas matt
 Other contents:
 - Battery: Adafruit #1570 LiPo pouch, 31 x 11.5 x 3.8 mm, 3 g, with a 105 mm lead ending in a JST-PH plug.
   Do NOT shorten the lead; leave a space to tuck the extra wire.
-- Vibration motor: coin LRA, 8 mm diameter x 3.2 mm thick, on short leads that plug into J3.
+- Vibration motor: Vybronics VG0832022D coin LRA, 8.0 mm diameter x 3.25 mm thick, on 100 mm leads that plug into
+  J3. It vibrates perpendicular to its flat face, so the flat face goes against the head-side wall.
 - The device indicates on/off and coaching only by vibrating. There are no lights and no speaker.
 
 Just confirm you understand; don't build anything yet.
@@ -166,8 +167,8 @@ Check: both plungers line up with the switch centres in the board model; flexure
 
 ```
 Add the vibration motor pocket and finish the head-side face:
-- Motor pocket in the top extension (X -9 to -1), against the head-side wall: a round seat 8.4 mm diameter,
-  3.4 mm deep, with the wall between motor and skin 0.6 mm thick so the buzz is felt clearly. It sits as far
+- Motor pocket in the top extension (X -9 to -1), against the head-side wall: a round seat 8.3 mm diameter,
+  3.5 mm deep (motor is 8.0 x 3.25 mm, held with its own adhesive tape, flat face toward the skin), with the wall between motor and skin 0.6 mm thick so the buzz is felt clearly. It sits as far
   from the microphone (X 13.2, Y 9.1) and the bone sensor (X 17.5, Y 7.4) as possible; centre it near
   X -5, Y 5.
 - Add a 1.5 mm wide wire channel from the motor pocket along the inside of the back (Y = 0) wall to the motor
@@ -254,7 +255,8 @@ Create these small separate parts to print:
 
 1. **Antenna: decided.** Taoglas FXP830 strip (not certified with the module; fine for internal test mules).
    Check the radio range in the worn position on the first print.
-2. **Motor size.** 8 x 3.2 mm is assumed from the part number (Vybronics VG0832013D). Measure the real one.
+2. **Motor: confirmed.** Vybronics VG0832013D/022D, 8.0 x 3.25 mm (from the board notes and CUE_CONTEXT.md).
+   Order the 022D (100 mm leads) and solder them to a JST-SH 2-pin pigtail for J3.
 3. **Size.** This mule comes out around 51 x 25 x 12 mm, mostly because of the 33 x 21 mm board, the
    battery stacked on top, and the big battery and USB connectors. A smaller board is the way to get a
    final-size body.
