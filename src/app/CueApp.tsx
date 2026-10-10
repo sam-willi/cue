@@ -147,6 +147,8 @@ export default function CueApp() {
   const levelsRef = useRef<[number, number][]>([]);
   /** Voiced pitch frames [audio time s, Hz] from the last live session, for the report. */
   const pitchRef = useRef<[number, number][]>([]);
+  /** Voice-activity frames [audio time s, voice heard] from the last live session, for the report. */
+  const voiceRef = useRef<[number, boolean][]>([]);
   const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
 
@@ -322,6 +324,7 @@ export default function CueApp() {
     setReport(null);
     levelsRef.current = [];
     pitchRef.current = [];
+    voiceRef.current = [];
     setError(null);
   }, [config]);
 
@@ -345,9 +348,14 @@ export default function CueApp() {
       setRememberKey(saved !== null);
       // Volume targets per mic; one saved before mics were told apart stays under "".
       const byMic = JSON.parse(localStorage.getItem(VOLUME_BY_MIC_STORAGE) ?? "{}");
-      const legacy = localStorage.getItem(VOLUME_STORAGE);
-      if (legacy && !("" in byMic)) byMic[""] = JSON.parse(legacy);
       setVolumeByMic(byMic);
+      // Volumes saved before the level was measured the way listeners hear it (decision 21) are on
+      // a different scale, so they're dropped and the wearer sets their volume once more.
+      const outdated = OLD_VOLUME_STORAGE.filter((k) => localStorage.getItem(k) !== null);
+      if (outdated.length) {
+        outdated.forEach((k) => localStorage.removeItem(k));
+        setVolumeNote("Cue now measures volume more accurately, so please set your volume again.");
+      }
       const lastMic = localStorage.getItem(MIC_LABEL_STORAGE);
       if (lastMic) {
         micLabelRef.current = lastMic;
@@ -440,7 +448,10 @@ export default function CueApp() {
       onPitch: (t, hz) => {
         pitchRef.current.push([t, hz]);
       },
-      onVoice: (t, voice) => sessionRef.current.ingestVoice(t, voice),
+      onVoice: (t, voice) => {
+        voiceRef.current.push([t, voice]);
+        sessionRef.current.ingestVoice(t, voice);
+      },
       onMic: ({ label }) => {
         rememberMic(label);
         void refreshMics(); // names are only visible once the mic is allowed
@@ -475,6 +486,7 @@ export default function CueApp() {
       taps: sess.engineTaps(),
       levels: levelsRef.current,
       pitch: pitchRef.current,
+      voice: voiceRef.current,
       config: sess.config,
       paceLimit: sess.paceLimit(),
       script: notes,
@@ -1788,8 +1800,9 @@ function DeepgramKey({
   );
 }
 
-const VOLUME_STORAGE = "cue.volumeTarget";
-const VOLUME_BY_MIC_STORAGE = "cue.volumeTargetByMic";
+const VOLUME_BY_MIC_STORAGE = "cue.volumeTargetByMic.v2";
+/** Where volumes were saved before the K-weighted level (decision 21). */
+const OLD_VOLUME_STORAGE = ["cue.volumeTarget", "cue.volumeTargetByMic"];
 const MIC_STORAGE = "cue.mic";
 const MIC_LABEL_STORAGE = "cue.micLabel";
 const SOUND_STORAGE = "cue.sound";

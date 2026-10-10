@@ -3,7 +3,7 @@ import { suggestFillers } from "./customFillers";
 import { isDisfluency, type TapRecord } from "./engine";
 import { findInclusiveFlags, type InclusiveFlag } from "./inclusive";
 import { normalize, UH_FORMS, UM_FORMS } from "./lexicon";
-import { median } from "./loudness";
+import { activeSpeechFrames, median } from "./loudness";
 import { measurePace } from "./pace";
 import { PATTERNS, type CuePattern } from "./patterns";
 import { semitones } from "./pitch";
@@ -88,6 +88,8 @@ export interface ReportInput {
   taps: TapRecord[];
   /** Mic level frames: [time s, dBFS]. Empty without a microphone. */
   levels: [number, number][];
+  /** Voice-activity frames from the mic: [time s, whether a voice was heard]. Empty if the detector didn't run. */
+  voice?: [number, boolean][];
   /** Voiced pitch frames: [time s, Hz]. Empty without a microphone. */
   pitch: [number, number][];
   config: CueConfig;
@@ -119,7 +121,7 @@ export function buildReport(input: ReportInput): SessionReport {
   const sections: ReportSection[] = [
     pauseSection(words, talkSec, config, enough),
     pace.section,
-    volumeSection(words, input.levels, config),
+    volumeSection(words, input.levels, input.voice ?? [], config),
     fillerSection(fillers, talkSec),
     pitchSection(words, input.pitch),
     originalitySection(words, input.script),
@@ -295,9 +297,21 @@ function duringWords(samples: [number, number][], words: Word[]): [number, numbe
   return out;
 }
 
-function volumeSection(words: Word[], levels: [number, number][], config: CueConfig): ReportSection {
+function volumeSection(
+  words: Word[],
+  levels: [number, number][],
+  voice: [number, boolean][],
+  config: CueConfig,
+): ReportSection {
   const title = "Volume";
-  const speech = duringWords(levels, words);
+  // Only while actually voicing a word, the same way the live "too quiet" check measures.
+  const speech = activeSpeechFrames(
+    levels.map(([t, db]) => ({ t, db })),
+    words,
+    voice.map(([t, active]) => ({ t, active })),
+    -Infinity,
+    Infinity,
+  ).map((f): [number, number] => [f.t, f.db]);
   if (speech.length < 40)
     return {
       key: "volume",

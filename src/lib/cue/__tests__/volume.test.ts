@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pcmDbfs } from "../loudness";
+import { activeSpeechFrames, kWeighting, median, pcmDbfs, SpeechLevelMeter } from "../loudness";
 import { CueSession, type SessionUpdate } from "../session";
 import { simulateWords } from "../simulate";
 
@@ -115,5 +115,78 @@ describe("volume feedback switch", () => {
     const cues = quietCues(session);
     expect(cues.filter((d) => d.delivered)).toEqual([]);
     expect(cues.map((d) => d.withheldReason)).toEqual(["category_off"]);
+  });
+});
+
+describe("K-weighted level", () => {
+  const tone = (hz: number, amp: number, rate = 16000, seconds = 1) =>
+    Int16Array.from({ length: rate * seconds }, (_, k) => amp * Math.sin((2 * Math.PI * hz * k) / rate));
+  /** Level once the filter has settled: the last of 20 chunks of 50 ms. */
+  const settled = (pcm: Int16Array) => {
+    const m = new SpeechLevelMeter();
+    let db = -100;
+    for (let k = 0; k + 800 <= pcm.length; k += 800) db = m.level(pcm.subarray(k, k + 800));
+    return db;
+  };
+
+  it("matches the BS.1770 reference coefficients at 48 kHz", () => {
+    const { shelf, highpass } = kWeighting(48000);
+    expect(shelf.b0).toBeCloseTo(1.53512485958697, 6);
+    expect(shelf.b1).toBeCloseTo(-2.69169618940638, 6);
+    expect(shelf.b2).toBeCloseTo(1.19839281085285, 6);
+    expect(shelf.a1).toBeCloseTo(-1.69065929318241, 6);
+    expect(shelf.a2).toBeCloseTo(0.73248077421585, 6);
+    expect(highpass.a1).toBeCloseTo(-1.99004745483398, 6);
+    expect(highpass.a2).toBeCloseTo(0.99007225036621, 6);
+  });
+
+  it("reads mid-range speech frequencies about as plain RMS does", () => {
+    const pcm = tone(500, 3000);
+    expect(settled(pcm) - pcmDbfs(pcm)).toBeGreaterThan(-0.5);
+    expect(settled(pcm) - pcmDbfs(pcm)).toBeLessThan(1);
+  });
+
+  it("drops low rumble and lifts the range that carries clarity", () => {
+    const rumble = tone(20, 3000);
+    expect(pcmDbfs(rumble) - settled(rumble)).toBeGreaterThan(8);
+    expect(settled(tone(3000, 3000)) - settled(tone(300, 3000))).toBeGreaterThan(2);
+  });
+
+  it("returns the floor for silence", () => {
+    expect(new SpeechLevelMeter().level(new Int16Array(800))).toBe(-100);
+  });
+});
+
+describe("active speech level", () => {
+  // Slow speech, so each word's span covers many level frames.
+  const words = simulateWords(SENTENCE, { wpm: 40 });
+  const end = words.at(-1)!.end;
+  // The transcript's span for each word is generous: only the first 45% is voice, rising from
+  // −26 to −14 dB; the rest is silence at −45 dB.
+  const share = (t: number) => {
+    const w = words.find((x) => t >= x.start && t <= x.end);
+    return w ? (t - w.start) / (w.end - w.start) / 0.45 : 2;
+  };
+  const levels: { t: number; db: number }[] = [];
+  const voice: { t: number; active: boolean }[] = [];
+  for (let t = 0.025; t <= end; t += 0.05) levels.push({ t, db: share(t) <= 1 ? -26 + 12 * share(t) : -45 });
+  for (let t = 0.016; t <= end; t += 0.032) voice.push({ t, active: share(t) <= 1 });
+  const level = (v: typeof voice) => median(activeSpeechFrames(levels, words, v, 0, end).map((f) => f.db));
+
+  it("measures only while a voice is heard, so silence inside a word's span doesn't drag the level down", () => {
+    expect(level([])).toBe(-45);
+    expect(Math.abs(level(voice) + 20)).toBeLessThan(1.5);
+  });
+
+  it("trusts the words when the detector hears almost nothing, so very quiet speech is still measured", () => {
+    const deaf = voice.map((f, k) => ({ ...f, active: k % 20 === 0 }));
+    expect(level(deaf)).toBe(-45);
+  });
+
+  it("counts frames the detector has no opinion about", () => {
+    const early = voice.filter((f) => f.t < end / 3);
+    expect(activeSpeechFrames(levels, words, early, end / 2, end)).toHaveLength(
+      activeSpeechFrames(levels, words, [], end / 2, end).length,
+    );
   });
 });
