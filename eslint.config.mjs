@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The voice detector's minified runtime, copied from node_modules at build time.
+    "public/vad/**",
   ]),
 ]);
 
