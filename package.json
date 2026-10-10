@@ -45,7 +45,7 @@
     "prettier": "^3.9.9",
     "retext-equality": "^7.1.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^7",
     "vitest": "^5.0.3"
   }
 }
