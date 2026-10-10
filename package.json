@@ -25,12 +25,12 @@
   },
   "dependencies": {
     "@ricky0123/vad-web": "^0.0.31",
-    "compromise": "^14.17.0",
-    "next": "16.3.8",
+    "compromise": "^14.18.0",
+    "next": "16.4.0",
     "onnxruntime-web": "^1.30.0",
     "pitchy": "^4.1.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "three": "^0.186.1"
   },
   "devDependencies": {
@@ -40,7 +40,7 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.186.0",
     "eslint": "^9",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.0",
     "occt-import-js": "^0.0.23",
     "prettier": "^3.9.9",
     "retext-equality": "^7.1.0",
