@@ -5,7 +5,7 @@ import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
 import { DecisionEngine, type Moment, type Outcome } from "./engine";
 import { PATTERNS, patternFor } from "./patterns";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
-import { FRAME_SEC, median, noiseFloor, speechLevels, type LevelFrame } from "./loudness";
+import { activeSpeechFrames, FRAME_SEC, median, noiseFloor, type LevelFrame } from "./loudness";
 import { measurePace, type Pace } from "./pace";
 import type { BehaviorType, CueDecision, LikeCheck, LikeUse, SpeechEvent, Word } from "./types";
 
@@ -548,7 +548,7 @@ export class CueSession {
     const mine = this.words.filter((w) => this.isWearerWord(w));
     if (!mine.length || !this.levels.length) return null;
     const now = this.levels[this.levels.length - 1].t;
-    const frames = speechLevels(this.levels, mine, -Infinity, now);
+    const frames = activeSpeechFrames(this.levels, mine, this.voice, -Infinity, now).map((f) => f.db);
     const speechSec = frames.length * FRAME_SEC;
     if (speechSec < minSpeechSec) return null;
     return { db: median(frames), noiseDb: noiseFloor(this.levels, -Infinity, now), speechSec };
@@ -565,7 +565,9 @@ export class CueSession {
     const now = all[all.length - 1].end;
     const target = c.volumeTarget[c.mode];
     const noiseNow = noiseFloor(this.levels, now - NOISE_WINDOW, now);
-    const recentFrames = mine.length ? speechLevels(this.levels, mine, now - VOLUME_WINDOW, now) : [];
+    const recentFrames = mine.length
+      ? activeSpeechFrames(this.levels, mine, this.voice, now - VOLUME_WINDOW, now).map((f) => f.db)
+      : [];
     const recentDb = recentFrames.length * FRAME_SEC >= VOLUME_MIN_SPEECH ? median(recentFrames) : null;
     if (!target) {
       this.quietSince = null;

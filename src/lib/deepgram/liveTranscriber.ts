@@ -1,6 +1,6 @@
 import { loadVoiceDetector } from "@/lib/audio/loadVoiceDetector";
 import type { VoiceDetector } from "@/lib/audio/voiceDetector";
-import { pcmDbfs } from "@/lib/cue/loudness";
+import { SpeechLevelMeter } from "@/lib/cue/loudness";
 import { pitchHz } from "@/lib/cue/pitch";
 import type { DgMessage } from "./parse";
 
@@ -10,7 +10,7 @@ export interface TranscriberHandlers {
    * keeping the raw stream also lets a session be saved and replayed exactly.
    */
   onMessage: (msg: DgMessage) => void;
-  /** Mic level of each 50 ms chunk: Deepgram audio time (s, chunk midpoint) and dBFS. */
+  /** Mic level of each 50 ms chunk: Deepgram audio time (s, chunk midpoint) and K-weighted dB re full scale. */
   onLevel?: (t: number, db: number) => void;
   /** Voice pitch of each chunk that has one (Hz), for the session report. Silence and noise are skipped. */
   onPitch?: (t: number, hz: number) => void;
@@ -72,6 +72,7 @@ export class LiveTranscriber {
   private sentSec = 0;
   private clockZero = Infinity;
   private vad?: VoiceDetector;
+  private meter = new SpeechLevelMeter();
 
   constructor(private h: TranscriberHandlers) {}
 
@@ -84,6 +85,7 @@ export class LiveTranscriber {
     this.stopped = false;
     this.sentSec = 0;
     this.clockZero = Infinity;
+    this.meter = new SpeechLevelMeter();
     this.h.onStatus("connecting");
     if (this.h.onVoice) {
       // Loads alongside the connection. If it fails, Cue carries on with word timing alone.
@@ -147,7 +149,7 @@ export class LiveTranscriber {
           this.clockZero = Math.min(this.clockZero, performance.now() - this.sentSec * 1000);
           const pcm = new Int16Array(e.data);
           const mid = this.sentSec - chunkSec / 2;
-          this.h.onLevel?.(mid, pcmDbfs(pcm));
+          this.h.onLevel?.(mid, this.meter.level(pcm));
           if (this.h.onPitch) {
             const hz = pitchHz(pcm);
             if (hz !== null) this.h.onPitch(mid, hz);
