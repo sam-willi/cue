@@ -1,30 +1,29 @@
 import { describe, expect, it } from "vitest";
+import { DISFLUENCIES } from "../engine";
 import { CONFIRMS, CUE_LEGEND, PATTERNS, patternFor } from "../patterns";
 
 describe("patternFor", () => {
-  it("gives each behavior its own cue when distinct cues are on", () => {
-    expect(patternFor("filler_um", true)).toBe("hum");
-    expect(patternFor("filler_like", true)).toBe("hum");
-    expect(patternFor("filler_lowkey", true)).toBe("hum");
-    expect(patternFor("rushing", true)).toBe("steps");
-    expect(patternFor("no_pause", true)).toBe("tap");
-    expect(patternFor("long_turn", true)).toBe("knock");
-    expect(patternFor("too_quiet", true)).toBe("push");
+  it("asks for a pause when the wearer has talked too long or used too many fillers", () => {
+    for (const filler of DISFLUENCIES) expect(patternFor(filler)).toBe("tap");
+    expect(patternFor("no_pause")).toBe("tap");
+    expect(patternFor("long_turn")).toBe("tap");
+    expect(PATTERNS.tap.action).toBe("Pause");
   });
 
-  it("plays each family's root when distinct cues are off", () => {
-    expect(patternFor("long_turn", false)).toBe("tap");
-    expect(patternFor("filler_um", false)).toBe("push");
-    expect(patternFor("too_quiet", false)).toBe("push");
+  it("has one cue for rushing and one for speaking quietly", () => {
+    expect(patternFor("rushing")).toBe("steps");
+    expect(PATTERNS.steps.action).toBe("Slow down");
+    expect(patternFor("too_quiet")).toBe("push");
+    expect(PATTERNS.push.action).toBe("Speak up");
   });
 });
 
 describe("haptic vocabulary", () => {
-  it("has five cues, each with a different rhythm", () => {
+  it("has three cues, each with a different rhythm", () => {
     const rhythms = Object.values(PATTERNS).map((p) => p.vibrate.join(","));
-    expect(new Set(rhythms).size).toBe(5);
-    expect(CUE_LEGEND).toHaveLength(5);
-    expect(new Set(CUE_LEGEND.map((c) => patternFor(c.kind, true))).size).toBe(5);
+    expect(new Set(rhythms).size).toBe(3);
+    expect(CUE_LEGEND).toHaveLength(3);
+    expect(new Set(CUE_LEGEND.map((c) => patternFor(c.kind))).size).toBe(3);
   });
 
   it("keeps every cue under a second", () => {

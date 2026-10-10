@@ -19,7 +19,9 @@ import { DOUBLE_TAP_GAP_MS, LONG_PRESS_MS, TAP_MAX_MS, TouchGestures, type Touch
 import { isDisfluency, type Outcome } from "@/lib/cue/engine";
 import { CueSession, type SessionUpdate, type Signals, type VolumeStatus } from "@/lib/cue/session";
 import { simulateWords } from "@/lib/cue/simulate";
-import type { CueDecision, LikeCheck, Word } from "@/lib/cue/types";
+import type { CueDecision, LikeCheck, SpeechEvent, Word } from "@/lib/cue/types";
+import { MAX_CUSTOM_FILLERS, parseCustomFiller } from "@/lib/cue/customFillers";
+import { buildReport, type ReportSection, type SessionReport } from "@/lib/cue/report";
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
 import { encodeWav } from "@/lib/audio/wav";
@@ -30,6 +32,7 @@ const LABEL: Record<CueKind, string> = {
   filler_uh: "“uh”",
   filler_like: "filler “like”",
   filler_lowkey: "“lowkey”",
+  filler_custom: "a filler word",
   no_pause: "no pause",
   long_turn: "a long turn",
   rushing: "speaking fast",
@@ -38,8 +41,10 @@ const LABEL: Record<CueKind, string> = {
 
 const MODE_LABEL: Record<CueMode, string> = { conversation: "Conversation", presentation: "Presentation" };
 
-/** What Cue asks of you for each kind of alert: the specific cue's action, even when "simpler cues" plays the family root. */
-const actionFor = (kind: CueKind) => PATTERNS[patternFor(kind, true)].action;
+/** What Cue asks of you for each kind of alert: pause, slow down, or speak up. */
+const actionFor = (kind: CueKind) => PATTERNS[patternFor(kind)].action;
+/** How an event is named on screen: the wearer's own filler words are shown as the word itself. */
+const labelFor = (ev: SpeechEvent) => (ev.phrase ? `“${ev.phrase}”` : LABEL[ev.type]);
 
 const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   low_confidence: "not confident enough",
@@ -112,6 +117,12 @@ export default function CueApp() {
   const heardTimer = useRef<number | undefined>(undefined);
   /** Live transcript is a testing aid only; the product never needs the screen mid-conversation. */
   const [showTranscript, setShowTranscript] = useState(false);
+  /** The after-session report, built when a session ends. */
+  const [report, setReport] = useState<SessionReport | null>(null);
+  /** Notes or a script the wearer pasted, to check how much of the talk was read word for word. */
+  const [script, setScript] = useState("");
+  const [fillerDraft, setFillerDraft] = useState("");
+  const [fillerError, setFillerError] = useState<string | null>(null);
   const [open, setOpen] = useState({ review: false, practice: false, training: false, settings: false });
   /** Training recording: audio is kept only when the user starts one explicitly. */
   const [recordingTraining, setRecordingTraining] = useState(false);
@@ -134,6 +145,8 @@ export default function CueApp() {
   const rawRef = useRef<DgMessage[]>([]);
   /** Mic level frames [audio time s, dBFS] from the last live session. */
   const levelsRef = useRef<[number, number][]>([]);
+  /** Voiced pitch frames [audio time s, Hz] from the last live session, for the report. */
+  const pitchRef = useRef<[number, number][]>([]);
   const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
 
@@ -208,6 +221,10 @@ export default function CueApp() {
     sessionRef.current.config = config;
     configRef.current = config;
   }, [config]);
+  const scriptRef = useRef(script);
+  useEffect(() => {
+    scriptRef.current = script;
+  }, [script]);
 
   /** Play a touch-control confirmation (a ramp, never a coaching tap). */
   const playConfirm = useCallback((pattern: ConfirmPattern) => {
@@ -238,7 +255,7 @@ export default function CueApp() {
   );
 
   const triggerBuzz = useCallback((kind: CueKind, label?: string) => {
-    const pattern = patternFor(kind, sessionRef.current.config.distinctCues);
+    const pattern = patternFor(kind);
     setConfirm(null);
     setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: label ?? LABEL[kind], action: actionFor(kind), pattern }));
     navigator.vibrate?.(PATTERNS[pattern].vibrate);
@@ -261,8 +278,8 @@ export default function CueApp() {
       if (!hit && held) {
         const label =
           held.withheldReason === "cooldown"
-            ? `Noticed ${LABEL[held.event.type]}. Cue just buzzed, so not again yet.`
-            : `Noticed ${LABEL[held.event.type]}${held.trigger ? ` (${held.trigger})` : ""}. No buzz yet.`;
+            ? `Noticed ${labelFor(held.event)}. Cue just buzzed, so not again yet.`
+            : `Noticed ${labelFor(held.event)}${held.trigger ? ` (${held.trigger})` : ""}. No buzz yet.`;
         setHeard((x) => ({ n: (x?.n ?? 0) + 1, label }));
         window.clearTimeout(heardTimer.current);
         heardTimer.current = window.setTimeout(() => setHeard(null), 1600);
@@ -302,7 +319,9 @@ export default function CueApp() {
     setSpeakingSec(0);
     setPace(null);
     setVolume(null);
+    setReport(null);
     levelsRef.current = [];
+    pitchRef.current = [];
     setError(null);
   }, [config]);
 
@@ -344,6 +363,9 @@ export default function CueApp() {
       }
       const cues = localStorage.getItem(VOLUME_CUES_STORAGE);
       if (cues) setConfig((c) => ({ ...c, volumeCues: { ...c.volumeCues, ...JSON.parse(cues) } }));
+      const fillers = JSON.parse(localStorage.getItem(CUSTOM_FILLERS_STORAGE) ?? "[]");
+      if (Array.isArray(fillers) && fillers.length)
+        setConfig((c) => ({ ...c, customFillers: fillers.filter((f) => typeof f === "string") }));
     } catch {
       // Storage blocked (private window, previews): the key just isn't remembered.
     }
@@ -415,6 +437,9 @@ export default function CueApp() {
         levelsRef.current.push([t, db]);
         sessionRef.current.ingestLevel(t, db);
       },
+      onPitch: (t, hz) => {
+        pitchRef.current.push([t, hz]);
+      },
       onMic: ({ label }) => {
         rememberMic(label);
         void refreshMics(); // names are only visible once the mic is allowed
@@ -433,6 +458,21 @@ export default function CueApp() {
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
     transcriberRef.current = t;
     await t.start({ apiKey: (opts.apiKey ?? apiKey) || undefined, deviceId: micChoice.deviceId || undefined });
+  };
+
+  /** Build the after-session report from everything the session heard. */
+  const makeReport = (notes: string): SessionReport => {
+    const sess = sessionRef.current;
+    return buildReport({
+      words: sess.words.filter((w) => sess.isWearerWord(w)),
+      history: sess.history,
+      taps: sess.engineTaps(),
+      levels: levelsRef.current,
+      pitch: pitchRef.current,
+      config: sess.config,
+      paceLimit: sess.paceLimit(),
+      script: notes,
+    });
   };
 
   const runDemo = (text = demoText) => {
@@ -467,6 +507,7 @@ export default function CueApp() {
       const w = sim.find((x) => t >= x.start && t <= x.end);
       const db = !w ? -60 : demoQuiet && t > total * 0.55 ? -32 : -20;
       sessionRef.current.ingestLevel(t, db);
+      levelsRef.current.push([t, db]);
       if (demoFriend) sessionRef.current.ingestBone(t, !!w && !friend.includes(w));
     }
     sim.forEach((w, k) => {
@@ -480,6 +521,7 @@ export default function CueApp() {
         apply(sessionRef.current.ingest(sim, true));
         apply(sessionRef.current.endUtterance());
         setStatus("idle");
+        setReport(makeReport(scriptRef.current));
         setOpen((o) => ({ ...o, review: true }));
       }, endAt),
     );
@@ -586,6 +628,26 @@ export default function CueApp() {
       setFillerMarks(new Set(log.filter(isFiller).map((d) => wordKey(d.event.start))));
       setOpen((o) => ({ ...o, training: true }));
     } else if (words.length) setOpen((o) => ({ ...o, review: true }));
+    if (words.length) setReport(makeReport(script));
+  };
+  const setCustomFillers = (customFillers: string[]) => {
+    setConfig((c) => ({ ...c, customFillers }));
+    try {
+      localStorage.setItem(CUSTOM_FILLERS_STORAGE, JSON.stringify(customFillers));
+    } catch {
+      // Storage blocked: the list lasts until the page closes.
+    }
+  };
+  const addCustomFiller = () => {
+    const parsed = parseCustomFiller(fillerDraft);
+    if ("error" in parsed) return setFillerError(parsed.error);
+    if (config.customFillers.includes(parsed.phrase))
+      return setFillerError(`“${parsed.phrase}” is already on your list.`);
+    if (config.customFillers.length >= MAX_CUSTOM_FILLERS)
+      return setFillerError(`That’s the limit of ${MAX_CUSTOM_FILLERS}. Remove one to add another.`);
+    setCustomFillers([...config.customFillers, parsed.phrase]);
+    setFillerDraft("");
+    setFillerError(null);
   };
 
   const toggleFillerMark = (start: number) =>
@@ -667,7 +729,13 @@ export default function CueApp() {
 
   const totalCues = tapped.length;
   const reviewSummary = words.length
-    ? `${speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`} of speaking, ${totalCues} ${totalCues === 1 ? "cue" : "cues"}`
+    ? `${speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`} of speaking, ${totalCues} ${totalCues === 1 ? "cue" : "cues"}${
+        report && !busy
+          ? report.focus.length
+            ? `, ${report.focus.length} ${report.focus.length === 1 ? "thing" : "things"} to work on`
+            : ", nothing to work on"
+          : ""
+      }`
     : "Nothing yet. Start listening or play a practice sentence.";
 
   return (
@@ -880,15 +948,8 @@ export default function CueApp() {
                 What each tap means. Select one to {sound.on ? "hear" : "feel"} it.
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {(["Voice", "Pace", "Space"] as const).map((family) => (
-                  <p key={family} className="text-caption text-muted">
-                    {family}
-                  </p>
-                ))}
-                {LEGEND_GRID.map((kind, k) => {
-                  if (!kind) return <div key={`empty-${k}`} aria-hidden />;
-                  const p = patternFor(kind, config.distinctCues);
-                  const label = CUE_LEGEND.find((c) => c.kind === kind)!.label;
+                {CUE_LEGEND.map(({ kind, label }) => {
+                  const p = patternFor(kind);
                   return (
                     <button
                       key={kind}
@@ -898,7 +959,7 @@ export default function CueApp() {
                         sessionRef.current.hapticPlayed(PATTERNS[p].vibrate.reduce((x, y) => x + y, 0) / 1000);
                       }}
                       className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-label transition-colors duration-200 hover:border-cue ${
-                        buzz?.pattern === p && buzz.label === LABEL[kind] ? "cue-playing border-cue" : "border-line"
+                        buzz?.pattern === p ? "cue-playing border-cue" : "border-line"
                       }`}
                     >
                       <RhythmGlyph pattern={p} />
@@ -982,47 +1043,73 @@ export default function CueApp() {
           {/* --- Everything else waits below, collapsed --- */}
           <div className="mt-20 border-t border-line">
             <Disclosure
-              title="Review last session"
+              title="Session report"
               summary={reviewSummary}
               open={open.review}
               onToggle={() => toggle("review")}
             >
               {words.length === 0 ? (
                 <p className="text-body text-muted">
-                  After you stop, this shows what Cue noticed, why it acted, and a transcript you can correct.
+                  After you stop, this is your report: pauses, pace, volume, filler words, pitch and more, with a
+                  transcript you can correct.
                 </p>
               ) : (
                 <div className="space-y-12">
-                  <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
-                    <Stat
-                      label="Speaking"
-                      value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`}
+                  {report && !busy && (
+                    <ReportView
+                      report={report}
+                      script={script}
+                      onScript={(notes) => {
+                        setScript(notes);
+                        setReport(makeReport(notes));
+                      }}
                     />
-                    <Stat
-                      label="Taps"
-                      value={String(totalCues)}
-                      hint={judged ? `${worked} of ${judged} worked` : "none judged yet"}
-                    />
-                    <Stat
-                      label="Fillers noticed"
-                      value={String(noticed)}
-                      hint={
-                        speakingSec >= 30
-                          ? `${(noticed / (speakingSec / 60)).toFixed(1)} per minute`
-                          : "per minute after 30 s"
-                      }
-                    />
-                    <Stat
-                      label="Cue delay"
-                      value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
-                      hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
-                    />
-                    <Stat
-                      label="You marked"
-                      value={`${falseBuzzes + misses}`}
-                      hint={`${falseBuzzes} wrong, ${misses} missed`}
-                    />
-                  </dl>
+                  )}
+                  {report && !busy ? (
+                    <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
+                      <Stat
+                        label="Cue delay"
+                        value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
+                        hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
+                      />
+                      <Stat
+                        label="You marked"
+                        value={`${falseBuzzes + misses}`}
+                        hint={`${falseBuzzes} wrong, ${misses} missed`}
+                      />
+                    </dl>
+                  ) : (
+                    <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
+                      <Stat
+                        label="Speaking"
+                        value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`}
+                      />
+                      <Stat
+                        label="Taps"
+                        value={String(totalCues)}
+                        hint={judged ? `${worked} of ${judged} worked` : "none judged yet"}
+                      />
+                      <Stat
+                        label="Fillers noticed"
+                        value={String(noticed)}
+                        hint={
+                          speakingSec >= 30
+                            ? `${(noticed / (speakingSec / 60)).toFixed(1)} per minute`
+                            : "per minute after 30 s"
+                        }
+                      />
+                      <Stat
+                        label="Cue delay"
+                        value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
+                        hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
+                      />
+                      <Stat
+                        label="You marked"
+                        value={`${falseBuzzes + misses}`}
+                        hint={`${falseBuzzes} wrong, ${misses} missed`}
+                      />
+                    </dl>
+                  )}
 
                   <div>
                     <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
@@ -1103,7 +1190,7 @@ export default function CueApp() {
                         ) : d ? (
                           <li key={key} className="py-4 text-body">
                             <p className="font-medium">
-                              {capitalize(LABEL[d.event.type])}{" "}
+                              {capitalize(labelFor(d.event))}{" "}
                               <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
                                 {d.delivered
                                   ? `tapped${d.trigger ? `: ${d.trigger}` : ""}${
@@ -1328,7 +1415,7 @@ export default function CueApp() {
 
             <Disclosure
               title="Settings"
-              summary={`${presetLabel} mode, ${config.distinctCues ? "five cues" : "simpler cues"}, ${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}${sound.on ? ", cue sounds on" : ""}`}
+              summary={`${presetLabel} mode, ${config.customFillers.length ? `${config.customFillers.length} of your own filler ${config.customFillers.length === 1 ? "word" : "words"}, ` : ""}${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}${sound.on ? ", cue sounds on" : ""}`}
               open={open.settings}
               onToggle={() => toggle("settings")}
             >
@@ -1352,6 +1439,70 @@ export default function CueApp() {
                   </div>
                 </fieldset>
 
+                <div>
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                    Your filler words
+                  </h3>
+                  <p className="mt-1 max-w-prose text-body-sm text-muted">
+                    Add words or short phrases you lean on, like “so”, “basically” or “you know”. Cue counts one every
+                    time you say it, so skip words you also use on purpose.
+                  </p>
+                  <form
+                    className="mt-3 flex max-w-md gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      addCustomFiller();
+                    }}
+                  >
+                    <label className="sr-only" htmlFor="custom-filler">
+                      A filler word or phrase
+                    </label>
+                    <input
+                      id="custom-filler"
+                      value={fillerDraft}
+                      onChange={(e) => {
+                        setFillerDraft(e.target.value);
+                        setFillerError(null);
+                      }}
+                      placeholder="you know"
+                      autoComplete="off"
+                      autoCapitalize="none"
+                      aria-describedby={fillerError ? "custom-filler-error" : undefined}
+                      className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 text-body placeholder:text-muted/70 focus:border-cue focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
+                    >
+                      Add
+                    </button>
+                  </form>
+                  {fillerError && (
+                    <p id="custom-filler-error" role="alert" className="mt-2 text-body-sm">
+                      {fillerError}
+                    </p>
+                  )}
+                  {config.customFillers.length > 0 && (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {config.customFillers.map((f) => (
+                        <li key={f}>
+                          <button
+                            type="button"
+                            onClick={() => setCustomFillers(config.customFillers.filter((x) => x !== f))}
+                            aria-label={`Remove “${f}”`}
+                            className="flex min-h-11 items-center gap-2 rounded-lg border border-cue bg-cue-soft px-3 text-label hover:border-text"
+                          >
+                            “{f}”
+                            <span aria-hidden className="text-muted">
+                              ×
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
                 <div className="space-y-4">
                   <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
                     How Cue taps
@@ -1365,12 +1516,6 @@ export default function CueApp() {
                     }
                     on={config.tapOn === "patterns"}
                     onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
-                  />
-                  <Switch
-                    label="Five different cues"
-                    hint="Off: simpler cues, one per family (Voice, Pace, Space). The screen still says which behavior it was."
-                    on={config.distinctCues}
-                    onChange={(v) => setConfig((c) => ({ ...c, distinctCues: v }))}
                   />
                 </div>
 
@@ -1441,7 +1586,7 @@ export default function CueApp() {
                   </p>
                   <Switch
                     label="Play cues as sounds"
-                    hint="Each family has its own pitch: Space high, Pace middle, Voice low. Confirmations swell in softly."
+                    hint="Each cue has its own pitch: Pause high, Slow down middle, Speak up low. Confirmations swell in softly."
                     on={sound.on}
                     onChange={(on) => saveSound({ ...sound, on })}
                   />
@@ -1458,7 +1603,7 @@ export default function CueApp() {
                     type="button"
                     onClick={() => {
                       earcon().unlock();
-                      earcon().play(cueTones("hum"), sound.volume);
+                      earcon().play(cueTones("tap"), sound.volume);
                     }}
                     className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
                   >
@@ -1652,8 +1797,7 @@ interface MicChoice {
 }
 const VOLUME_CUES_STORAGE = "cue.volumeCues";
 
-/** Legend order: one column per cue family (Voice, Pace, Space). */
-const LEGEND_GRID: (CueKind | null)[] = ["filler_um", "rushing", "no_pause", "too_quiet", null, "long_turn"];
+const CUSTOM_FILLERS_STORAGE = "cue.customFillers";
 
 const CHIP_LABEL: Partial<Record<keyof CueConfig["categories"], string>> = {
   rushing: "Speaking fast",
@@ -1668,7 +1812,7 @@ function describeTap(d: CueDecision): string {
   if (d.tapReason === "filler_cluster" && n) return `${n[1]} fillers in ${n[2]} seconds`;
   if (d.tapReason === "filler_density" && d.trigger) return `${d.trigger.replace(/^(\d+) in/, "$1 fillers in")}`;
   if (d.event.type === "no_pause" || d.event.type === "long_turn") return capitalize(d.event.reason);
-  return capitalize(LABEL[d.event.type]);
+  return capitalize(labelFor(d.event));
 }
 
 const capitalize = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
@@ -1921,6 +2065,190 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
       </dd>
       {hint && <dd className="mt-0.5 text-caption text-muted">{hint}</dd>}
     </div>
+  );
+}
+
+const VERDICT_TAG: Record<ReportSection["verdict"], string> = {
+  improve: "Work on this",
+  good: "Going well",
+  none: "No data",
+};
+
+/** The after-session report: what to work on, then one card per area a speaking coach would comment on. */
+function ReportView({
+  report,
+  script,
+  onScript,
+}: {
+  report: SessionReport;
+  script: string;
+  onScript: (notes: string) => void;
+}) {
+  const given = report.cues.reduce((n, c) => n + c.count, 0);
+  return (
+    <div className="space-y-8">
+      <div>
+        <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+          {report.focus.length ? "Work on next" : "Nothing to work on from this one"}
+        </h3>
+        {report.focus.length ? (
+          <ol className="mt-3 space-y-2">
+            {report.focus.map((advice, k) => (
+              <li key={k} className="flex gap-3 text-body">
+                <span className="font-display font-semibold tabular-nums text-cue">{k + 1}</span>
+                <span className="max-w-prose">{advice}</span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="mt-2 max-w-prose text-body text-muted">
+            Nothing here crossed a line worth changing. Longer sessions give the report more to go on.
+          </p>
+        )}
+      </div>
+
+      <dl className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+        <Stat
+          label="Talking time"
+          value={report.talkSec >= 60 ? `${(report.talkSec / 60).toFixed(1)} min` : `${Math.round(report.talkSec)} s`}
+        />
+        <Stat label="Words" value={String(report.wordCount)} />
+        <Stat
+          label="Cues given"
+          value={String(given)}
+          hint={report.cues.map((c) => `${c.action} ${c.count}`).join(", ")}
+        />
+        <Stat
+          label="Cues that worked"
+          value={(() => {
+            const judged = report.cues.reduce((n, c) => n + c.judged, 0);
+            return judged ? `${report.cues.reduce((n, c) => n + c.worked, 0)} of ${judged}` : "None yet";
+          })()}
+          hint="You paused, slowed or spoke up after"
+        />
+      </dl>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {report.sections.map((s) => (
+          <section key={s.key} className="rounded-lg border border-line p-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <h4 className="text-label font-medium">{s.title}</h4>
+              <span
+                className={`whitespace-nowrap rounded px-2 py-0.5 text-caption ${s.verdict === "improve" ? "bg-cue-soft text-cue" : "text-muted"}`}
+              >
+                {VERDICT_TAG[s.verdict]}
+              </span>
+            </div>
+            <p
+              className={`mt-3 font-display text-title-m font-medium tracking-[-0.01em] ${s.verdict === "none" ? "text-muted" : ""}`}
+            >
+              {s.headline}
+            </p>
+            {s.advice && <p className="mt-2 text-body-sm text-muted">{s.advice}</p>}
+            {s.stats.length > 0 && (
+              <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+                {s.stats.map((x) => (
+                  <div key={x.label}>
+                    <dt className="text-caption text-muted">{x.label}</dt>
+                    <dd className="text-body font-medium tabular-nums">{x.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+            {s.key === "pace" && report.paceTimeline.length > 2 && (
+              <PaceChart timeline={report.paceTimeline} limitWpm={report.paceLimitWpm} />
+            )}
+            {s.key === "fillers" && report.fillers.length > 0 && (
+              <ul className="mt-4 flex flex-wrap gap-2">
+                {report.fillers.map((f) => (
+                  <li key={f.word} className="rounded bg-surface-2 px-2 py-1 text-body-sm tabular-nums">
+                    “{f.word}” <span className="text-muted">× {f.count}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {s.key === "inclusive" && report.inclusive.length > 0 && (
+              <ul className="mt-4 space-y-3">
+                {report.inclusive.map((f) => (
+                  <li key={f.phrase} className="text-body-sm">
+                    <p>
+                      <span className="font-medium">“{f.phrase}”</span>
+                      {f.count > 1 && <span className="text-muted"> × {f.count}</span>}
+                      <span className="text-muted"> Try: {f.instead}.</span>
+                    </p>
+                    <p className="mt-0.5 text-muted">“…{f.context}…”</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {s.key === "originality" && (
+              <div className="mt-4">
+                <label htmlFor="report-notes" className="text-caption text-muted">
+                  Your notes or script. They stay in this browser tab.
+                </label>
+                <textarea
+                  id="report-notes"
+                  value={script}
+                  onChange={(e) => onScript(e.target.value)}
+                  rows={3}
+                  placeholder="Paste what you planned to say"
+                  className="mt-1 w-full rounded-lg border border-line bg-surface px-3 py-2 text-body-sm placeholder:text-muted/70 focus:border-cue focus:outline-none"
+                />
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+      <p className="max-w-prose text-body-sm text-muted">
+        These lines are starting points and haven’t been tested with many speakers yet. Pitch and volume need a
+        microphone session; a typed practice sentence has no voice to measure.
+      </p>
+    </div>
+  );
+}
+
+/** Pace through the session as a line, with the rushing limit dashed across it. */
+function PaceChart({ timeline, limitWpm }: { timeline: { t: number; wpm: number }[]; limitWpm: number }) {
+  const W = 300;
+  const H = 56;
+  const lo = Math.min(limitWpm * 0.6, ...timeline.map((p) => p.wpm));
+  const hi = Math.max(limitWpm * 1.15, ...timeline.map((p) => p.wpm));
+  const t0 = timeline[0].t;
+  const span = Math.max(1, timeline[timeline.length - 1].t - t0);
+  const y = (wpm: number) => H - 4 - ((wpm - lo) / (hi - lo)) * (H - 8);
+  const points = timeline.map((p) => `${(((p.t - t0) / span) * W).toFixed(1)},${y(p.wpm).toFixed(1)}`).join(" ");
+  return (
+    <figure className="mt-4">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Pace through the session, between ${Math.round(Math.min(...timeline.map((p) => p.wpm)))} and ${Math.round(Math.max(...timeline.map((p) => p.wpm)))} words a minute`}
+        className="h-14 w-full"
+      >
+        <line
+          x1="0"
+          x2={W}
+          y1={y(limitWpm)}
+          y2={y(limitWpm)}
+          stroke="var(--muted)"
+          strokeWidth="1"
+          strokeDasharray="4 4"
+          vectorEffect="non-scaling-stroke"
+        />
+        <polyline
+          points={points}
+          fill="none"
+          stroke="var(--text)"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <figcaption className="mt-1 text-caption text-muted">
+        Start to finish. Above the dashed line (about {limitWpm} wpm) is rushing.
+      </figcaption>
+    </figure>
   );
 }
 

@@ -11,7 +11,15 @@ export interface Word {
 }
 
 export type BehaviorType =
-  "filler_um" | "filler_uh" | "filler_like" | "filler_lowkey" | "rushing" | "no_pause" | "long_turn" | "too_quiet";
+  | "filler_um"
+  | "filler_uh"
+  | "filler_like"
+  | "filler_lowkey"
+  | "filler_custom"
+  | "rushing"
+  | "no_pause"
+  | "long_turn"
+  | "too_quiet";
 
 /**
  * How a particular "like" is being used. Only some of these are fillers;
@@ -49,6 +57,8 @@ export interface SpeechEvent {
   /** Surrounding words, for the event log. */
   context: string;
   like?: LikeVerdict;
+  /** For filler_custom: the word or phrase from the wearer's own list. */
+  phrase?: string;
   pace?: { sps: number; wpm: number };
   /** For too_quiet: recent speech level and the wearer's normal, in dBFS. */
   level?: { db: number; baselineDb: number; expectedDb: number; noiseDb: number | null };

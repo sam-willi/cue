@@ -1,4 +1,5 @@
 import { DEFAULT_CONFIG, modeRules, type CueConfig } from "./config";
+import { compileCustomFillers, matchCustomFiller } from "./customFillers";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
 import { DecisionEngine, type Moment, type Outcome } from "./engine";
@@ -259,6 +260,7 @@ export class CueSession {
     // engine's cooldown gives those priority (decision 11): rushing, no pause, fillers, too quiet.
     const pendingDisfluencies: SpeechEvent[] = [];
     const disfluent = (ev: SpeechEvent) => pendingDisfluencies.push(ev);
+    const custom = compileCustomFillers(this.config.customFillers);
 
     for (let i = from; i < words.length; i++) {
       const w = words[i];
@@ -323,6 +325,33 @@ export class CueSession {
         if (!v.filler) continue;
         const last = words[i + span - 1];
         disfluent(this.event("filler_lowkey", { ...w, end: last.end }, v.confidence, v.reason, words, i));
+        continue;
+      }
+
+      // The wearer's own words: no context rules, so wait until the whole phrase is settled.
+      const customSpan = matchCustomFiller(words, i, custom);
+      if (customSpan) {
+        const lastIdx = i + customSpan - 1;
+        const settled = !interim[lastIdx] || rightClosed || words.length - 1 - lastIdx >= INTERIM_STABILITY;
+        if (!settled) continue;
+        const prevWord = words[i - 1]?.norm ?? "";
+        const said = words.slice(i, i + customSpan);
+        const phrase = said.map((x) => x.norm).join(" ");
+        if (!this.isDecided("filler_custom", w.start, prevWord)) {
+          this.markDecided("filler_custom", w.start, prevWord);
+          const confidence = Math.min(...said.map((x) => x.confidence));
+          const ev = this.event(
+            "filler_custom",
+            { ...w, end: words[lastIdx].end },
+            confidence,
+            `“${phrase}” is on your filler list`,
+            words,
+            i,
+          );
+          ev.phrase = phrase;
+          disfluent(ev);
+        }
+        i = lastIdx;
         continue;
       }
     }
@@ -402,7 +431,7 @@ export class CueSession {
     // The motor vibrates the moment a tap is delivered: mask the bone sensor for it.
     for (const d of decisions) {
       if (!d.delivered) continue;
-      const pattern = PATTERNS[patternFor(d.event.type, this.config.distinctCues)];
+      const pattern = PATTERNS[patternFor(d.event.type)];
       this.hapticPlayed(pattern.vibrate.reduce((a, b) => a + b, 0) / 1000);
     }
     this.history.push(...decisions);
@@ -441,7 +470,7 @@ export class CueSession {
   }
 
   /** Rushing threshold: relative to the wearer's normal once learned (SOFTWARE.md §8). */
-  private paceLimit(): number {
+  paceLimit(): number {
     const c = this.config;
     if (c.paceMode === "custom" || this.paceBaseline === null) return c.paceThreshold;
     const rise = c.mode === "presentation" ? PACE_RISE.presentation : PACE_RISE.conversation;

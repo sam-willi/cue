@@ -44,19 +44,35 @@ Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). 
 
 "um"/"uh" are detected on the first confident result (confidence ≥ 0.8), and a clear filler "like" as soon as the next word is heard; ambiguous cases wait for more words. Detection is not the same as a tap: taps follow the pattern rules above. Each cue's measured delay appears in the app.
 
-### Five cues
+### Three cues
 
-Each behavior has its own rhythm, in three families. Every cue starts with a sharp onset (`src/lib/cue/patterns.ts`).
+Live, Cue only ever asks for three things (decision 18). Every cue starts with a sharp onset (`src/lib/cue/patterns.ts`).
 
-| Family | Behavior  | Haptic                                         | Action     |
-| ------ | --------- | ---------------------------------------------- | ---------- |
-| Space  | No pause  | One tap (50 ms)                                | Breathe    |
-| Space  | Long turn | Two knocks (50 on, 150 off, 50 on)             | Give space |
-| Pace   | Rushing   | Slow steps (three 100 ms pulses, 250 ms apart) | Slow down  |
-| Voice  | Fillers   | Tap and hum (40 ms tap, 90 ms gap, 280 ms hum) | Pause      |
-| Voice  | Too quiet | Long push (450 ms)                             | Speak up   |
+| Cue       | Haptic                                         | When                                                        |
+| --------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| Pause     | One tap (50 ms)                                | No pause for a while, a long turn, or a run of filler words |
+| Slow down | Slow steps (three 100 ms pulses, 250 ms apart) | Rushing                                                     |
+| Speak up  | Long push (450 ms)                             | Too quiet                                                   |
 
-The **Simpler cues** setting plays only each family's root: one tap (Space), slow steps (Pace), long push (Voice). On screen, each cue is drawn as rings leaving the motor on the 3D device. A faint gray ring means "noticed, not a pattern yet", a testing aid.
+On screen, each cue is drawn as rings leaving the motor on the 3D device. A faint gray ring means "noticed, not a pattern yet", a testing aid.
+
+**Your own filler words.** In Settings you can add up to 20 words or short phrases you lean on ("so", "basically", "you know"). Cue counts one every time it's said (there's no check of how it was used, unlike "like"), and they feed the same pattern rules as the built-in fillers. The list is saved on this device.
+
+### Session report
+
+When a session ends, the app builds a report (decision 19, `src/lib/cue/report.ts`): up to three things to work on, then one card per area.
+
+| Area               | What it reports                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pauses             | How often you paused and your longest stretch without one.                                                                                   |
+| Pace               | Average and fastest words per minute, the share of the session spent rushing, and a small chart of pace from start to finish.                |
+| Volume             | How much of the session you spent well below the volume you set (needs a set volume).                                                        |
+| Filler words       | Fillers per minute and a count of each word, including your own.                                                                             |
+| Pitch and tone     | How much your pitch moved, from the microphone (`src/lib/cue/pitch.ts`). Under 2 semitones of spread reads as flat.                          |
+| Reading from notes | If you paste your notes or script, the share of your talk that matched them word for word (runs of 5+ words). Notes stay in the browser tab. |
+| Inclusive language | Terms from a short built-in list (`src/lib/cue/inclusive.ts`), each with an alternative.                                                     |
+
+Pitch and volume need a microphone session. All of the report's thresholds are starting points that haven't been tested with users yet.
 
 **Touch controls (simulated in the app).** The device's touch surface is for controls only: **hold 1.5 s** = Cue on/off, **double-tap** = switch Conversation / Presentation mode. A single tap or a lingering touch does nothing, so adjusting your hair or glasses won't trigger it. Confirmations are swelling or fading _ramps_ with no sharp onset, drawn as a neutral glow without rings, so they can't be mistaken for a coaching cue.
 
@@ -130,11 +146,11 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram Flux (v2/listen, flux-gene
                                    parse (src/lib/deepgram/parse.ts)
                                            ▼
        CueSession: bone gate (wearer's words only) ─▶ detectors
-         um/uh · like · lowkey · pace · no pause · long turn · too quiet
+         um/uh · like · lowkey · your words · pace · no pause · long turn · too quiet
                                            ▼
        DecisionEngine: pattern? confident? mode? gap since last tap? natural break?
                                            ▼
-                                  haptic pattern (five cues)
+                                  haptic pattern (three cues)
 ```
 
 | Path                                  | Role                                                                                        |

@@ -478,17 +478,13 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - Avoid bouncing, shaking, flashing, or celebratory confetti for filler reduction.
 - Respect reduced-motion settings.
 - Visual feedback for a cue may use one subtle outward movement or brief pause in motion. In the app, each haptic is drawn where it happens: **rings leave the motor** on the 3D device in the cue's rhythm, and the motor glows while it is driven. No shaking, jitter, or flashing.
-- **[PROVISIONAL — owner decision 12, 2026-10-05, see `CUE_CONTEXT.md` §5 and §26]** Six coaching cues in three families, distinguished by rhythm, not strength. Every cue starts with a sharp onset.
+- **[PROVISIONAL — owner decision 18, 2026-10-10, see `CUE_CONTEXT.md` §5 and §26]** Three coaching cues, distinguished by rhythm, not strength. Every cue starts with a sharp onset.
 
-  | Family | Behavior | Cue | Meaning |
-  |---|---|---|---|
-  | Space | No pause | One tap | Breathe |
-  | Space | Long turn | Two knocks | Give space |
-  | Pace | Rushing | Slow steps (three pulses) | Slow down |
-  | Voice | Filler pattern | Tap and hum | Pause |
-  | Voice | Too quiet | Long push | Speak up |
-
-  A **Simpler cues** setting plays only each family's root (one tap, slow steps, long push).
+  | Cue | Haptic | When |
+  |---|---|---|
+  | Pause | One tap | No pause, a long turn, or a filler pattern |
+  | Slow down | Slow steps (three pulses) | Rushing |
+  | Speak up | Long push | Too quiet |
 - **Touch-control confirmations** (long press = Cue on/off, double tap = Conversation/Presentation mode) are **ramps**: a vibration that swells or fades with no sharp onset, shown on the device as a **neutral glow with no rings**, so they can't be mistaken for coaching. Rising = on / Conversation, falling = off, two swells = Presentation.
 - **Noticed ring (testing aid):** a faint warm-gray ring from the motor means "noticed, not a pattern yet": a filler was detected but did not tap. It is neutral, never cobalt.
 - Do not add vibration patterns beyond these without user testing.
@@ -756,6 +752,12 @@ Every final logo asset must pass:
 Cue’s identity is built around **two interlocking voices creating space**. Use the approved two-form symbol and lowercase wordmark direction, but treat the included PNG as concept art pending a professional vector redraw. Keep the system warm-neutral, restrained, calm, and highly legible. Gen Z relevance should come from taste and confidence—not trend clichés. Always depict a single, elegant behind-the-ear (BTE) device; prioritize one clear idea, supportive language, accessible contrast, consistent geometry, and honest technical representation.
 
 ## 25. Change log
+
+### 2026-10-10
+
+- **Three cues** (`CUE_CONTEXT.md` §26, decision 18): the legend is one row of three (Speak up, Slow down, Pause) with no family columns, and the "Simpler cues" setting is gone. §11 updated.
+- **Session report** (decision 19): the review section opens with up to three things to work on, then one bordered card per area (pauses, pace, volume, filler words, pitch and tone, reading from notes, inclusive language). Cobalt marks only the areas to work on; everything else stays neutral. Pace has a small line chart with the rushing limit dashed.
+- **Your filler words** (decision 20): a field and removable chips in Settings.
 
 ### 2026-10-05
 

@@ -28,7 +28,7 @@ export interface TapRecord {
   outcome?: Outcome;
 }
 
-export const DISFLUENCIES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like", "filler_lowkey"];
+export const DISFLUENCIES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like", "filler_lowkey", "filler_custom"];
 export const isDisfluency = (t: BehaviorType) => DISFLUENCIES.includes(t);
 
 const CATEGORY: Record<BehaviorType, keyof CueConfig["categories"]> = {
@@ -36,6 +36,7 @@ const CATEGORY: Record<BehaviorType, keyof CueConfig["categories"]> = {
   filler_uh: "uh",
   filler_like: "like",
   filler_lowkey: "lowkey",
+  filler_custom: "custom",
   rushing: "rushing",
   no_pause: "pauses",
   long_turn: "turns",
@@ -74,7 +75,7 @@ export class DecisionEngine {
     const c = this.config();
     const held = this.gate(event);
     if (held) return { event, delivered: false, withheldReason: held };
-    const soft = event.type === "filler_like" || event.type === "filler_lowkey";
+    const soft = event.type !== "filler_um" && event.type !== "filler_uh";
     this.evidence.push({ t: event.end, weight: soft ? PRESENTATION.softFillerWeight : 1 });
 
     let reason: TapReason | null = null;
