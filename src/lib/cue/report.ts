@@ -1,4 +1,5 @@
 import { modeRules, PRESENTATION, toApproxWpm, type CueConfig } from "./config";
+import { suggestFillers } from "./customFillers";
 import { isDisfluency, type TapRecord } from "./engine";
 import { findInclusiveFlags, type InclusiveFlag } from "./inclusive";
 import { normalize, UH_FORMS, UM_FORMS } from "./lexicon";
@@ -74,6 +75,8 @@ export interface SessionReport {
   paceLimitWpm: number;
   /** Each filler said, most frequent first. */
   fillers: { word: string; count: number }[];
+  /** Habit words said often that aren't on the wearer's filler list, to offer as additions. */
+  suggestedFillers: { phrase: string; count: number }[];
   inclusive: InclusiveFlag[];
 }
 
@@ -134,6 +137,7 @@ export function buildReport(input: ReportInput): SessionReport {
     paceTimeline: pace.timeline,
     paceLimitWpm: toApproxWpm(input.paceLimit),
     fillers,
+    suggestedFillers: suggestFillers(words, config.customFillers, talkSec),
     inclusive,
   };
 }

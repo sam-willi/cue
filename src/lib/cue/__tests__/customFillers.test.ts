@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCustomFiller } from "../customFillers";
+import { parseCustomFiller, suggestFillers } from "../customFillers";
 import { CueSession } from "../session";
 import { simulateWords } from "../simulate";
 
@@ -63,5 +63,25 @@ describe("the wearer's own filler words", () => {
     s.endUtterance();
     const tap = s.history.find((d) => d.delivered);
     expect(tap?.tapReason).toBe("filler_cluster");
+  });
+});
+
+describe("suggestFillers", () => {
+  const talk = simulateWords(
+    "So basically we rebuilt it. You know, the old one was slow, and basically nobody liked it. " +
+      "You know how it goes. We basically started over, you know, and it was basically fine. So that is it.",
+  );
+
+  it("offers habit words the wearer leaned on, most frequent first", () => {
+    expect(suggestFillers(talk, [], 45)).toEqual([
+      { phrase: "basically", count: 4 },
+      { phrase: "you know", count: 3 },
+    ]);
+  });
+
+  it("skips words already on the list, rare ones, and very short sessions", () => {
+    expect(suggestFillers(talk, ["basically"], 45).map((f) => f.phrase)).toEqual(["you know"]);
+    expect(suggestFillers(talk, [], 600)).toEqual([]);
+    expect(suggestFillers(talk, [], 10)).toEqual([]);
   });
 });

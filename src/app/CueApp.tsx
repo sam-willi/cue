@@ -440,6 +440,7 @@ export default function CueApp() {
       onPitch: (t, hz) => {
         pitchRef.current.push([t, hz]);
       },
+      onVoice: (t, voice) => sessionRef.current.ingestVoice(t, voice),
       onMic: ({ label }) => {
         rememberMic(label);
         void refreshMics(); // names are only visible once the mic is allowed
@@ -457,7 +458,12 @@ export default function CueApp() {
     setRecorded(0);
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
     transcriberRef.current = t;
-    await t.start({ apiKey: (opts.apiKey ?? apiKey) || undefined, deviceId: micChoice.deviceId || undefined });
+    await t.start({
+      apiKey: (opts.apiKey ?? apiKey) || undefined,
+      deviceId: micChoice.deviceId || undefined,
+      // Ask Deepgram to listen for the fillers it's most likely to mishear.
+      keyterms: ["lowkey", ...config.customFillers],
+    });
   };
 
   /** Build the after-session report from everything the session heard. */
@@ -1062,6 +1068,11 @@ export default function CueApp() {
                       onScript={(notes) => {
                         setScript(notes);
                         setReport(makeReport(notes));
+                      }}
+                      customFillers={config.customFillers}
+                      onAddFiller={(phrase) => {
+                        if (config.customFillers.length < MAX_CUSTOM_FILLERS)
+                          setCustomFillers([...config.customFillers, phrase]);
                       }}
                     />
                   )}
@@ -2079,11 +2090,16 @@ function ReportView({
   report,
   script,
   onScript,
+  customFillers,
+  onAddFiller,
 }: {
   report: SessionReport;
   script: string;
   onScript: (notes: string) => void;
+  customFillers: string[];
+  onAddFiller: (phrase: string) => void;
 }) {
+  const suggested = report.suggestedFillers.filter((f) => !customFillers.includes(f.phrase));
   const given = report.cues.reduce((n, c) => n + c.count, 0);
   return (
     <div className="space-y-8">
@@ -2166,6 +2182,30 @@ function ReportView({
                   </li>
                 ))}
               </ul>
+            )}
+            {s.key === "fillers" && suggested.length > 0 && (
+              <div className="mt-4">
+                <p className="text-caption text-muted">
+                  You also said these a lot. Add any that are fillers for you, and Cue will count them next time.
+                </p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {suggested.map((f) => (
+                    <li key={f.phrase}>
+                      <button
+                        type="button"
+                        onClick={() => onAddFiller(f.phrase)}
+                        className="flex min-h-11 items-center gap-2 rounded-lg border border-line px-3 text-body-sm hover:border-cue"
+                      >
+                        <span>
+                          “{f.phrase}” <span className="tabular-nums text-muted">× {f.count}</span>
+                        </span>
+                        <span aria-hidden>+</span>
+                        <span className="sr-only">Add to your filler words</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             {s.key === "inclusive" && report.inclusive.length > 0 && (
               <ul className="mt-4 space-y-3">

@@ -1,3 +1,5 @@
+import { loadVoiceDetector } from "@/lib/audio/loadVoiceDetector";
+import type { VoiceDetector } from "@/lib/audio/voiceDetector";
 import { pcmDbfs } from "@/lib/cue/loudness";
 import { pitchHz } from "@/lib/cue/pitch";
 import type { DgMessage } from "./parse";
@@ -12,6 +14,11 @@ export interface TranscriberHandlers {
   onLevel?: (t: number, db: number) => void;
   /** Voice pitch of each chunk that has one (Hz), for the session report. Silence and noise are skipped. */
   onPitch?: (t: number, hz: number) => void;
+  /**
+   * Whether each 32 ms of audio held a voice (Silero VAD), on Deepgram's audio clock. Starts a
+   * moment after listening does, once the detector has loaded, and never if it can't load.
+   */
+  onVoice?: (t: number, voice: boolean) => void;
   /** Every 16 kHz PCM chunk sent to Deepgram, for opt-in training recordings. */
   onAudio?: (pcm: Int16Array) => void;
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string, code?: KeyProblem) => void;
@@ -38,11 +45,22 @@ class KeyError extends Error {
  *            no longer needed: the device's bone sensor hears only the wearer).
  *  - nova-3: dropped 4–5 of the 5 fillers in live streaming.
  */
-const LISTEN_URL = `wss://api.deepgram.com/v2/listen?${new URLSearchParams({
-  model: "flux-general-en",
-  encoding: "linear16",
-  sample_rate: "16000",
-})}`;
+const LISTEN_URL = "wss://api.deepgram.com/v2/listen";
+/** Deepgram accepts up to 100 keyterms. */
+const MAX_KEYTERMS = 100;
+
+/**
+ * The listen URL. `keyterms` are words Deepgram should listen for specially (its "keyterm
+ * prompting"): the wearer's own filler words, which Cue can only count if they're transcribed.
+ * Measured on a synthesized clip saying "lowkey" twice: without keyterms it came back as
+ * "locally" and "logica"; with "lowkey" as a keyterm, one of the two was recognized.
+ */
+export function listenUrl(keyterms: string[] = []): string {
+  const q = new URLSearchParams({ model: "flux-general-en", encoding: "linear16", sample_rate: "16000" });
+  for (const term of [...new Set(keyterms.map((k) => k.trim()).filter(Boolean))].slice(0, MAX_KEYTERMS))
+    q.append("keyterm", term);
+  return `${LISTEN_URL}?${q}`;
+}
 
 /** Streams the microphone to Deepgram and reports its messages. */
 export class LiveTranscriber {
@@ -53,6 +71,7 @@ export class LiveTranscriber {
   private stopped = false;
   private sentSec = 0;
   private clockZero = Infinity;
+  private vad?: VoiceDetector;
 
   constructor(private h: TranscriberHandlers) {}
 
@@ -61,11 +80,20 @@ export class LiveTranscriber {
    * Deepgram directly and the key never reaches this app's server. Without it, the server
    * mints a short-lived token from its own DEEPGRAM_API_KEY, if it has one.
    */
-  async start(opts: { apiKey?: string; deviceId?: string } = {}) {
+  async start(opts: { apiKey?: string; deviceId?: string; keyterms?: string[] } = {}) {
     this.stopped = false;
     this.sentSec = 0;
     this.clockZero = Infinity;
     this.h.onStatus("connecting");
+    if (this.h.onVoice) {
+      // Loads alongside the connection. If it fails, Cue carries on with word timing alone.
+      loadVoiceDetector((t, voice) => this.h.onVoice?.(t, voice))
+        .then((vad) => {
+          if (this.stopped) vad.close();
+          else this.vad = vad;
+        })
+        .catch(() => {});
+    }
     try {
       let protocols: string[];
       if (opts.apiKey) {
@@ -101,7 +129,7 @@ export class LiveTranscriber {
       this.node = new AudioWorkletNode(this.ctx, "pcm-worklet");
       src.connect(this.node);
 
-      const ws = new WebSocket(LISTEN_URL, protocols);
+      const ws = new WebSocket(listenUrl(opts.keyterms), protocols);
       ws.binaryType = "arraybuffer";
       this.ws = ws;
       let opened = false;
@@ -124,6 +152,7 @@ export class LiveTranscriber {
             const hz = pitchHz(pcm);
             if (hz !== null) this.h.onPitch(mid, hz);
           }
+          this.vad?.push(pcm, this.sentSec - chunkSec);
           this.h.onAudio?.(pcm);
         };
       };
@@ -174,6 +203,8 @@ export class LiveTranscriber {
   }
 
   private teardownAudio() {
+    this.vad?.close();
+    this.vad = undefined;
     this.node?.disconnect();
     this.stream?.getTracks().forEach((t) => t.stop());
     void this.ctx?.close().catch(() => {});

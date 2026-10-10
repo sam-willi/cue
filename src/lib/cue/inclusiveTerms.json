@@ -1,0 +1,2198 @@
+[
+  {
+    "phrase": "ablebodied",
+    "instead": "non-disabled"
+  },
+  {
+    "phrase": "addict",
+    "instead": "person with a drug addiction, person recovering from a drug addiction"
+  },
+  {
+    "phrase": "addicts",
+    "instead": "people with a drug addiction, people recovering from a drug addiction"
+  },
+  {
+    "phrase": "afflicted with a disability",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "afflicted with a intellectual disability",
+    "instead": "person with an intellectual disability"
+  },
+  {
+    "phrase": "afflicted with a polio",
+    "instead": "polio, person who had polio"
+  },
+  {
+    "phrase": "afflicted with aids",
+    "instead": "person with AIDS"
+  },
+  {
+    "phrase": "afflicted with an injury",
+    "instead": "sustain an injury, receive an injury"
+  },
+  {
+    "phrase": "afflicted with disabilities",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "afflicted with injuries",
+    "instead": "sustain injuries, receive injuries"
+  },
+  {
+    "phrase": "afflicted with intellectual disabilities",
+    "instead": "person with an intellectual disability"
+  },
+  {
+    "phrase": "afflicted with md",
+    "instead": "person who has muscular dystrophy"
+  },
+  {
+    "phrase": "afflicted with multiple sclerosis",
+    "instead": "person who has multiple sclerosis"
+  },
+  {
+    "phrase": "afflicted with muscular dystrophy",
+    "instead": "person who has muscular dystrophy"
+  },
+  {
+    "phrase": "afflicted with polio",
+    "instead": "polio, person who had polio"
+  },
+  {
+    "phrase": "afflicted with psychosis",
+    "instead": "person with a psychotic condition, person with psychosis"
+  },
+  {
+    "phrase": "afflicted with schizophrenia",
+    "instead": "person with schizophrenia"
+  },
+  {
+    "phrase": "aids victim",
+    "instead": "person with AIDS"
+  },
+  {
+    "phrase": "aircrew woman",
+    "instead": "pilot, aviator, airstaff"
+  },
+  {
+    "phrase": "aircrew women",
+    "instead": "pilots, aviators, airstaff"
+  },
+  {
+    "phrase": "aircrewman",
+    "instead": "pilot, aviator, airstaff"
+  },
+  {
+    "phrase": "aircrewmen",
+    "instead": "pilots, aviators, airstaff"
+  },
+  {
+    "phrase": "aircrewwoman",
+    "instead": "pilot, aviator, airstaff"
+  },
+  {
+    "phrase": "aircrewwomen",
+    "instead": "pilots, aviators, airstaff"
+  },
+  {
+    "phrase": "alcohol abuser",
+    "instead": "someone with an alcohol problem"
+  },
+  {
+    "phrase": "alcoholic",
+    "instead": "someone with an alcohol problem"
+  },
+  {
+    "phrase": "alderman",
+    "instead": "cabinet member"
+  },
+  {
+    "phrase": "aldermen",
+    "instead": "cabinet, cabinet members, alderperson"
+  },
+  {
+    "phrase": "alderwoman",
+    "instead": "cabinet member"
+  },
+  {
+    "phrase": "alderwomen",
+    "instead": "cabinet, cabinet members, alderperson"
+  },
+  {
+    "phrase": "amputee",
+    "instead": "person with an amputation"
+  },
+  {
+    "phrase": "anchorman",
+    "instead": "anchor, journalist"
+  },
+  {
+    "phrase": "anchormen",
+    "instead": "anchors, journalists"
+  },
+  {
+    "phrase": "anchorwoman",
+    "instead": "anchor, journalist"
+  },
+  {
+    "phrase": "anchorwomen",
+    "instead": "anchors, journalists"
+  },
+  {
+    "phrase": "ancient man",
+    "instead": "ancient civilization, ancient people"
+  },
+  {
+    "phrase": "animal spirit",
+    "instead": "favorite, inspiration, personal interest"
+  },
+  {
+    "phrase": "assemblyman",
+    "instead": "assembly person, assembly worker"
+  },
+  {
+    "phrase": "assemblywoman",
+    "instead": "assembly person, assembly worker"
+  },
+  {
+    "phrase": "authoress",
+    "instead": "author, writer"
+  },
+  {
+    "phrase": "average housewife",
+    "instead": "average consumer, average household, average homemaker"
+  },
+  {
+    "phrase": "average man",
+    "instead": "average person"
+  },
+  {
+    "phrase": "average working man",
+    "instead": "average wage earner, average taxpayer"
+  },
+  {
+    "phrase": "aviatrix",
+    "instead": "aviator"
+  },
+  {
+    "phrase": "bathroom bill",
+    "instead": "non-discrimination law, non-discrimination ordinance"
+  },
+  {
+    "phrase": "batshit",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "bedlam",
+    "instead": "chaos, hectic, pandemonium"
+  },
+  {
+    "phrase": "biologically female",
+    "instead": "assigned female at birth, designated female at birth"
+  },
+  {
+    "phrase": "biologically male",
+    "instead": "assigned male at birth, designated male at birth"
+  },
+  {
+    "phrase": "bipolar",
+    "instead": "fluctuating, person with bipolar disorder"
+  },
+  {
+    "phrase": "birth defect",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "bitch",
+    "instead": "whine, complain, cry"
+  },
+  {
+    "phrase": "bitching",
+    "instead": "whining, complaining, crying"
+  },
+  {
+    "phrase": "black list",
+    "instead": "blocklist, wronglist, banlist"
+  },
+  {
+    "phrase": "blackhat",
+    "instead": "unethical hacker, malicious actor"
+  },
+  {
+    "phrase": "blacklist",
+    "instead": "blocklist, wronglist, banlist"
+  },
+  {
+    "phrase": "blacklisted",
+    "instead": "blocklisted, wronglisted, banlisted"
+  },
+  {
+    "phrase": "blacklisting",
+    "instead": "blocklisting, wronglisting, banlisting"
+  },
+  {
+    "phrase": "blind eye to",
+    "instead": "careless, heartless, indifferent"
+  },
+  {
+    "phrase": "blind to",
+    "instead": "careless, heartless, indifferent"
+  },
+  {
+    "phrase": "blinded by",
+    "instead": "careless, heartless, indifferent"
+  },
+  {
+    "phrase": "bondsman",
+    "instead": "bonder"
+  },
+  {
+    "phrase": "bondsmen",
+    "instead": "bonders"
+  },
+  {
+    "phrase": "bondswoman",
+    "instead": "bonder"
+  },
+  {
+    "phrase": "bondswomen",
+    "instead": "bonders"
+  },
+  {
+    "phrase": "born a man",
+    "instead": "assigned male at birth, designated male at birth"
+  },
+  {
+    "phrase": "born a woman",
+    "instead": "assigned female at birth, designated female at birth"
+  },
+  {
+    "phrase": "bound to a wheelchair",
+    "instead": "uses a wheelchair"
+  },
+  {
+    "phrase": "brotherhood of man",
+    "instead": "the human family"
+  },
+  {
+    "phrase": "buckteeth",
+    "instead": "person with prominent teeth, prominent teeth"
+  },
+  {
+    "phrase": "bucktoothed",
+    "instead": "person with prominent teeth, prominent teeth"
+  },
+  {
+    "phrase": "businessman",
+    "instead": "business executive, entrepreneur, business person"
+  },
+  {
+    "phrase": "businessmen",
+    "instead": "business executives, entrepreneurs"
+  },
+  {
+    "phrase": "businesswoman",
+    "instead": "business executive, entrepreneur, business person"
+  },
+  {
+    "phrase": "businesswomen",
+    "instead": "business executives, entrepreneurs"
+  },
+  {
+    "phrase": "calendar girl",
+    "instead": "model"
+  },
+  {
+    "phrase": "call girl",
+    "instead": "escort, prostitute, sex worker"
+  },
+  {
+    "phrase": "cameraman",
+    "instead": "camera operator, camera person"
+  },
+  {
+    "phrase": "cameramen",
+    "instead": "camera operators"
+  },
+  {
+    "phrase": "camerawoman",
+    "instead": "camera operator, camera person"
+  },
+  {
+    "phrase": "camerawomen",
+    "instead": "camera operators"
+  },
+  {
+    "phrase": "career girl",
+    "instead": "business executives, entrepreneurs"
+  },
+  {
+    "phrase": "career woman",
+    "instead": "business executives, entrepreneurs"
+  },
+  {
+    "phrase": "cattleman",
+    "instead": "cattle rancher"
+  },
+  {
+    "phrase": "cattlemen",
+    "instead": "cattle ranchers"
+  },
+  {
+    "phrase": "cattlewoman",
+    "instead": "cattle rancher"
+  },
+  {
+    "phrase": "cattlewomen",
+    "instead": "cattle ranchers"
+  },
+  {
+    "phrase": "chairman",
+    "instead": "chair, head, chairperson"
+  },
+  {
+    "phrase": "chairmen",
+    "instead": "chairs, chairpersons, coordinators"
+  },
+  {
+    "phrase": "chairwoman",
+    "instead": "chair, head, chairperson"
+  },
+  {
+    "phrase": "chairwomen",
+    "instead": "chairs, chairpersons, coordinators"
+  },
+  {
+    "phrase": "churchman",
+    "instead": "cleric, practicing Christian, pillar of the Church"
+  },
+  {
+    "phrase": "circle the wagons",
+    "instead": "defend"
+  },
+  {
+    "phrase": "cleaning boy",
+    "instead": "cleaner"
+  },
+  {
+    "phrase": "cleaning girl",
+    "instead": "cleaner"
+  },
+  {
+    "phrase": "cleaning ladies",
+    "instead": "cleaners, housekeeping"
+  },
+  {
+    "phrase": "cleaning lady",
+    "instead": "cleaner"
+  },
+  {
+    "phrase": "cleaning man",
+    "instead": "cleaner"
+  },
+  {
+    "phrase": "cleaning men",
+    "instead": "cleaners, housekeeping"
+  },
+  {
+    "phrase": "cleaning woman",
+    "instead": "cleaner"
+  },
+  {
+    "phrase": "cleftlipped",
+    "instead": "person with a cleft-lip and palate"
+  },
+  {
+    "phrase": "clergyman",
+    "instead": "clergyperson, clergy, cleric"
+  },
+  {
+    "phrase": "clergymen",
+    "instead": "clergies, clerics"
+  },
+  {
+    "phrase": "clergywoman",
+    "instead": "clergyperson, clergy, cleric"
+  },
+  {
+    "phrase": "clergywomen",
+    "instead": "clergies, clerics"
+  },
+  {
+    "phrase": "commit suicide",
+    "instead": "die by suicide"
+  },
+  {
+    "phrase": "committed suicide",
+    "instead": "died by suicide"
+  },
+  {
+    "phrase": "committee man",
+    "instead": "committee member"
+  },
+  {
+    "phrase": "committee woman",
+    "instead": "committee member"
+  },
+  {
+    "phrase": "complete suicide",
+    "instead": "die by suicide"
+  },
+  {
+    "phrase": "completed suicide",
+    "instead": "died by suicide"
+  },
+  {
+    "phrase": "confined to a wheelchair",
+    "instead": "uses a wheelchair"
+  },
+  {
+    "phrase": "congressman",
+    "instead": "member of congress, congress person, legislator"
+  },
+  {
+    "phrase": "congressmen",
+    "instead": "members of congress, congress persons, legislators"
+  },
+  {
+    "phrase": "congresswoman",
+    "instead": "member of congress, congress person, legislator"
+  },
+  {
+    "phrase": "congresswomen",
+    "instead": "members of congress, congress persons, legislators"
+  },
+  {
+    "phrase": "contard",
+    "instead": "disagreeable, uneducated, ignorant"
+  },
+  {
+    "phrase": "councilman",
+    "instead": "council member"
+  },
+  {
+    "phrase": "councilmen",
+    "instead": "council members"
+  },
+  {
+    "phrase": "councilwoman",
+    "instead": "council member"
+  },
+  {
+    "phrase": "councilwomen",
+    "instead": "council members"
+  },
+  {
+    "phrase": "craftsman",
+    "instead": "artisan, craftsperson, skilled worker"
+  },
+  {
+    "phrase": "craftsmen",
+    "instead": "artisans, craftspersons, skilled workers"
+  },
+  {
+    "phrase": "craftswoman",
+    "instead": "artisan, craftsperson, skilled worker"
+  },
+  {
+    "phrase": "craftswomen",
+    "instead": "artisans, craftspersons, skilled workers"
+  },
+  {
+    "phrase": "crazy",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "cretin",
+    "instead": "creep, fool"
+  },
+  {
+    "phrase": "cripple",
+    "instead": "person with a limp"
+  },
+  {
+    "phrase": "crippled",
+    "instead": "person with a limp"
+  },
+  {
+    "phrase": "daft",
+    "instead": "absurd, foolish"
+  },
+  {
+    "phrase": "deaf and dumb",
+    "instead": "deaf"
+  },
+  {
+    "phrase": "deaf ear to",
+    "instead": "careless, heartless, indifferent"
+  },
+  {
+    "phrase": "deaf to",
+    "instead": "careless, heartless, indifferent"
+  },
+  {
+    "phrase": "deafened by",
+    "instead": "careless, heartless, indifferent"
+  },
+  {
+    "phrase": "deafmute",
+    "instead": "deaf"
+  },
+  {
+    "phrase": "demented",
+    "instead": "person with dementia"
+  },
+  {
+    "phrase": "diffability",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "differently abled",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "doorman",
+    "instead": "concierge"
+  },
+  {
+    "phrase": "doormen",
+    "instead": "concierges"
+  },
+  {
+    "phrase": "doorwoman",
+    "instead": "concierge"
+  },
+  {
+    "phrase": "doorwomen",
+    "instead": "concierges"
+  },
+  {
+    "phrase": "downs syndrome",
+    "instead": "Down Syndrome"
+  },
+  {
+    "phrase": "dream catcher",
+    "instead": "favorite, inspiration, personal interest"
+  },
+  {
+    "phrase": "dumb",
+    "instead": "foolish, ludicrous, speechless"
+  },
+  {
+    "phrase": "dummyobject",
+    "instead": "test double, placeholder, fake"
+  },
+  {
+    "phrase": "dummyvalue",
+    "instead": "test double, placeholder, fake"
+  },
+  {
+    "phrase": "dummyvariable",
+    "instead": "test double, placeholder, fake"
+  },
+  {
+    "phrase": "dyke",
+    "instead": "gay"
+  },
+  {
+    "phrase": "dyslexic",
+    "instead": "person with dyslexia"
+  },
+  {
+    "phrase": "englishmen",
+    "instead": "the english"
+  },
+  {
+    "phrase": "epidemic of suicides",
+    "instead": "rise in suicides"
+  },
+  {
+    "phrase": "epileptic",
+    "instead": "person with epilepsy"
+  },
+  {
+    "phrase": "eskimo",
+    "instead": "Inuit"
+  },
+  {
+    "phrase": "eskimos",
+    "instead": "Inuits"
+  },
+  {
+    "phrase": "executrix",
+    "instead": "executor"
+  },
+  {
+    "phrase": "fag",
+    "instead": "gay"
+  },
+  {
+    "phrase": "faggot",
+    "instead": "gay"
+  },
+  {
+    "phrase": "failed suicide",
+    "instead": "suicide attempt, attempted suicide"
+  },
+  {
+    "phrase": "family burden",
+    "instead": "with family support needs"
+  },
+  {
+    "phrase": "feeble minded",
+    "instead": "foolish, ludicrous, silly"
+  },
+  {
+    "phrase": "feebleminded",
+    "instead": "foolish, ludicrous, silly"
+  },
+  {
+    "phrase": "fireman",
+    "instead": "fire fighter, fire officer"
+  },
+  {
+    "phrase": "firemen",
+    "instead": "fire fighters"
+  },
+  {
+    "phrase": "firewoman",
+    "instead": "fire fighter, fire officer"
+  },
+  {
+    "phrase": "firewomen",
+    "instead": "fire fighters"
+  },
+  {
+    "phrase": "fisherman",
+    "instead": "fisher, crew member, fisherfolk"
+  },
+  {
+    "phrase": "fishermen",
+    "instead": "fishers"
+  },
+  {
+    "phrase": "fisherwoman",
+    "instead": "fisher, crew member, fisherfolk"
+  },
+  {
+    "phrase": "fisherwomen",
+    "instead": "fishers"
+  },
+  {
+    "phrase": "foreman",
+    "instead": "supervisor, shift boss"
+  },
+  {
+    "phrase": "foremen",
+    "instead": "supervisors, shift bosses"
+  },
+  {
+    "phrase": "forewoman",
+    "instead": "supervisor, shift boss"
+  },
+  {
+    "phrase": "forewomen",
+    "instead": "supervisors, shift bosses"
+  },
+  {
+    "phrase": "founding father",
+    "instead": "the founders, founding leaders, forebears"
+  },
+  {
+    "phrase": "frenchmen",
+    "instead": "french, the french"
+  },
+  {
+    "phrase": "freshman",
+    "instead": "first-year student, fresher"
+  },
+  {
+    "phrase": "freshmen",
+    "instead": "first-year students, freshers"
+  },
+  {
+    "phrase": "freshwoman",
+    "instead": "first-year student, fresher"
+  },
+  {
+    "phrase": "freshwomen",
+    "instead": "first-year students, freshers"
+  },
+  {
+    "phrase": "fucktard",
+    "instead": "disagreeable, uneducated, ignorant"
+  },
+  {
+    "phrase": "garbageman",
+    "instead": "garbage collector, waste collector, trash collector"
+  },
+  {
+    "phrase": "garbagemen",
+    "instead": "garbage collectors, waste collectors, trash collectors"
+  },
+  {
+    "phrase": "garbagewoman",
+    "instead": "garbage collector, waste collector, trash collector"
+  },
+  {
+    "phrase": "garbagewomen",
+    "instead": "garbage collectors, waste collectors, trash collectors"
+  },
+  {
+    "phrase": "gay agenda",
+    "instead": "gay issues"
+  },
+  {
+    "phrase": "gay lifestyle",
+    "instead": "gay lives, gay/lesbian lives"
+  },
+  {
+    "phrase": "gender pronoun",
+    "instead": "pronoun, pronouns"
+  },
+  {
+    "phrase": "gender pronouns",
+    "instead": "pronoun, pronouns"
+  },
+  {
+    "phrase": "genetically female",
+    "instead": "assigned female at birth, designated female at birth"
+  },
+  {
+    "phrase": "genetically male",
+    "instead": "assigned male at birth, designated male at birth"
+  },
+  {
+    "phrase": "ghetto",
+    "instead": "projects, urban"
+  },
+  {
+    "phrase": "gimp",
+    "instead": "person with a limp"
+  },
+  {
+    "phrase": "gipsy",
+    "instead": "Nomad, Traveler, Roma"
+  },
+  {
+    "phrase": "goy",
+    "instead": "a person who is not Jewish, not Jewish"
+  },
+  {
+    "phrase": "goyim",
+    "instead": "a person who is not Jewish, not Jewish"
+  },
+  {
+    "phrase": "goyum",
+    "instead": "a person who is not Jewish, not Jewish"
+  },
+  {
+    "phrase": "grandfather clause",
+    "instead": "legacy policy, legacy clause, deprecation policy"
+  },
+  {
+    "phrase": "grandfather policy",
+    "instead": "legacy policy, legacy clause, deprecation policy"
+  },
+  {
+    "phrase": "grandfathered",
+    "instead": "deprecated, legacy"
+  },
+  {
+    "phrase": "grandfathering",
+    "instead": "deprecate"
+  },
+  {
+    "phrase": "gyp",
+    "instead": "Nomad, Traveler, Roma"
+  },
+  {
+    "phrase": "gyppo",
+    "instead": "Nomad, Traveler, Roma"
+  },
+  {
+    "phrase": "gypsy",
+    "instead": "Nomad, Traveler, Roma"
+  },
+  {
+    "phrase": "handicapable",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "handicapped",
+    "instead": "person with a handicap, accessible"
+  },
+  {
+    "phrase": "handicapped parking",
+    "instead": "accessible parking"
+  },
+  {
+    "phrase": "handyman",
+    "instead": "artisan, craftsperson, skilled worker"
+  },
+  {
+    "phrase": "handymen",
+    "instead": "artisans, craftspersons, skilled workers"
+  },
+  {
+    "phrase": "handywoman",
+    "instead": "artisan, craftsperson, skilled worker"
+  },
+  {
+    "phrase": "handywomen",
+    "instead": "artisans, craftspersons, skilled workers"
+  },
+  {
+    "phrase": "hare lip",
+    "instead": "cleft-lip and palate"
+  },
+  {
+    "phrase": "harelip",
+    "instead": "cleft-lip and palate"
+  },
+  {
+    "phrase": "harelipped",
+    "instead": "person with a cleft-lip and palate"
+  },
+  {
+    "phrase": "has intellectual issues",
+    "instead": "person with an intellectual disability"
+  },
+  {
+    "phrase": "hearing impaired",
+    "instead": "hard of hearing, partially deaf, partial hearing loss"
+  },
+  {
+    "phrase": "hearing impairment",
+    "instead": "hard of hearing, partially deaf, partial hearing loss"
+  },
+  {
+    "phrase": "hermaphrodite",
+    "instead": "person who is intersex, person, intersex person"
+  },
+  {
+    "phrase": "hermaphroditic",
+    "instead": "intersex"
+  },
+  {
+    "phrase": "heshe",
+    "instead": "transgender person, person"
+  },
+  {
+    "phrase": "homo",
+    "instead": "gay"
+  },
+  {
+    "phrase": "homosexual agenda",
+    "instead": "gay issues"
+  },
+  {
+    "phrase": "homosexual couple",
+    "instead": "couple"
+  },
+  {
+    "phrase": "homosexual lifestyle",
+    "instead": "gay lives, gay/lesbian lives"
+  },
+  {
+    "phrase": "homosexual marriage",
+    "instead": "gay marriage, same-sex marriage"
+  },
+  {
+    "phrase": "homosexual relations",
+    "instead": "relationship"
+  },
+  {
+    "phrase": "homosexual relationship",
+    "instead": "relationship"
+  },
+  {
+    "phrase": "hostess",
+    "instead": "presenter, entertainer, emcee"
+  },
+  {
+    "phrase": "hostesses",
+    "instead": "presenters, entertainers, emcees"
+  },
+  {
+    "phrase": "housemaid",
+    "instead": "house worker, domestic help"
+  },
+  {
+    "phrase": "housewife",
+    "instead": "homemaker, homeworker"
+  },
+  {
+    "phrase": "housewives",
+    "instead": "homemakers, homeworkers"
+  },
+  {
+    "phrase": "hymie",
+    "instead": "Jewish person"
+  },
+  {
+    "phrase": "idiot",
+    "instead": "foolish, ludicrous, silly"
+  },
+  {
+    "phrase": "imbecile",
+    "instead": "foolish, ludicrous, silly"
+  },
+  {
+    "phrase": "indian country",
+    "instead": "enemy territory"
+  },
+  {
+    "phrase": "indian give",
+    "instead": "go back on one’s offer"
+  },
+  {
+    "phrase": "indian giver",
+    "instead": "go back on one’s offer"
+  },
+  {
+    "phrase": "industrial man",
+    "instead": "industrial civilization, industrial people"
+  },
+  {
+    "phrase": "infantile paralysis",
+    "instead": "polio, person who had polio"
+  },
+  {
+    "phrase": "insane",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "insanely",
+    "instead": "incredibly"
+  },
+  {
+    "phrase": "insanity",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "insurance man",
+    "instead": "insurance agent"
+  },
+  {
+    "phrase": "insurance men",
+    "instead": "insurance agents"
+  },
+  {
+    "phrase": "insurance woman",
+    "instead": "insurance agent"
+  },
+  {
+    "phrase": "insurance women",
+    "instead": "insurance agents"
+  },
+  {
+    "phrase": "intellectually disabled",
+    "instead": "person with an intellectual disability"
+  },
+  {
+    "phrase": "intellectually disabled people",
+    "instead": "people with intellectual disabilities"
+  },
+  {
+    "phrase": "islamist",
+    "instead": "muslim, person of Islamic faith, fanatic"
+  },
+  {
+    "phrase": "islamists",
+    "instead": "muslims, people of Islamic faith, fanatics"
+  },
+  {
+    "phrase": "japs",
+    "instead": "Japanese person, Japanese people"
+  },
+  {
+    "phrase": "journeyman",
+    "instead": "journeyperson"
+  },
+  {
+    "phrase": "journeymen",
+    "instead": "journeypersons"
+  },
+  {
+    "phrase": "journeywoman",
+    "instead": "journeyperson"
+  },
+  {
+    "phrase": "journeywomen",
+    "instead": "journeypersons"
+  },
+  {
+    "phrase": "jump the reservation",
+    "instead": "disobey, endure, object to"
+  },
+  {
+    "phrase": "junkie",
+    "instead": "person with a drug addiction, person recovering from a drug addiction"
+  },
+  {
+    "phrase": "junkies",
+    "instead": "people with a drug addiction, people recovering from a drug addiction"
+  },
+  {
+    "phrase": "lady doctor",
+    "instead": "doctor"
+  },
+  {
+    "phrase": "ladylike",
+    "instead": "courteous, cultured"
+  },
+  {
+    "phrase": "lame",
+    "instead": "boring, dull"
+  },
+  {
+    "phrase": "landladies",
+    "instead": "proprietors, building managers"
+  },
+  {
+    "phrase": "landlady",
+    "instead": "proprietor, building manager"
+  },
+  {
+    "phrase": "laywoman",
+    "instead": "civilian"
+  },
+  {
+    "phrase": "laywomen",
+    "instead": "civilians"
+  },
+  {
+    "phrase": "leading lady",
+    "instead": "lead"
+  },
+  {
+    "phrase": "learning disabled",
+    "instead": "person with learning disabilities"
+  },
+  {
+    "phrase": "libtard",
+    "instead": "disagreeable, uneducated, ignorant"
+  },
+  {
+    "phrase": "like a man",
+    "instead": "resolutely, bravely"
+  },
+  {
+    "phrase": "loony",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "loony bin",
+    "instead": "chaos, hectic, pandemonium"
+  },
+  {
+    "phrase": "low iq",
+    "instead": "foolish, ludicrous, unintelligent"
+  },
+  {
+    "phrase": "lunacy",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "lunatic",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "mad man",
+    "instead": "fanatic, zealot, enthusiast"
+  },
+  {
+    "phrase": "mad men",
+    "instead": "fanatics, zealots, enthusiasts"
+  },
+  {
+    "phrase": "madhouse",
+    "instead": "chaos, hectic, pandemonium"
+  },
+  {
+    "phrase": "madman",
+    "instead": "fanatic, zealot, enthusiast"
+  },
+  {
+    "phrase": "madmen",
+    "instead": "fanatics, zealots, enthusiasts"
+  },
+  {
+    "phrase": "mailman",
+    "instead": "mail carrier, letter carrier, postal worker"
+  },
+  {
+    "phrase": "mailmen",
+    "instead": "mail carriers, letter carriers, postal workers"
+  },
+  {
+    "phrase": "mailwoman",
+    "instead": "mail carrier, letter carrier, postal worker"
+  },
+  {
+    "phrase": "mailwomen",
+    "instead": "mail carriers, letter carriers, postal workers"
+  },
+  {
+    "phrase": "man a desk",
+    "instead": "staff a desk"
+  },
+  {
+    "phrase": "man enough",
+    "instead": "strong enough"
+  },
+  {
+    "phrase": "man hour",
+    "instead": "staff hour, hour of work"
+  },
+  {
+    "phrase": "man hours",
+    "instead": "staff hours, hours of work, hours of labor"
+  },
+  {
+    "phrase": "man in the street",
+    "instead": "ordinary citizen, typical person, average person"
+  },
+  {
+    "phrase": "man of action",
+    "instead": "dynamo"
+  },
+  {
+    "phrase": "man of letters",
+    "instead": "scholar, writer, literary figure"
+  },
+  {
+    "phrase": "man of the land",
+    "instead": "farmer, rural worker, grazier"
+  },
+  {
+    "phrase": "man of the world",
+    "instead": "sophisticate"
+  },
+  {
+    "phrase": "man sized task",
+    "instead": "a demanding task, a big job"
+  },
+  {
+    "phrase": "man the booth",
+    "instead": "staff the booth"
+  },
+  {
+    "phrase": "man the fort",
+    "instead": "keep an eye on things, keep shop, provide coverage"
+  },
+  {
+    "phrase": "man the phones",
+    "instead": "answer the phones"
+  },
+  {
+    "phrase": "manhour",
+    "instead": "staff hour, hour of work"
+  },
+  {
+    "phrase": "manhours",
+    "instead": "staff hours, hours of work, hours of labor"
+  },
+  {
+    "phrase": "maniac",
+    "instead": "fanatic, zealot, enthusiast"
+  },
+  {
+    "phrase": "mankind",
+    "instead": "humankind"
+  },
+  {
+    "phrase": "manmade",
+    "instead": "manufactured, artificial, synthetic"
+  },
+  {
+    "phrase": "manned",
+    "instead": "staffed, crewed, piloted"
+  },
+  {
+    "phrase": "manpower",
+    "instead": "human resources, workforce, personnel"
+  },
+  {
+    "phrase": "mans best friend",
+    "instead": "a faithful dog"
+  },
+  {
+    "phrase": "mansized task",
+    "instead": "a demanding task, a big job"
+  },
+  {
+    "phrase": "marksman",
+    "instead": "shooter"
+  },
+  {
+    "phrase": "marksmen",
+    "instead": "shooters"
+  },
+  {
+    "phrase": "markswoman",
+    "instead": "shooter"
+  },
+  {
+    "phrase": "markswomen",
+    "instead": "shooters"
+  },
+  {
+    "phrase": "men of science",
+    "instead": "scientists"
+  },
+  {
+    "phrase": "mental case",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "mental defective",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "mentally ill",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "middleman",
+    "instead": "intermediary, go-between"
+  },
+  {
+    "phrase": "middlemen",
+    "instead": "intermediaries, go-betweens"
+  },
+  {
+    "phrase": "middlewoman",
+    "instead": "intermediary, go-between"
+  },
+  {
+    "phrase": "middlewomen",
+    "instead": "intermediaries, go-betweens"
+  },
+  {
+    "phrase": "midget",
+    "instead": "person with dwarfism, little person, little people"
+  },
+  {
+    "phrase": "milkman",
+    "instead": "milk person"
+  },
+  {
+    "phrase": "milkmen",
+    "instead": "milk people"
+  },
+  {
+    "phrase": "milkwoman",
+    "instead": "milk person"
+  },
+  {
+    "phrase": "milkwomen",
+    "instead": "milk people"
+  },
+  {
+    "phrase": "modern man",
+    "instead": "modern civilization, modern people"
+  },
+  {
+    "phrase": "mongoloid",
+    "instead": "person with Down Syndrome"
+  },
+  {
+    "phrase": "moron",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "moronic",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "multiple sclerosis victim",
+    "instead": "person who has multiple sclerosis"
+  },
+  {
+    "phrase": "natives are becoming restless",
+    "instead": "dissatisfied, frustrated"
+  },
+  {
+    "phrase": "natives are getting restless",
+    "instead": "dissatisfied, frustrated"
+  },
+  {
+    "phrase": "natives are growing restless",
+    "instead": "dissatisfied, frustrated"
+  },
+  {
+    "phrase": "natives are restless",
+    "instead": "dissatisfied, frustrated"
+  },
+  {
+    "phrase": "neurotic",
+    "instead": "has an anxiety disorder, obsessive, pedantic"
+  },
+  {
+    "phrase": "newsman",
+    "instead": "anchor, journalist"
+  },
+  {
+    "phrase": "newsmen",
+    "instead": "anchors, journalists"
+  },
+  {
+    "phrase": "newspaperman",
+    "instead": "anchor, journalist"
+  },
+  {
+    "phrase": "newspapermen",
+    "instead": "anchors, journalists"
+  },
+  {
+    "phrase": "newspaperwoman",
+    "instead": "anchor, journalist"
+  },
+  {
+    "phrase": "newspaperwomen",
+    "instead": "anchors, journalists"
+  },
+  {
+    "phrase": "newswoman",
+    "instead": "anchor, journalist"
+  },
+  {
+    "phrase": "newswomen",
+    "instead": "anchors, journalists"
+  },
+  {
+    "phrase": "no mans land",
+    "instead": "unoccupied territory, wasteland, deathtrap"
+  },
+  {
+    "phrase": "nobleman",
+    "instead": "noble"
+  },
+  {
+    "phrase": "noblemen",
+    "instead": "nobles"
+  },
+  {
+    "phrase": "noblewoman",
+    "instead": "noble"
+  },
+  {
+    "phrase": "noblewomen",
+    "instead": "nobles"
+  },
+  {
+    "phrase": "non white",
+    "instead": "person of color, people of color"
+  },
+  {
+    "phrase": "nonwhite",
+    "instead": "person of color, people of color"
+  },
+  {
+    "phrase": "ocd",
+    "instead": "has an anxiety disorder, obsessive, pedantic"
+  },
+  {
+    "phrase": "off reserve",
+    "instead": "disobey, endure, object to"
+  },
+  {
+    "phrase": "off the reservation",
+    "instead": "disobey, endure, object to"
+  },
+  {
+    "phrase": "office girls",
+    "instead": "administrative staff"
+  },
+  {
+    "phrase": "ombudsman",
+    "instead": "notary, consumer advocate, trouble shooter"
+  },
+  {
+    "phrase": "ombudsmen",
+    "instead": "notaries, omsbudpersons, omsbudpeople"
+  },
+  {
+    "phrase": "ombudswoman",
+    "instead": "notary, consumer advocate, trouble shooter"
+  },
+  {
+    "phrase": "ombudswomen",
+    "instead": "notaries, omsbudpersons, omsbudpeople"
+  },
+  {
+    "phrase": "on the warpath",
+    "instead": "defend"
+  },
+  {
+    "phrase": "oriental",
+    "instead": "Asian person"
+  },
+  {
+    "phrase": "orientals",
+    "instead": "Asian people"
+  },
+  {
+    "phrase": "paraplegic",
+    "instead": "person with paraplegia"
+  },
+  {
+    "phrase": "pinays",
+    "instead": "Filipinos, Filipino people"
+  },
+  {
+    "phrase": "pinoys",
+    "instead": "Filipinos, Filipino people"
+  },
+  {
+    "phrase": "poetess",
+    "instead": "poet"
+  },
+  {
+    "phrase": "policeman",
+    "instead": "officer, police officer"
+  },
+  {
+    "phrase": "policemen",
+    "instead": "officers, police officers"
+  },
+  {
+    "phrase": "policewoman",
+    "instead": "officer, police officer"
+  },
+  {
+    "phrase": "policewomen",
+    "instead": "officers, police officers"
+  },
+  {
+    "phrase": "postman",
+    "instead": "mail carrier, letter carrier, postal worker"
+  },
+  {
+    "phrase": "postmen",
+    "instead": "mail carriers, letter carriers, postal workers"
+  },
+  {
+    "phrase": "postwoman",
+    "instead": "mail carrier, letter carrier, postal worker"
+  },
+  {
+    "phrase": "postwomen",
+    "instead": "mail carriers, letter carriers, postal workers"
+  },
+  {
+    "phrase": "pow wow",
+    "instead": "conference, gathering, meeting"
+  },
+  {
+    "phrase": "powwow",
+    "instead": "conference, gathering, meeting"
+  },
+  {
+    "phrase": "preferred pronoun",
+    "instead": "pronoun, pronouns"
+  },
+  {
+    "phrase": "preferred pronouns",
+    "instead": "pronoun, pronouns"
+  },
+  {
+    "phrase": "pseudo hermaphrodite",
+    "instead": "person who is intersex, person, intersex person"
+  },
+  {
+    "phrase": "pseudo hermaphroditic",
+    "instead": "intersex"
+  },
+  {
+    "phrase": "pseudohermaphrodite",
+    "instead": "person who is intersex, person, intersex person"
+  },
+  {
+    "phrase": "pseudohermaphroditic",
+    "instead": "intersex"
+  },
+  {
+    "phrase": "psycho",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "psychopathology",
+    "instead": "rude, malicious, mean"
+  },
+  {
+    "phrase": "psychotic",
+    "instead": "person with a psychotic condition, person with psychosis"
+  },
+  {
+    "phrase": "quadriplegic",
+    "instead": "person with quadriplegia"
+  },
+  {
+    "phrase": "railwayman",
+    "instead": "railway worker"
+  },
+  {
+    "phrase": "red indian",
+    "instead": "Native American"
+  },
+  {
+    "phrase": "red indians",
+    "instead": "Native American People"
+  },
+  {
+    "phrase": "redskin",
+    "instead": "Native American"
+  },
+  {
+    "phrase": "redskins",
+    "instead": "Native American People"
+  },
+  {
+    "phrase": "repairman",
+    "instead": "repairer, technician"
+  },
+  {
+    "phrase": "repairmen",
+    "instead": "technicians"
+  },
+  {
+    "phrase": "repairwoman",
+    "instead": "repairer, technician"
+  },
+  {
+    "phrase": "repairwomen",
+    "instead": "technicians"
+  },
+  {
+    "phrase": "restricted to a wheelchair",
+    "instead": "uses a wheelchair"
+  },
+  {
+    "phrase": "retard",
+    "instead": "silly, dullard, person with Down Syndrome"
+  },
+  {
+    "phrase": "retarded",
+    "instead": "silly, dullard, person with Down Syndrome"
+  },
+  {
+    "phrase": "retards",
+    "instead": "sillies, dullards, people with developmental disabilities"
+  },
+  {
+    "phrase": "salaryman",
+    "instead": "business executive, entrepreneur, business person"
+  },
+  {
+    "phrase": "salarymen",
+    "instead": "business executives, entrepreneurs"
+  },
+  {
+    "phrase": "salarywoman",
+    "instead": "business executive, entrepreneur, business person"
+  },
+  {
+    "phrase": "salarywomen",
+    "instead": "business executives, entrepreneurs"
+  },
+  {
+    "phrase": "sales man",
+    "instead": "salesperson, sales clerk, sales rep"
+  },
+  {
+    "phrase": "sales men",
+    "instead": "sales clerks, sales reps, sales agents"
+  },
+  {
+    "phrase": "sales woman",
+    "instead": "salesperson, sales clerk, sales rep"
+  },
+  {
+    "phrase": "sales women",
+    "instead": "sales clerks, sales reps, sales agents"
+  },
+  {
+    "phrase": "salesladies",
+    "instead": "sales clerks, sales reps, sales agents"
+  },
+  {
+    "phrase": "saleslady",
+    "instead": "salesperson, sales clerk, sales rep"
+  },
+  {
+    "phrase": "salesman",
+    "instead": "salesperson, sales clerk, sales rep"
+  },
+  {
+    "phrase": "salesmen",
+    "instead": "sales clerks, sales reps, sales agents"
+  },
+  {
+    "phrase": "saleswoman",
+    "instead": "salesperson, sales clerk, sales rep"
+  },
+  {
+    "phrase": "saleswomen",
+    "instead": "sales clerks, sales reps, sales agents"
+  },
+  {
+    "phrase": "sanity check",
+    "instead": "check, assertion, validation"
+  },
+  {
+    "phrase": "savage",
+    "instead": "simple, indigenous, hunter-gatherer"
+  },
+  {
+    "phrase": "schizo",
+    "instead": "person with schizophrenia"
+  },
+  {
+    "phrase": "schizophrenic",
+    "instead": "person with schizophrenia"
+  },
+  {
+    "phrase": "senile",
+    "instead": "person with dementia"
+  },
+  {
+    "phrase": "serviceman",
+    "instead": "soldier, service representative"
+  },
+  {
+    "phrase": "servicemen",
+    "instead": "soldiers, service representatives"
+  },
+  {
+    "phrase": "servicewoman",
+    "instead": "soldier, service representative"
+  },
+  {
+    "phrase": "servicewomen",
+    "instead": "soldiers, service representatives"
+  },
+  {
+    "phrase": "sex change",
+    "instead": "transition, gender confirmation surgery"
+  },
+  {
+    "phrase": "sex change operation",
+    "instead": "sex reassignment surgery, gender confirmation surgery"
+  },
+  {
+    "phrase": "sexchange",
+    "instead": "transition, gender confirmation surgery"
+  },
+  {
+    "phrase": "sexual preference",
+    "instead": "sexual orientation, orientation"
+  },
+  {
+    "phrase": "she male",
+    "instead": "transgender person, person"
+  },
+  {
+    "phrase": "shehe",
+    "instead": "transgender person, person"
+  },
+  {
+    "phrase": "shemale",
+    "instead": "transgender person, person"
+  },
+  {
+    "phrase": "shlomo",
+    "instead": "Jewish person"
+  },
+  {
+    "phrase": "show women",
+    "instead": "promoters"
+  },
+  {
+    "phrase": "showman",
+    "instead": "promoter"
+  },
+  {
+    "phrase": "showmen",
+    "instead": "promoters"
+  },
+  {
+    "phrase": "showwoman",
+    "instead": "promoter"
+  },
+  {
+    "phrase": "showwomen",
+    "instead": "promoters"
+  },
+  {
+    "phrase": "shyster",
+    "instead": "Jewish person"
+  },
+  {
+    "phrase": "simpleton",
+    "instead": "foolish, ludicrous, unintelligent"
+  },
+  {
+    "phrase": "sociopath",
+    "instead": "person with a personality disorder, person with psychopathic personality"
+  },
+  {
+    "phrase": "sociopaths",
+    "instead": "people with psychopathic personalities, people with a personality disorder"
+  },
+  {
+    "phrase": "sodomite",
+    "instead": "gay"
+  },
+  {
+    "phrase": "sophisticated culture",
+    "instead": "complex culture"
+  },
+  {
+    "phrase": "sophisticated technology",
+    "instead": "complex technology"
+  },
+  {
+    "phrase": "spaceman",
+    "instead": "astronaut"
+  },
+  {
+    "phrase": "spacemen",
+    "instead": "astronauts"
+  },
+  {
+    "phrase": "spacewoman",
+    "instead": "astronaut"
+  },
+  {
+    "phrase": "spacewomen",
+    "instead": "astronauts"
+  },
+  {
+    "phrase": "spastic",
+    "instead": "person with cerebral palsy, twitch, flinch"
+  },
+  {
+    "phrase": "spaz",
+    "instead": "person with cerebral palsy, twitch, flinch"
+  },
+  {
+    "phrase": "special olympians",
+    "instead": "athletes, Special Olympics athletes"
+  },
+  {
+    "phrase": "special olympic athletes",
+    "instead": "athletes, Special Olympics athletes"
+  },
+  {
+    "phrase": "specially abled",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "spirit animal",
+    "instead": "favorite, inspiration, personal interest"
+  },
+  {
+    "phrase": "spokesman",
+    "instead": "speaker, spokesperson, representative"
+  },
+  {
+    "phrase": "spokesmen",
+    "instead": "speakers, spokespersons"
+  },
+  {
+    "phrase": "spokeswoman",
+    "instead": "speaker, spokesperson, representative"
+  },
+  {
+    "phrase": "spokeswomen",
+    "instead": "speakers, spokespersons"
+  },
+  {
+    "phrase": "sportsman",
+    "instead": "athlete, sports person"
+  },
+  {
+    "phrase": "sportsmen",
+    "instead": "athletes, sports persons"
+  },
+  {
+    "phrase": "sportswoman",
+    "instead": "athlete, sports person"
+  },
+  {
+    "phrase": "sportswomen",
+    "instead": "athletes, sports persons"
+  },
+  {
+    "phrase": "statesman",
+    "instead": "senator"
+  },
+  {
+    "phrase": "statesman like",
+    "instead": "diplomatic"
+  },
+  {
+    "phrase": "statesmanlike",
+    "instead": "diplomatic"
+  },
+  {
+    "phrase": "stateswoman",
+    "instead": "senator"
+  },
+  {
+    "phrase": "stewardess",
+    "instead": "flight attendant"
+  },
+  {
+    "phrase": "stewardesses",
+    "instead": "flight attendants"
+  },
+  {
+    "phrase": "stockman",
+    "instead": "cattle worker, farmhand, drover"
+  },
+  {
+    "phrase": "stroke victim",
+    "instead": "individual who has had a stroke"
+  },
+  {
+    "phrase": "stupid",
+    "instead": "foolish, ludicrous, unintelligent"
+  },
+  {
+    "phrase": "successful suicide",
+    "instead": "die by suicide"
+  },
+  {
+    "phrase": "suffer from aids",
+    "instead": "person with AIDS"
+  },
+  {
+    "phrase": "suffer from an injury",
+    "instead": "sustain an injury, receive an injury"
+  },
+  {
+    "phrase": "suffer from injuries",
+    "instead": "sustain injuries, receive injuries"
+  },
+  {
+    "phrase": "suffering from a disability",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "suffering from a polio",
+    "instead": "polio, person who had polio"
+  },
+  {
+    "phrase": "suffering from a stroke",
+    "instead": "individual who has had a stroke"
+  },
+  {
+    "phrase": "suffering from aids",
+    "instead": "person with AIDS"
+  },
+  {
+    "phrase": "suffering from an injury",
+    "instead": "sustain an injury, receive an injury"
+  },
+  {
+    "phrase": "suffering from an intellectual disability",
+    "instead": "person with an intellectual disability"
+  },
+  {
+    "phrase": "suffering from disabilities",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "suffering from injuries",
+    "instead": "sustain injuries, receive injuries"
+  },
+  {
+    "phrase": "suffering from intellectual disabilities",
+    "instead": "person with an intellectual disability"
+  },
+  {
+    "phrase": "suffering from multiple sclerosis",
+    "instead": "person who has multiple sclerosis"
+  },
+  {
+    "phrase": "suffering from polio",
+    "instead": "polio, person who had polio"
+  },
+  {
+    "phrase": "suffering from psychosis",
+    "instead": "person with a psychotic condition, person with psychosis"
+  },
+  {
+    "phrase": "suffering from schizophrenia",
+    "instead": "person with schizophrenia"
+  },
+  {
+    "phrase": "suffers from aids",
+    "instead": "person with AIDS"
+  },
+  {
+    "phrase": "suffers from an injury",
+    "instead": "sustain an injury, receive an injury"
+  },
+  {
+    "phrase": "suffers from disabilities",
+    "instead": "has a disability, person with a disability, people with disabilities"
+  },
+  {
+    "phrase": "suffers from injuries",
+    "instead": "sustain injuries, receive injuries"
+  },
+  {
+    "phrase": "suffers from intellectual disabilities",
+    "instead": "person with an intellectual disability"
+  },
+  {
+    "phrase": "suffers from md",
+    "instead": "person who has muscular dystrophy"
+  },
+  {
+    "phrase": "suffers from multiple sclerosis",
+    "instead": "person who has multiple sclerosis"
+  },
+  {
+    "phrase": "suffers from muscular dystrophy",
+    "instead": "person who has muscular dystrophy"
+  },
+  {
+    "phrase": "suffers from polio",
+    "instead": "polio, person who had polio"
+  },
+  {
+    "phrase": "suffers from psychosis",
+    "instead": "person with a psychotic condition, person with psychosis"
+  },
+  {
+    "phrase": "suffers from schizophrenia",
+    "instead": "person with schizophrenia"
+  },
+  {
+    "phrase": "suicide epidemic",
+    "instead": "rise in suicides"
+  },
+  {
+    "phrase": "suicide failure",
+    "instead": "suicide attempt, attempted suicide"
+  },
+  {
+    "phrase": "suicide note",
+    "instead": "a note from the deceased"
+  },
+  {
+    "phrase": "suicide pact",
+    "instead": "rise in suicides"
+  },
+  {
+    "phrase": "tax man",
+    "instead": "tax commissioner, tax office, tax collector"
+  },
+  {
+    "phrase": "too many chiefs",
+    "instead": "too many chefs in the kitchen, too many cooks spoil the broth"
+  },
+  {
+    "phrase": "tourettes disorder",
+    "instead": "Tourette syndrome"
+  },
+  {
+    "phrase": "tourettes syndrome",
+    "instead": "Tourette syndrome"
+  },
+  {
+    "phrase": "towel heads",
+    "instead": "Arabs, Middle Eastern People"
+  },
+  {
+    "phrase": "tradesmans entrance",
+    "instead": "service entrance"
+  },
+  {
+    "phrase": "tranny",
+    "instead": "transgender"
+  },
+  {
+    "phrase": "transgendered",
+    "instead": "transgender"
+  },
+  {
+    "phrase": "transgenderism",
+    "instead": "being transgender, the movement for transgender equality"
+  },
+  {
+    "phrase": "transgenders",
+    "instead": "transgender people"
+  },
+  {
+    "phrase": "transvestite",
+    "instead": "cross-dresser"
+  },
+  {
+    "phrase": "unmanned",
+    "instead": "robotic, automated"
+  },
+  {
+    "phrase": "usherette",
+    "instead": "usher"
+  },
+  {
+    "phrase": "vertically challenged",
+    "instead": "person with dwarfism, little person, little people"
+  },
+  {
+    "phrase": "victim of a stroke",
+    "instead": "individual who has had a stroke"
+  },
+  {
+    "phrase": "victim of aids",
+    "instead": "person with AIDS"
+  },
+  {
+    "phrase": "victim of an injury",
+    "instead": "sustain an injury, receive an injury"
+  },
+  {
+    "phrase": "victim of injuries",
+    "instead": "sustain injuries, receive injuries"
+  },
+  {
+    "phrase": "victim of multiple sclerosis",
+    "instead": "person who has multiple sclerosis"
+  },
+  {
+    "phrase": "victim of polio",
+    "instead": "polio, person who had polio"
+  },
+  {
+    "phrase": "victim of psychosis",
+    "instead": "person with a psychotic condition, person with psychosis"
+  },
+  {
+    "phrase": "wacko",
+    "instead": "foolish, ludicrous, unintelligent"
+  },
+  {
+    "phrase": "waitress",
+    "instead": "server"
+  },
+  {
+    "phrase": "waitresses",
+    "instead": "servers"
+  },
+  {
+    "phrase": "watchman",
+    "instead": "watcher"
+  },
+  {
+    "phrase": "watchmen",
+    "instead": "watchers"
+  },
+  {
+    "phrase": "watchwoman",
+    "instead": "watcher"
+  },
+  {
+    "phrase": "watchwomen",
+    "instead": "watchers"
+  },
+  {
+    "phrase": "weatherman",
+    "instead": "weather forecaster, meteorologist"
+  },
+  {
+    "phrase": "weathermen",
+    "instead": "weather forecasters, meteorologists"
+  },
+  {
+    "phrase": "weatherwoman",
+    "instead": "weather forecaster, meteorologist"
+  },
+  {
+    "phrase": "weatherwomen",
+    "instead": "weather forecasters, meteorologists"
+  },
+  {
+    "phrase": "whacko",
+    "instead": "foolish, ludicrous, unintelligent"
+  },
+  {
+    "phrase": "wheelchair bound",
+    "instead": "uses a wheelchair"
+  },
+  {
+    "phrase": "white list",
+    "instead": "passlist, alrightlist, safelist"
+  },
+  {
+    "phrase": "whitehat",
+    "instead": "ethical hacker, security researcher"
+  },
+  {
+    "phrase": "whitelist",
+    "instead": "passlist, alrightlist, safelist"
+  },
+  {
+    "phrase": "whitelisted",
+    "instead": "passlisted, alrightlisted, safelisted"
+  },
+  {
+    "phrase": "whitelisting",
+    "instead": "passlisting, alrightlisting, safelisting"
+  },
+  {
+    "phrase": "wife beater",
+    "instead": "tank top, sleeveless undershirt"
+  },
+  {
+    "phrase": "wifebeater",
+    "instead": "tank top, sleeveless undershirt"
+  },
+  {
+    "phrase": "woman lawyer",
+    "instead": "lawyer"
+  },
+  {
+    "phrase": "woman painter",
+    "instead": "painter"
+  },
+  {
+    "phrase": "working man",
+    "instead": "worker, wage earner, taxpayer"
+  },
+  {
+    "phrase": "working mother",
+    "instead": "wage or salary earning woman, two-income family"
+  },
+  {
+    "phrase": "working wife",
+    "instead": "wage or salary earning woman, two-income family"
+  },
+  {
+    "phrase": "working woman",
+    "instead": "worker, wage earner, taxpayer"
+  },
+  {
+    "phrase": "workman",
+    "instead": "worker, wage earner, taxpayer"
+  },
+  {
+    "phrase": "workmen",
+    "instead": "workers"
+  },
+  {
+    "phrase": "workwoman",
+    "instead": "worker, wage earner, taxpayer"
+  },
+  {
+    "phrase": "workwomen",
+    "instead": "workers"
+  }
+]
