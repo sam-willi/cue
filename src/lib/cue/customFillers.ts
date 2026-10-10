@@ -21,6 +21,48 @@ export function parseCustomFiller(text: string): { phrase: string } | { error: s
   return { phrase };
 }
 
+/**
+ * Words and phrases that are often a habit. None of them is always a filler, so Cue doesn't
+ * count them by default; the report offers the ones a wearer leaned on as additions to their own
+ * list. `perMin` is how often one must come up before it's worth offering: higher for words that
+ * also do ordinary work in a sentence.
+ */
+const HABIT_WORDS: { phrase: string; perMin: number }[] = [
+  ...["you know", "i mean", "kind of", "sort of", "or something", "and stuff", "to be honest"].map((phrase) => ({
+    phrase,
+    perMin: 1.5,
+  })),
+  ...["basically", "actually", "literally", "honestly", "obviously", "essentially", "totally", "definitely"].map(
+    (phrase) => ({ phrase, perMin: 1.5 }),
+  ),
+  ...["anyway", "seriously", "whatever", "okay", "right"].map((phrase) => ({ phrase, perMin: 2.5 })),
+  ...["so", "well", "just", "really"].map((phrase) => ({ phrase, perMin: 4 })),
+];
+const MIN_HABIT_COUNT = 3;
+
+/**
+ * Habit words the wearer said often enough to be worth adding to their list, most frequent
+ * first. `talkSec` is how long they talked.
+ */
+export function suggestFillers(
+  words: Word[],
+  existing: string[],
+  talkSec: number,
+): { phrase: string; count: number }[] {
+  if (talkSec < 30) return [];
+  const have = new Set(existing);
+  const out: { phrase: string; count: number }[] = [];
+  for (const { phrase, perMin } of HABIT_WORDS) {
+    if (have.has(phrase)) continue;
+    const tokens = phrase.split(" ");
+    let count = 0;
+    for (let i = 0; i + tokens.length <= words.length; i++)
+      if (tokens.every((t, k) => words[i + k].norm === t)) count++;
+    if (count >= MIN_HABIT_COUNT && count / (talkSec / 60) >= perMin) out.push({ phrase, count });
+  }
+  return out.sort((a, b) => b.count - a.count).slice(0, 4);
+}
+
 /** Phrases split into words, longest first, so "you know what" wins over "you know". */
 export function compileCustomFillers(phrases: string[]): string[][] {
   return phrases

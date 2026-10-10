@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { listenUrl } from "../liveTranscriber";
 import { CueSession } from "@/lib/cue/session";
 import { feedMessage, parseResults, type DgMessage } from "../parse";
 
@@ -73,5 +74,18 @@ describe("feedMessage with Flux", () => {
       ),
     );
     expect(s2.likeChecks).toHaveLength(1);
+  });
+});
+
+describe("listenUrl", () => {
+  it("passes the wearer's fillers to Deepgram as keyterms, once each", () => {
+    const q = new URL(listenUrl(["lowkey", "you know", " lowkey ", ""])).searchParams;
+    expect(q.getAll("keyterm")).toEqual(["lowkey", "you know"]);
+    expect(q.get("model")).toBe("flux-general-en");
+  });
+
+  it("stays within Deepgram's limit of 100", () => {
+    const many = Array.from({ length: 150 }, (_, k) => `word${k}`);
+    expect(new URL(listenUrl(many)).searchParams.getAll("keyterm")).toHaveLength(100);
   });
 });

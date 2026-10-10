@@ -213,3 +213,43 @@ describe("CueSession", () => {
     expect(h.map((d) => d.withheldReason)).toEqual(["muted"]);
   });
 });
+
+describe("voice activity from the mic", () => {
+  // 40 s of talking whose word timings run together, as a transcript's sometimes do.
+  const nonstop = simulateWords(Array.from({ length: 100 }, (_, k) => `word${k}`).join(" "), { wpm: 150 });
+  const end = nonstop.at(-1)!.end;
+
+  function run(quiet: [number, number][]) {
+    const s = new CueSession();
+    for (let t = 0.016; t <= end; t += 0.032) s.ingestVoice(t, !quiet.some(([a, b]) => t >= a && t < b));
+    for (let k = 1; k <= nonstop.length; k++) s.ingest(nonstop.slice(0, k), false);
+    return s;
+  }
+  const noPause = (s: CueSession) => s.history.filter((d) => d.event.type === "no_pause" && d.delivered);
+
+  it("taps for no pause when the audio agrees there wasn't one", () => {
+    expect(noPause(run([]))).toHaveLength(1);
+  });
+
+  it("counts a real silence as a pause even when the words show no gap", () => {
+    expect(noPause(run([[18, 18.9]]))).toHaveLength(0);
+  });
+
+  it("ignores silences too short to be a pause, and clicks inside a silence don't split it", () => {
+    expect(noPause(run([[18, 18.3]]))).toHaveLength(1);
+    const s = new CueSession();
+    for (let t = 0.016; t <= end; t += 0.032) {
+      const inPause = t >= 18 && t < 18.9;
+      const click = Math.abs(t - 18.45) < 0.016;
+      s.ingestVoice(t, !inPause || click);
+    }
+    for (let k = 1; k <= nonstop.length; k++) s.ingest(nonstop.slice(0, k), false);
+    expect(noPause(s)).toHaveLength(0);
+  });
+
+  it("changes nothing without voice frames", () => {
+    const s = new CueSession();
+    for (let k = 1; k <= nonstop.length; k++) s.ingest(nonstop.slice(0, k), false);
+    expect(noPause(s)).toHaveLength(1);
+  });
+});

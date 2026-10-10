@@ -170,6 +170,17 @@ describe("session report", () => {
     expect(section(r, "inclusive").verdict).toBe("improve");
     expect(section(report(TALK), "inclusive").verdict).toBe("good");
   });
+
+  it("leaves everyday words and family words alone", () => {
+    const text =
+      "My mother and her brother just moved. He is a special guy, a master of the simple things, and she is depressed.";
+    expect(findInclusiveFlags(simulateWords(text))).toEqual([]);
+  });
+
+  it("uses the open list for terms Cue didn't write itself", () => {
+    const flags = findInclusiveFlags(simulateWords("The policemen were handicapped by the blacklist."));
+    expect(flags.map((f) => f.phrase).sort()).toEqual(["blacklist", "handicapped", "policemen"]);
+  });
 });
 
 describe("findInclusiveFlags", () => {
@@ -177,7 +188,7 @@ describe("findInclusiveFlags", () => {
     expect(findInclusiveFlags(simulateWords("the chairmanship of the mainland group"))).toEqual([]);
     expect(findInclusiveFlags(simulateWords("our chairman said so"))[0]).toMatchObject({
       phrase: "chairman",
-      instead: "chair, chairperson",
+      instead: "chair, head, chairperson",
     });
   });
 });

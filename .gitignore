@@ -48,3 +48,6 @@ scripts/out/
 
 # training recordings (audio of real conversations) — never commit
 /training/
+
+# voice detector runtime and model, copied from node_modules by scripts/copy-vad-assets.mjs
+/public/vad/

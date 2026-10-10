@@ -66,6 +66,10 @@ const HAPTIC_MASK_BEFORE = 0.05;
 const HAPTIC_MASK_AFTER = 0.15;
 /** If a word's bone frames are all masked, judge it by the unmasked frames this close (s). */
 const MASK_FALLBACK = 0.3;
+/** Voice frames kept, seconds. Long enough to find the last pause before a "no pause" cue. */
+const VOICE_HISTORY = 120;
+/** This many voice frames in a row end a silence; a single one is a click or a breath. */
+const VOICE_RESUME_FRAMES = 2;
 /** Silence (s) that ends the wearer's speaking turn. */
 const TURN_GAP = 2.5;
 
@@ -138,6 +142,8 @@ export class CueSession {
   private levels: LevelFrame[] = [];
   private quietSince: number | null = null;
   private bone: { t: number; active: boolean }[] = [];
+  /** Whether each short frame of mic audio held a voice (Silero VAD), in time order. */
+  private voice: { t: number; active: boolean }[] = [];
   /** Audio-time intervals when the vibration motor was running. */
   private hapticMasks: [number, number][] = [];
   private nextId = 1;
@@ -162,6 +168,47 @@ export class CueSession {
   ingestBone(t: number, active: boolean) {
     this.bone.push({ t, active });
     if (this.bone.length > 2400) this.bone.splice(0, 1200);
+  }
+
+  /**
+   * Add one frame of voice activity from the mic audio (about every 32 ms): whether anyone was
+   * speaking at engine-clock time `t`. Frames must arrive in time order. With these, a real
+   * silence counts as a pause even when the transcript's word timings run together.
+   */
+  ingestVoice(t: number, active: boolean) {
+    this.voice.push({ t, active });
+    if (this.voice[0].t < t - VOICE_HISTORY - 30) this.voice = this.voice.filter((f) => f.t >= t - VOICE_HISTORY);
+  }
+
+  /**
+   * When speech last resumed after a real silence of `MEANINGFUL_PAUSE` or more, at or before
+   * `now`, from the voice frames. Null with no voice frames, or no such silence in them.
+   */
+  private voicePauseEnd(now: number): number | null {
+    let result: number | null = null;
+    let quietFrom: number | null = null;
+    let run = 0;
+    let runStart = 0;
+    for (const f of this.voice) {
+      if (f.t > now) break;
+      if (!f.active) {
+        run = 0;
+        quietFrom ??= f.t;
+        continue;
+      }
+      if (++run === 1) runStart = f.t;
+      // A lone voice frame inside a silence is a click or a breath; two in a row is speech resuming.
+      if (run === VOICE_RESUME_FRAMES && quietFrom !== null) {
+        if (runStart - quietFrom >= MEANINGFUL_PAUSE) result = runStart;
+        quietFrom = null;
+      }
+    }
+    return result;
+  }
+
+  /** When the wearer last resumed after a pause: the later of what the words and the audio show. */
+  private pauseEnd(words: Word[], now: number): number {
+    return Math.max(lastPauseEnd(words), this.voicePauseEnd(now) ?? -Infinity);
   }
 
   /** True if the bone sensor confirms the wearer said `w` (always true with no bone signal). */
@@ -199,6 +246,7 @@ export class CueSession {
     return Math.max(
       this.bone[this.bone.length - 1]?.t ?? -Infinity,
       this.levels[this.levels.length - 1]?.t ?? -Infinity,
+      this.voice[this.voice.length - 1]?.t ?? -Infinity,
       this.words[this.words.length - 1]?.end ?? 0,
     );
   }
@@ -383,11 +431,12 @@ export class CueSession {
       return ev;
     });
 
-    const sincePause = words.length ? moment.now - lastPauseEnd(words) : 0;
+    const pausedAt = this.pauseEnd(words, moment.now);
+    const sincePause = words.length ? moment.now - pausedAt : 0;
     sustained("no_pause", sincePause >= modeRules(this.config).noPauseSec, () =>
       this.event(
         "no_pause",
-        { ...lastWord, start: lastPauseEnd(words) },
+        { ...lastWord, start: pausedAt },
         0.9,
         `${Math.round(sincePause)} s of talking without a pause`,
         words,
@@ -419,7 +468,7 @@ export class CueSession {
       const after = tap.at + this.config.outcomeWindowSec;
       let worked: boolean;
       if (tap.reason === "rushing") worked = !rushing;
-      else if (tap.reason === "no_pause") worked = lastPauseEnd(words) > tap.at;
+      else if (tap.reason === "no_pause") worked = pausedAt > tap.at;
       else if (tap.reason === "long_turn") worked = moment.now - turn > tap.at;
       else if (tap.reason === "too_quiet") worked = !quiet;
       else worked = this.engine.disfluenciesBetween(tap.at, after) === 0;
@@ -451,6 +500,9 @@ export class CueSession {
     const last = words[words.length - 1];
     const now = last?.end ?? this.words[this.words.length - 1]?.end ?? 0;
     if (rightClosed || !last) return { now, atBreak: true };
+    // The voice detector runs ahead of transcription too, and isn't fooled by room noise.
+    const heard = this.voice.filter((f) => f.t > now && f.t <= now + BREAK_SEC);
+    if (heard.length >= 5) return { now, atBreak: heard.every((f) => !f.active) };
     // The mic runs ahead of transcription: if the audio right after the last word is quiet,
     // a pause has begun. Without audio, use the gap before the last word.
     const after = this.levels.filter((f) => f.t > now && f.t <= now + BREAK_SEC);

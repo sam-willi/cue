@@ -1,53 +1,42 @@
+import terms from "./inclusiveTerms.json";
 import type { Word } from "./types";
 
 /**
- * A short starting list of terms many audiences find dated or excluding, each with a plainer
- * alternative, for the session report. Deliberately small and explicit: every flag can be
- * explained, and the report only suggests. It never taps live.
+ * Terms many audiences find dated or excluding, each with a plainer alternative, for the
+ * session report. The report only suggests; these never tap live.
+ *
+ * Most of the list comes from retext-equality (MIT), the data behind the `alex` linter, cut
+ * down to what suits speech by `scripts/build-inclusive.mjs`. The entries below are Cue's own:
+ * ways of addressing a room that the prose list doesn't cover, and plainer suggestions for a
+ * few very common words. They win over the generated list.
  */
-const TERMS: { phrase: string; instead: string }[] = [
+const OWN_TERMS: { phrase: string; instead: string }[] = [
   { phrase: "you guys", instead: "everyone, you all, folks" },
   { phrase: "hey guys", instead: "hi everyone" },
   { phrase: "guys", instead: "everyone, folks, team" },
   { phrase: "ladies and gentlemen", instead: "everyone, colleagues, friends" },
-  { phrase: "mankind", instead: "humanity, people" },
-  { phrase: "manpower", instead: "workforce, staff, people" },
   { phrase: "man hours", instead: "work hours, person-hours" },
   { phrase: "man-hours", instead: "work hours, person-hours" },
-  { phrase: "manmade", instead: "artificial, manufactured" },
   { phrase: "man-made", instead: "artificial, manufactured" },
-  { phrase: "chairman", instead: "chair, chairperson" },
-  { phrase: "salesman", instead: "salesperson, sales rep" },
-  { phrase: "salesmen", instead: "salespeople, sales reps" },
-  { phrase: "businessman", instead: "businessperson" },
-  { phrase: "businessmen", instead: "businesspeople" },
-  { phrase: "policeman", instead: "police officer" },
-  { phrase: "fireman", instead: "firefighter" },
-  { phrase: "stewardess", instead: "flight attendant" },
-  { phrase: "middleman", instead: "go-between, intermediary" },
-  { phrase: "manned", instead: "staffed, crewed" },
-  { phrase: "freshman", instead: "first-year student" },
-  { phrase: "freshmen", instead: "first-year students" },
-  { phrase: "blacklist", instead: "blocklist, deny list" },
-  { phrase: "whitelist", instead: "allowlist" },
   { phrase: "master slave", instead: "primary and replica" },
-  { phrase: "grandfathered", instead: "exempted, legacy" },
   { phrase: "sanity check", instead: "quick check, confidence check" },
   { phrase: "crazy", instead: "wild, surprising, intense" },
   { phrase: "insane", instead: "wild, unbelievable, intense" },
+  { phrase: "insanely", instead: "wildly, extremely" },
   { phrase: "lame", instead: "weak, boring, disappointing" },
   { phrase: "dumb", instead: "silly, not useful" },
-  { phrase: "crippled", instead: "badly limited, broken" },
   { phrase: "tone deaf", instead: "out of touch" },
   { phrase: "tone-deaf", instead: "out of touch" },
   { phrase: "blind spot", instead: "gap, something we missed" },
   { phrase: "falls on deaf ears", instead: "is ignored" },
   { phrase: "spirit animal", instead: "favorite, kindred spirit" },
-  { phrase: "powwow", instead: "meeting, huddle" },
   { phrase: "low man on the totem pole", instead: "most junior person" },
   { phrase: "the elderly", instead: "older people, older adults" },
   { phrase: "third world", instead: "low-income countries, or name the country" },
 ];
+
+const own = new Set(OWN_TERMS.map((t) => t.phrase));
+const TERMS = [...OWN_TERMS, ...terms.filter((t) => !own.has(t.phrase))];
 
 const COMPILED = TERMS.map((t) => ({ ...t, tokens: t.phrase.split(" ") })).sort(
   (a, b) => b.tokens.length - a.tokens.length,
