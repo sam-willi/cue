@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { confirmTones, cueTones, CUE_HZ, onSegments, tonesLength } from "../earcon";
+import { confirmTones, cueTones, CUE_HZ, isHeadsetMic, onSegments, tonesLength } from "../earcon";
 import { CONFIRMS, PATTERNS, type ConfirmPattern, type CuePattern } from "../patterns";
 
 const CUES = Object.keys(PATTERNS) as CuePattern[];
@@ -60,5 +60,28 @@ describe("confirmation sounds", () => {
   it("sit at a pitch no cue uses", () => {
     const cueHz = new Set(Object.values(CUE_HZ));
     for (const r of RAMPS) for (const t of confirmTones(r)) expect(cueHz.has(t.freq)).toBe(false);
+  });
+});
+
+describe("isHeadsetMic", () => {
+  it("spots Bluetooth headset mics by name", () => {
+    for (const l of [
+      "Tanisha’s AirPods Pro",
+      "AirPods Max",
+      "Galaxy Buds2",
+      "Hands-Free AG Audio",
+      "WH-1000XM5",
+      "Bluetooth Headset",
+    ])
+      expect(isHeadsetMic(l)).toBe(true);
+  });
+  it("leaves the phone's and laptop's own mics alone", () => {
+    for (const l of [
+      "MacBook Pro Microphone (Built-in)",
+      "iPhone Microphone",
+      "Default - Microphone Array (Realtek)",
+      "",
+    ])
+      expect(isHeadsetMic(l)).toBe(false);
   });
 });

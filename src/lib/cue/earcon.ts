@@ -49,7 +49,7 @@ export function cueTones(pattern: CuePattern): Tone[] {
   return onSegments(vibrate).map(({ at, dur }) => {
     const short = dur * 1000 <= SHORT_MS;
     // Very short taps are hard to hear, so they ring a little past their haptic length.
-    const len = short ? Math.max(dur, 0.09) : dur;
+    const len = short ? Math.max(dur, 0.12) : dur;
     return { at, dur: len, freq: CUE_HZ[pattern], attack: 0.004, release: short ? len - 0.004 : 0.03, peak: 1 };
   });
 }
@@ -83,6 +83,7 @@ const MAX_GAIN = 0.35;
 /** Plays tones through the default audio output (AirPods when they're connected). */
 export class EarconPlayer {
   private ctx: AudioContext | null = null;
+  private hiss: AudioBufferSourceNode | null = null;
 
   /**
    * Browsers only start audio after a click or tap. Call this from one (Start listening, a
@@ -92,6 +93,35 @@ export class EarconPlayer {
     if (typeof window === "undefined") return;
     this.ctx ??= new AudioContext();
     void this.ctx.resume().catch(() => {});
+  }
+
+  /**
+   * Bluetooth headphones (AirPods) switch their sound link off after a moment of silence and take a few
+   * hundred ms to wake, so a short cue arrives late or gets cut off. While listening, a constant hiss far
+   * too quiet to hear (about −80 dB) keeps the link awake so each cue plays as soon as it's due.
+   */
+  keepAwake(on: boolean) {
+    const ctx = this.ctx;
+    if (!on || !ctx) {
+      try {
+        this.hiss?.stop();
+      } catch {
+        // Already stopped.
+      }
+      this.hiss?.disconnect();
+      this.hiss = null;
+      return;
+    }
+    if (this.hiss) return;
+    const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let k = 0; k < data.length; k++) data[k] = (Math.random() * 2 - 1) * 1e-4;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(ctx.destination);
+    src.start();
+    this.hiss = src;
   }
 
   /** Play tones at `volume` (0–1). Returns false when sound couldn't start yet (no click so far). */
@@ -139,4 +169,13 @@ export function setAudioSession(type: AudioSessionType) {
   } catch {
     // Not allowed right now (for example while capture is starting): keep the current type.
   }
+}
+
+/**
+ * Whether a microphone is a Bluetooth headset's (AirPods and the like), from its name. A headset mic
+ * switches Bluetooth into its low-quality call mode: speech arrives muffled and late, and so do the
+ * cue sounds. The phone's or laptop's own mic is better for listening, with the AirPods for sound only.
+ */
+export function isHeadsetMic(label: string): boolean {
+  return /airpods|bluetooth|headset|hands-?free|buds|beats|wh-|wf-|bose|jabra/i.test(label);
 }
