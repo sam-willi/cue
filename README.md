@@ -86,17 +86,20 @@ Until the device exists, AirPods (or any headphones with a mic) can stand in for
 stand-in, not the product: Cue stays one behind-the-ear device that taps.
 
 1. Connect the AirPods, open the app, and switch on **Cue sounds in AirPods**. Each cue then also plays as a quiet sound
-   in the ear, with the same rhythm as its tap and one pitch per family (Space high, Pace middle, Voice low).
+   in the ear, with the same rhythm as its tap and its own pitch (Pause high, Slow down middle, Speak up low).
    Confirmations swell in softly so they never sound like a cue. Volume and a test sound are in **Settings → Testing
    with AirPods**.
-2. On a laptop, pick the AirPods under **Settings → Microphone**. On iPhone, connected AirPods are used automatically.
-   While listening, the app shows which mic it's using.
-3. **Set my volume** again with the AirPods in. Volume targets are saved per microphone, because the AirPods mic hears
-   you at a different level from a laptop or phone mic.
+2. **Listen with the phone's or laptop's own mic, not the AirPods mic.** A headset mic switches Bluetooth into its
+   call mode: speech reaches Deepgram muffled and late (so fillers get missed) and the cue sounds come back late too.
+   With cue sounds on and the mic left on **Automatic**, Cue picks the device's own mic, and the app says which mic it's
+   using while listening. Best on a laptop in Chrome, where the AirPods stay in their normal high-quality mode.
+3. **Set my volume** with the mic you'll use. Volume targets are saved per microphone.
 4. Keep the page open while you talk: the screen stays on while listening, because a locked phone stops the mic.
+   While listening, Cue plays an inaudible hiss so the AirPods don't fall asleep between cues (they otherwise wake
+   late and clip short sounds).
 
-Limits: the AirPods mic still picks up other people (more quietly), so their fillers can tap too; Bluetooth adds a
-little delay to each sound; on iPhone, test with the ring switch both ways the first time.
+Limits: the mic hears other people too, so their fillers can tap; Bluetooth still adds a little delay to each sound
+(roughly 0.1–0.3 s); on iPhone, test with the ring switch both ways the first time.
 
 ## Quick start
 

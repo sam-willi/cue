@@ -25,7 +25,7 @@ import { buildReport, type ReportSection, type SessionReport } from "@/lib/cue/r
 import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
 import { encodeWav } from "@/lib/audio/wav";
-import { confirmTones, cueTones, EarconPlayer, setAudioSession } from "@/lib/cue/earcon";
+import { confirmTones, cueTones, EarconPlayer, isHeadsetMic, setAudioSession } from "@/lib/cue/earcon";
 
 const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
@@ -330,6 +330,7 @@ export default function CueApp() {
     transcriberRef.current = null;
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+    earconRef.current?.keepAwake(false);
     setAudioSession("auto");
     setStatus("idle");
   }, []);
@@ -457,7 +458,15 @@ export default function CueApp() {
     setRecorded(0);
     clockRef.current = { toPage: (x) => t.audioToPageTime(x), toAudio: (ms) => t.pageToAudioTime(ms) };
     transcriberRef.current = t;
-    await t.start({ apiKey: (opts.apiKey ?? apiKey) || undefined, deviceId: micChoice.deviceId || undefined });
+    // With cue sounds on and no mic picked, listen with the phone's or laptop's own mic: the AirPods mic
+    // puts Bluetooth into call mode, which makes speech muffled and late (and the cue sounds late too).
+    const ownMic =
+      soundRef.current.on && !micChoice.deviceId ? mics.find((m) => m.label && !isHeadsetMic(m.label)) : undefined;
+    if (soundRef.current.on) earcon().keepAwake(true);
+    await t.start({
+      apiKey: (opts.apiKey ?? apiKey) || undefined,
+      deviceId: micChoice.deviceId || ownMic?.deviceId || undefined,
+    });
   };
 
   /** Build the after-session report from everything the session heard. */
@@ -830,6 +839,8 @@ export default function CueApp() {
                 <p className="max-w-md text-body-sm text-muted" role="status">
                   Listening with {micLabel}
                   {sound.on ? ", cue sounds on" : ""}.
+                  {isHeadsetMic(micLabel) &&
+                    " This headset mic is slower and less clear over Bluetooth. For better results, pick your phone or laptop mic in Settings and keep the AirPods for the sounds."}
                 </p>
               )}
               {status !== "demo" && !live && (
@@ -1579,10 +1590,11 @@ export default function CueApp() {
                     Testing with AirPods
                   </h3>
                   <p className="max-w-prose text-body-sm text-muted">
-                    Until the device exists, AirPods (or any headphones with a mic) can stand in for it: their mic
-                    listens, and each cue plays as a quiet sound in your ear with the same rhythm as the tap. Set your
-                    volume again with the AirPods in, since their mic hears you at a different level. Keep this page
-                    open while you talk.
+                    Until the device exists, AirPods (or any headphones) can stand in for it: each cue plays as a quiet
+                    sound in your ear with the same rhythm as the tap. Listen with the phone’s or laptop’s own mic, not
+                    the AirPods mic: over Bluetooth it’s muffled and late, which makes Cue miss words and cue late. With
+                    cue sounds on, Cue picks your own mic automatically. Works best on a laptop in Chrome. Keep this
+                    page open while you talk.
                   </p>
                   <Switch
                     label="Play cues as sounds"
@@ -1627,7 +1639,9 @@ export default function CueApp() {
                       }}
                       className="mt-2 block min-h-11 w-full max-w-sm rounded-lg border border-line bg-surface px-3 text-body"
                     >
-                      <option value="">Default microphone</option>
+                      <option value="">
+                        {sound.on ? "Automatic (phone or laptop mic, not the AirPods)" : "Default microphone"}
+                      </option>
                       {mics.map((m, k) => (
                         <option key={m.deviceId} value={m.deviceId}>
                           {m.label || `Microphone ${k + 1}`}
@@ -1638,9 +1652,9 @@ export default function CueApp() {
                       {mics.some((m) => m.label)
                         ? micLabel
                           ? `Last used: ${micLabel}.`
-                          : "Pick the AirPods, or leave the default."
+                          : "Leave it on Automatic, or pick your phone or laptop mic."
                         : "Names appear after you allow the microphone once (Start listening)."}{" "}
-                      On iPhone, connected AirPods are used automatically.
+                      Avoid the AirPods mic: it makes Cue slower and less accurate.
                     </span>
                   </label>
                 </div>
