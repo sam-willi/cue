@@ -27,7 +27,7 @@ export const PRESENTATION = {
   noPauseSec: 22,
   /** Filler taps fire when the weighted rate over the last minute is above this. */
   fillerRatePerMin: 5,
-  /** "like" and "lowkey" count this much toward the rate; um/uh count 1. */
+  /** "like", "lowkey" and the wearer's own words count this much toward the rate; um/uh count 1. */
   softFillerWeight: 0.5,
   /** At least this long between any two taps, seconds. */
   minGapSec: 25,
@@ -46,6 +46,8 @@ export interface CueConfig {
     uh: boolean;
     like: boolean;
     lowkey: boolean;
+    /** The wearer's own filler words (`customFillers`). */
+    custom: boolean;
     rushing: boolean;
     pauses: boolean;
     turns: boolean;
@@ -72,6 +74,11 @@ export interface CueConfig {
   outcomeWindowSec: number;
   /** Seconds of the wearer's speech used to learn their normal pace (then rushing is relative to it). */
   paceBaselineSec: number;
+  /**
+   * The wearer's own filler words and short phrases ("so", "you know"), lowercase. Every time
+   * one is said it counts as a filler: unlike "like", there's no check of how it was used.
+   */
+  customFillers: string[];
   /** Which non-discourse "like" uses also count as fillers. */
   likeCounts: { quotative: boolean; approximator: boolean };
   /** Minimum detection confidence that may produce a buzz. */
@@ -101,8 +108,6 @@ export interface CueConfig {
   /** …for at least this long, seconds. */
   quietSustainSec: number;
   muted: boolean;
-  /** Five distinct cues (decisions 12 and 15); off plays only each family's root ("simpler cues"). */
-  distinctCues: boolean;
 }
 
 export const DEFAULT_CONFIG: CueConfig = {
@@ -111,6 +116,7 @@ export const DEFAULT_CONFIG: CueConfig = {
     uh: true,
     like: true,
     lowkey: true,
+    custom: true,
     rushing: true,
     pauses: true,
     turns: true,
@@ -125,6 +131,7 @@ export const DEFAULT_CONFIG: CueConfig = {
   reTapAfterSec: 45,
   outcomeWindowSec: 8,
   paceBaselineSec: 60,
+  customFillers: [],
   likeCounts: { quotative: true, approximator: false },
   minConfidence: 0.8,
   mode: "conversation",
@@ -138,7 +145,6 @@ export const DEFAULT_CONFIG: CueConfig = {
   quietDropDb: 6,
   quietSustainSec: 3,
   muted: false,
-  distinctCues: true,
 };
 
 export const isPresentation = (c: CueConfig) => c.mode === "presentation";

@@ -1,4 +1,5 @@
 import { pcmDbfs } from "@/lib/cue/loudness";
+import { pitchHz } from "@/lib/cue/pitch";
 import type { DgMessage } from "./parse";
 
 export interface TranscriberHandlers {
@@ -9,6 +10,8 @@ export interface TranscriberHandlers {
   onMessage: (msg: DgMessage) => void;
   /** Mic level of each 50 ms chunk: Deepgram audio time (s, chunk midpoint) and dBFS. */
   onLevel?: (t: number, db: number) => void;
+  /** Voice pitch of each chunk that has one (Hz), for the session report. Silence and noise are skipped. */
+  onPitch?: (t: number, hz: number) => void;
   /** Every 16 kHz PCM chunk sent to Deepgram, for opt-in training recordings. */
   onAudio?: (pcm: Int16Array) => void;
   onStatus: (status: "connecting" | "listening" | "stopped" | "error", detail?: string, code?: KeyProblem) => void;
@@ -115,7 +118,12 @@ export class LiveTranscriber {
           this.sentSec += chunkSec;
           this.clockZero = Math.min(this.clockZero, performance.now() - this.sentSec * 1000);
           const pcm = new Int16Array(e.data);
-          this.h.onLevel?.(this.sentSec - chunkSec / 2, pcmDbfs(pcm));
+          const mid = this.sentSec - chunkSec / 2;
+          this.h.onLevel?.(mid, pcmDbfs(pcm));
+          if (this.h.onPitch) {
+            const hz = pitchHz(pcm);
+            if (hz !== null) this.h.onPitch(mid, hz);
+          }
           this.h.onAudio?.(pcm);
         };
       };

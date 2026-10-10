@@ -1,13 +1,13 @@
-import { CONFIRMS, PATTERNS, type ConfirmPattern, type CueFamily, type CuePattern } from "./patterns";
+import { CONFIRMS, PATTERNS, type ConfirmPattern, type CuePattern } from "./patterns";
 
 /**
- * Cue sounds: the five haptic cues played as quiet tones in headphones (AirPods), for testing
+ * Cue sounds: the three haptic cues played as quiet tones in headphones (AirPods), for testing
  * Cue with people before the device exists. This is a testing stand-in, not the product: Cue
  * stays a single behind-the-ear device that taps (CUE_CONTEXT.md decision 7).
  *
  * Each cue keeps its haptic rhythm exactly (the on/off steps in `patterns.ts`), so what people
  * learn by ear carries over to the motor. Cues start with a sharp onset like the haptics, and each
- * family has its own pitch as a second hint: Space high, Pace middle, Voice low. Touch-control
+ * cue has its own pitch as a second hint: Pause high, Slow down middle, Speak up low. Touch-control
  * confirmations swell in and out with no sharp onset, so they never sound like a cue.
  */
 
@@ -26,8 +26,8 @@ export interface Tone {
   peak: number;
 }
 
-/** Each family's pitch: Space (pauses, turns) high, Pace middle, Voice (fillers, volume) low. */
-export const FAMILY_HZ: Record<CueFamily, number> = { space: 660, pace: 523.25, voice: 392 };
+/** Each cue's pitch: Pause high, Slow down middle, Speak up low. */
+export const CUE_HZ: Record<CuePattern, number> = { tap: 660, steps: 523.25, push: 392 };
 const CONFIRM_HZ = 440;
 /** A tap this short or shorter rings down like a knock; longer steps hold, then fade. */
 const SHORT_MS = 60;
@@ -43,14 +43,14 @@ export function onSegments(vibrate: number[]): { at: number; dur: number }[] {
   return out;
 }
 
-/** The tones for a coaching cue: its haptic rhythm, at its family's pitch, each step with a sharp onset. */
+/** The tones for a coaching cue: its haptic rhythm, at its own pitch, each step with a sharp onset. */
 export function cueTones(pattern: CuePattern): Tone[] {
-  const { vibrate, family } = PATTERNS[pattern];
+  const { vibrate } = PATTERNS[pattern];
   return onSegments(vibrate).map(({ at, dur }) => {
     const short = dur * 1000 <= SHORT_MS;
     // Very short taps are hard to hear, so they ring a little past their haptic length.
     const len = short ? Math.max(dur, 0.09) : dur;
-    return { at, dur: len, freq: FAMILY_HZ[family], attack: 0.004, release: short ? len - 0.004 : 0.03, peak: 1 };
+    return { at, dur: len, freq: CUE_HZ[pattern], attack: 0.004, release: short ? len - 0.004 : 0.03, peak: 1 };
   });
 }
 

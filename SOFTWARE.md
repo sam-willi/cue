@@ -4,9 +4,11 @@
 >
 > **Added:** 2026-10-04, as written by the product owner.
 >
-> **Where this document conflicts with a later owner decision**, the decision wins and is recorded in `CUE_CONTEXT.md` §26. **Where the implementation differs** from this document (as of 2026-10-05):
+> **Where this document conflicts with a later owner decision**, the decision wins and is recorded in `CUE_CONTEXT.md` §26. **Where the implementation differs** from this document (as of 2026-10-10):
 >
-> - **§18 Haptic language:** the owner chose **five cues in three families** (decisions 12 and 15), not a single universal tap. Space: no pause → one tap, long turn → two knocks. Pace: rushing → slow steps. Voice: filler pattern → tap and hum, too quiet → long push. A "Simpler cues" setting plays only each family's root.
+> - **§18 Haptic language:** the owner chose **three cues** (decision 18): pause (one tap, for no pause, a long turn, or a filler pattern), slow down (slow steps, for rushing) and speak up (long push, for too quiet).
+> - **§6 Fillers:** beyond the built-in set, the wearer can add their own filler words and phrases (decision 20).
+> - **After the session:** the app builds a report on pauses, pace, volume, filler words, pitch and tone, reading from notes, and inclusive language (decision 19).
 > - **§4 Speaker identification:** resolved by hardware (decision 6). The device's **bone-conduction sensor** verifies when the wearer is speaking, the **microphone** captures audio for speech-to-text, and a **vibration motor behind the ear** delivers taps. There is no software voice detection and no voice profile. The web prototype has no bone sensor, so it treats all speech as the wearer's.
 > - **§3 Voice activity detection:** no separate VAD in the app; Deepgram Flux handles speech detection. On the device, the bone sensor gates which words are the wearer's.
 > - **§6 Fillers:** the MVP set is um and uh (also er, erm, ah), "like" in context, and "lowkey". "Hmm" is not counted (it's often a listening sound). The other fillers listed in §6 come later. "Like" and "lowkey" are judged by readable rules with a reason, not a learned probability; only detections with confidence ≥ 0.8 count.
@@ -498,7 +500,7 @@ At that point, Cue has actually changed behavior. That should be the product's u
 
 ## 18. Haptic language
 
-> **Superseded by owner decision 12 (2026-10-05, `CUE_CONTEXT.md` §5 and §26):** Cue uses five rhythm-coded cues in three families (decisions 12 and 15): no pause → one tap (breathe), long turn → two knocks (give space), rushing → slow steps (slow down), filler pattern → tap and hum (pause), too quiet → long push (speak up). A "Simpler cues" setting plays only each family's root (one tap, slow steps, long push). This replaced the earlier three rhythms (decision 1). The original text follows.
+> **Superseded by owner decision 18 (2026-10-10, `CUE_CONTEXT.md` §5 and §26):** Cue uses three rhythm-coded cues: pause → one tap (no pause, a long turn, or a filler pattern), slow down → slow steps (rushing), speak up → long push (too quiet). This replaced the five cues in three families of decisions 12 and 15. The original text follows.
 
 Cue could eventually use different haptic patterns. However, the MVP should probably remain simple.
 

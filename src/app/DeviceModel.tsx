@@ -51,7 +51,7 @@ function pulsesFor(
   which: "buzz" | "confirm" | "noticed",
 ): Pulse[] {
   if (which === "buzz" && buzz) {
-    // One ring per pulse; a sustained pulse (the hum, the long push) sends a slower, wider one.
+    // One ring per pulse; a sustained pulse (the long push) sends a slower, wider one.
     return segments(PATTERNS[buzz.pattern].vibrate).map<Pulse>((s) => {
       const long = s.on >= 200;
       return {

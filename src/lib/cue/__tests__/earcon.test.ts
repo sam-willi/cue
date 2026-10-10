@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { confirmTones, cueTones, FAMILY_HZ, onSegments, tonesLength } from "../earcon";
+import { confirmTones, cueTones, CUE_HZ, onSegments, tonesLength } from "../earcon";
 import { CONFIRMS, PATTERNS, type ConfirmPattern, type CuePattern } from "../patterns";
 
 const CUES = Object.keys(PATTERNS) as CuePattern[];
@@ -28,8 +28,9 @@ describe("cue sounds", () => {
     for (const p of CUES) for (const t of cueTones(p)) expect(t.attack).toBeLessThanOrEqual(0.005);
   });
 
-  it("use the family's pitch", () => {
-    for (const p of CUES) for (const t of cueTones(p)) expect(t.freq).toBe(FAMILY_HZ[PATTERNS[p].family]);
+  it("give each cue its own pitch", () => {
+    for (const p of CUES) for (const t of cueTones(p)) expect(t.freq).toBe(CUE_HZ[p]);
+    expect(new Set(Object.values(CUE_HZ)).size).toBe(CUES.length);
   });
 
   it("never let one tone run into the next, so the rhythm stays countable", () => {
@@ -57,7 +58,7 @@ describe("confirmation sounds", () => {
   });
 
   it("sit at a pitch no cue uses", () => {
-    const cueHz = new Set(Object.values(FAMILY_HZ));
+    const cueHz = new Set(Object.values(CUE_HZ));
     for (const r of RAMPS) for (const t of confirmTones(r)) expect(cueHz.has(t.freq)).toBe(false);
   });
 });
