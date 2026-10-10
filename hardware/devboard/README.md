@@ -39,6 +39,10 @@ board is `cue_devboard.kicad_pcb`. A PDF of the schematic is in `fab/schematic.p
 
 ## Order it (JLCPCB)
 
+**Shopping list:** [`parts_list.xlsx`](parts_list.xlsx) has two tabs. **We buy** lists what the team orders and
+fits: the radio module and buttons (soldered on), the antenna, battery, vibration motor and motor cable (plug in),
+and tools. **JLCPCB makes** lists what comes on the assembled board.
+
 | File                           | Upload as                         |
 | ------------------------------ | --------------------------------- |
 | `fab/cue_devboard_gerbers.zip` | Gerber files (4 layers, 1.6 mm)   |
