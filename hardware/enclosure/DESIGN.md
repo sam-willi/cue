@@ -44,7 +44,7 @@ physical power button plus automatic wear detection instead. Update `CUE_CONTEXT
 `hardware-rev0` as cue_devboard 6 (#33). Order-ready fab files are in `hardware/devboard/fab/`. See
 `hardware/devboard/README.md` for the full design notes and ordering steps.
 
-- **U1** radio module (Ezurio BL54L15 453-00044, nRF54L15). Needs a plug-in 2.4 GHz antenna (MHF4). Hand-soldered.
+- **U1** radio module (Ezurio BL54L15 453-00044, nRF54L15). Needs a plug-in 2.4 GHz antenna (MHF4). Fitted by JLCPCB.
 - **U2** power chip (Nordic nPM1300).
   - BUCK1 makes 1.8 V for everything. BUCK2 is unused and tied off per the PS (Configuration 2).
   - Load switch 1 gates the mic supply. The charger is set to 32 mA; RT1 is the 10k thermistor for safe charging.
@@ -54,7 +54,7 @@ physical power button plus automatic wear detection instead. Update `CUE_CONTEXT
   can switch it fully off.
 - **U5** haptic driver (TI DRV2605L) for the coin LRA on **J3** (JST-SH 2-pin).
 - **J1** USB-C (power only), **D1** ESD protection, **J2** battery (JST-PH 2-pin), **J4** 10-pin SWD debug header.
-- **SW1** USER (now CALIBRATE), **SW2** SHIP/WAKE (power). Both are Omron B3U-1000P, hand-soldered.
+- **SW1** USER (now CALIBRATE), **SW2** SHIP/WAKE (power). Both are Omron B3U-1000P, fitted by JLCPCB.
 - **TP1–TP13** (no TP5): test pads on the back.
 - Not on the board: no LED, no speaker, no 3.0 V rail.
 

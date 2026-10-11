@@ -41,9 +41,20 @@ board is `cue_devboard.kicad_pcb`. A PDF of the schematic is in `fab/schematic.p
 
 ## Order it (JLCPCB)
 
-**Shopping list:** [`parts_list.xlsx`](parts_list.xlsx) has two tabs. **Our order** lists what the team orders and
-fits: the radio module and buttons (soldered on), the antenna, battery, vibration motor and motor cable (plug in),
-and tools (probably at the IYA Makerspace). **JLCPCB order** lists what comes on the assembled board.
+**Shopping list:** [`parts_list.xlsx`](parts_list.xlsx) has two tabs. **JLCPCB order** lists what comes on the
+assembled board: every part, including the radio module and both buttons, so nothing on the board is soldered by
+hand. **Our order** lists what the team buys and plugs in (antenna, battery, vibration motor and motor cable) and
+the tools (probably at the IYA Makerspace).
+
+**Order of steps (decided 2026-10-11: 5 boards, all 5 fully assembled):**
+
+1. In JLCPCB's Parts Manager, pre-order the radio module **453-00044R, C45868630**: one per board plus a spare (6).
+   JLCPCB lists it with no stock, so it buys it in for you (US$12.51 each on 2026-10-11; the quote on 2026-10-05
+   was 10–15 business days).
+2. When the module shows in "My Parts Lib", place the board order with the three files below: PCB quantity 5,
+   PCBA quantity 5, top side, Standard PCBA.
+3. In the BOM step every line should show as matched and in stock. If U1 shows a shortfall, the pre-order has not
+   arrived: wait, or untick U1 and use the hand-soldering fallback below.
 
 | File                           | Upload as                         |
 | ------------------------------ | --------------------------------- |
@@ -53,22 +64,26 @@ and tools (probably at the IYA Makerspace). **JLCPCB order** lists what comes on
 
 Parts that need attention at order. **Stock check 2026-10-11:** every line of `bom.csv` was in stock in JLCPCB's parts library, including the power chip and the USB-C port that were out on 2026-10-05. Stock changes, so check again in the quote. Standard PCBA is needed.
 
-| Ref      | Part                                              | Where                                                                                                                                                                                                                                                                                                  |
-| -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| U1       | Ezurio BL54L15 **453-00044** (radio module, MHF4) | **Not assembled by JLCPCB** (left out of `bom.csv` / `cpl.csv`). Buy **453-00044R** from Digi-Key (the same module on reel, sold singly: US$5.55, 1,328 in stock, 2026-10-11) and hand-solder; see below. 453-00044C is the cut-tape code; Digi-Key had none and Newark's listing could not be checked |
-| U2       | Nordic nPM1300-QEAA-R (power)                     | LCSC C7466043: in stock at JLCPCB (568 on 2026-10-11)                                                                                                                                                                                                                                                  |
-| SW1, SW2 | Omron (now Aratas) B3U-1000P buttons              | Left out of `bom.csv` / `cpl.csv`; hand-solder (US$1.17 at Digi-Key). JLCPCB now stocks them as C231329 (128,821 on 2026-10-11), so they could be added to the assembly                                                                                                                                |
-| J1       | GCT USB4125-GF-A-0190 (USB-C)                     | C5246813: in stock at JLCPCB (3,213 on 2026-10-11)                                                                                                                                                                                                                                                     |
+| Ref      | Part                                               | Where                                                                                                                                                                                                                                                             |
+| -------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1       | Ezurio BL54L15 **453-00044R** (radio module, MHF4) | **C45868630**, a pre-order part: JLCPCB lists it with no stock (US$12.51 each, 2026-10-11). Pre-order it in the Parts Manager first (step 1 above). Digi-Key sells the same module singly for US$5.55 (1,328 in stock, 2026-10-11) if it is hand-soldered instead |
+| U2       | Nordic nPM1300-QEAA-R (power)                      | LCSC C7466043: in stock at JLCPCB (568 on 2026-10-11)                                                                                                                                                                                                             |
+| SW1, SW2 | Omron (now Aratas) B3U-1000P buttons               | C231329: in stock at JLCPCB (128,809 on 2026-10-11). In `bom.csv` / `cpl.csv` since 2026-10-11                                                                                                                                                                    |
+| J1       | GCT USB4125-GF-A-0190 (USB-C)                      | C5246813: in stock at JLCPCB (3,213 on 2026-10-11)                                                                                                                                                                                                                |
 
-**Hand-soldering U1:** the module has castellated pads on three edges only (none underneath), 0.75 mm pitch.
+**U1 at the factory:** the module is made for reflow soldering and has pads on three edges only, so a module placed
+back to front is easy to spot (its pads miss the footprint). JLCPCB may have no drawing of it for the placement
+preview, so add an order remark: "U1: MHF4 connector at the board's top edge, next to the silkscreen pin-1 dot".
+
+**Fallback, hand-soldering U1:** the module has castellated pads on three edges only (none underneath), 0.75 mm pitch.
 JLCPCB's stencil still pastes the U1 pads, so they arrive pre-tinned; if the module rocks, flatten them with wick. Align
 the module with the silk outline (MHF4 connector at the top edge, next to the pin-1 dot), tack two opposite corners,
 check alignment, then solder every pad with flux and a fine tip (or hot air). Check for bridges with a meter: VDD_nRF
 (pad 26) to GND must not be shorted. Click the antenna on before powering the radio.
 
-**JLCPCB BOM check (2026-10-05):** 22 of 23 BOM lines matched the intended LCSC numbers. U1 is now left out of the
-JLCPCB order entirely (global sourcing added 10–15 business days; buying from Digi-Key and hand-soldering is faster). The PCBA quantity sets how many
-boards get populated (2 is enough for a first spin).
+**JLCPCB BOM check (2026-10-05):** 22 of 23 BOM lines matched the intended LCSC numbers. U1 was left out of the JLCPCB order
+from 2026-10-05 to 2026-10-11 (hand-soldering a Digi-Key module is faster and cheaper); it is back in so the boards
+arrive complete. The PCBA quantity sets how many boards get populated: 5 of 5.
 
 Also buy one **2.4 GHz antenna with an MHF4 plug** per board and click it onto the module (not assembled by JLCPCB).
 Ezurio's approved list: mFlexPIFA **EFA2400A3S-10MH4L** (stick-on flex, recommended), FlexPIFA 001-0022, NanoBlue
@@ -76,7 +91,7 @@ EBL2400A1-10MH4L. Don't power the radio on without an antenna.
 The wearable test mule uses the smaller Taoglas **FXP830.24.0100B** instead (42 × 7 mm, 100 mm of 0.81 mm cable, MHF4;
 US$7.31 at Digi-Key). It is not on Ezurio's list, so it is for internal prototypes only: see `../enclosure/DESIGN.md`.
 
-In JLCPCB's placement preview, check the rotation of U1, U4, J1, J2 and J3 (`fab/placement_check.png` shows the
+In JLCPCB's placement preview, check the rotation of U1, U4, J1, J2, J3, SW1 and SW2 (each button's two pads must sit under its two end terminals) (`fab/placement_check.png` shows the
 right answer): U1's MHF4 connector in the module's top-right corner at the board's top edge, next to the pin-1 dot;
 U4's port over the sound hole. Choose "edge rails added by JLCPCB" (connectors and the module sit at the board edges).
 

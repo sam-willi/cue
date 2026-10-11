@@ -67,8 +67,7 @@ for g in ["1", "16", "27", "39"]:
 part("U1", CUE, "Ezurio_BL54L15_453-00044", "BL54L15", "Ezurio 453-00044", u1,
      supply=[("26", 1.7, 3.6)],
      nc=["2", "3", "4", "11", "12", "13", "15", "19", "24", "25", "29", "31", "34", "36", "37", "38"],
-     status="DNP",  # bought from a US distributor (Newark) and hand-soldered; not assembled by JLCPCB
-     note="Hand-solder (castellated pads). Certified nRF54L15 module, 14x10x1.6 mm, MHF4 connector for an external 2.4 GHz antenna "
+     note="Fitted by JLCPCB from a pre-ordered part (C45868630). Certified nRF54L15 module, 14x10x1.6 mm, MHF4 connector for an external 2.4 GHz antenna "
           "(e.g. Ezurio mFlexPIFA EFA2400A3S-10MH4L). On the top edge; no tracks or vias under the RF end.")
 
 # --- U2 PMIC: Nordic nPM1300 QFN32 (pin numbers from Nordic product spec). EP = AVSS.
@@ -166,9 +165,9 @@ res("R8", "330R", "U1_PMIC_INT", "PMIC_INT", note=note7)
 part("E1", CUE, "Touch_Pad_4x3mm", "TOUCH", "Copper pad (shell contact)", {"1": "TOUCH_E"},
      note="Qvar touch electrode; solder a wire to the shell or touch directly.")
 part("SW1", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "USER", "Omron B3U-1000P",
-     {"1": "BTN_USER", "2": "GND"}, status="DNP", note="Hand-solder. JLCPCB has it as C231329 (in stock 2026-10-11) if it is added to the assembly.")
+     {"1": "BTN_USER", "2": "GND"}, note="Fitted by JLCPCB.")
 part("SW2", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "SHIP/WAKE", "Omron B3U-1000P",
-     {"1": "SHPHLD", "2": "GND"}, status="DNP", note="Hold to leave ship mode / power on. Hand-solder. JLCPCB has it as C231329 (in stock 2026-10-11) if it is added to the assembly.")
+     {"1": "SHPHLD", "2": "GND"}, note="Hold to leave ship mode / power on. Fitted by JLCPCB.")
 
 # TP5 (3V0) went with BUCK2; TP11-TP13 replace the J5 expansion header (back side)
 for i, n in {1: "VBUS", 2: "VBAT", 3: "VSYS", 4: "1V8", 6: "MIC_1V8", 7: "GND", 8: "PMIC_INT", 9: "I2C_SDA",
@@ -271,8 +270,9 @@ for refs, mpn, lcsc, note in [
     ("R6", "UniOhm 0402WGF0000TCE", "C17168", "Basic"),
     ("R7 R8", "UniOhm 0402WGF3300TCE", "C25104", "Basic"),
     ("RT1", "Murata NCP15XH103F03RC", "C77131", "Extended"),
-    ("SW1 SW2", "Omron B3U-1000P", "C231329", "Extended"),
-    ("U1", "Ezurio 453-00044C", "", "Not assembled by JLCPCB: buy 453-00044R (the same module on reel, sold singly) from Digi-Key and hand-solder"),
+    ("SW1 SW2", "Omron B3U-1000P", "C231329", "Extended; in stock at JLCPCB 2026-10-11 (128809)"),
+    ("U1", "Ezurio 453-00044R", "C45868630", "Pre-order part: JLCPCB lists it with no stock (US$12.51 each, 2026-10-11). "
+     "Pre-order it in JLCPCB's Parts Manager and wait for it to arrive before placing the assembly order"),
     ("U2", "Nordic NPM1300-QEAA-R", "C7466043", "Extended; in stock at JLCPCB 2026-10-11 (568)"),
     ("U3", "ST LSM6DSV16BXTR", "C5267394", "Extended; in stock at LCSC (2nd listing; C5381401 is the dead one)"),
     ("U4", "TDK MMICT5838-00-012", "C7230692", "Extended"),
