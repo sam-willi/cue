@@ -127,7 +127,7 @@ The board model (`models/cue_board_v6_all_parts.glb`) has its corner at the orig
   - **POWER:** raised, round, 4 mm.
   - **CALIBRATE:** flush, rounded-square, 3.5 mm, with a raised ring.
   - Each has a small embossed icon (power symbol, sound wave). No other markings.
-- **Antenna:** Taoglas FXP830 flexible strip, 42 × 7 × 0.1 mm, MHF4 plug on a 100 mm, 1.13 mm cable. It lies in a
+- **Antenna:** Taoglas FXP830.24.0100B flexible strip, 42 × 7 × 0.1 mm, MHF4 plug on a 100 mm, 0.81 mm cable. It lies in a
   flat pocket on the inside of the outer face over the board's back half (beside the battery, away from the head),
   with a cable channel to the radio's socket and a small coil recess for the extra cable.
   - It isn't on Ezurio's certified list. That's fine for internal test mules (Sam, 2026-10-08), not for devices

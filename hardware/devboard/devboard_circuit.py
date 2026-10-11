@@ -166,9 +166,9 @@ res("R8", "330R", "U1_PMIC_INT", "PMIC_INT", note=note7)
 part("E1", CUE, "Touch_Pad_4x3mm", "TOUCH", "Copper pad (shell contact)", {"1": "TOUCH_E"},
      note="Qvar touch electrode; solder a wire to the shell or touch directly.")
 part("SW1", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "USER", "Omron B3U-1000P",
-     {"1": "BTN_USER", "2": "GND"}, status="DNP", note="Hand-solder: out of stock at LCSC.")
+     {"1": "BTN_USER", "2": "GND"}, status="DNP", note="Hand-solder. JLCPCB has it as C231329 (in stock 2026-10-11) if it is added to the assembly.")
 part("SW2", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "SHIP/WAKE", "Omron B3U-1000P",
-     {"1": "SHPHLD", "2": "GND"}, status="DNP", note="Hold to leave ship mode / power on. Hand-solder: out of stock at LCSC.")
+     {"1": "SHPHLD", "2": "GND"}, status="DNP", note="Hold to leave ship mode / power on. Hand-solder. JLCPCB has it as C231329 (in stock 2026-10-11) if it is added to the assembly.")
 
 # TP5 (3V0) went with BUCK2; TP11-TP13 replace the J5 expansion header (back side)
 for i, n in {1: "VBUS", 2: "VBAT", 3: "VSYS", 4: "1V8", 6: "MIC_1V8", 7: "GND", 8: "PMIC_INT", 9: "I2C_SDA",
@@ -261,10 +261,10 @@ for refs, mpn, lcsc, note in [
     ("C22 C8 C9 C10", "Samsung CL05B104KO5NNNC (100nF 16V X7R 0402)", "C1525", "Basic"),
     ("C3", "Samsung CL10A225KO8NNNC (2.2uF 16V X5R 0603)", "C23630", "Basic"),
     ("D1", "onsemi ESD5Z5.0T1G", "C82044", "Extended"),
-    ("J1", "GCT USB4125-GF-A-0190", "C5246813", "Extended; 0 stock at JLCPCB 2026-10-05: pick any in-stock USB4125-GF-A variant (same footprint) or hand-solder"),
+    ("J1", "GCT USB4125-GF-A-0190", "C5246813", "Extended; in stock at JLCPCB 2026-10-11 (3213)"),
     ("J2", "JST S2B-PH-SM4-TB(LF)(SN)", "C295747", "Extended"),
     ("J3", "JST SM02B-SRSS-TB(LF)(SN)", "C160402", "Extended"),
-    ("J4", "Samtec FTSH-105-01-L-DV-K-P-TR", "C2932107", "Extended; check land pattern"),
+    ("J4", "Samtec FTSH-105-01-L-DV-K-P-TR", "C2932107", "Extended; check land pattern. Keyed variant with no pin 7: FTSH-105-01-L-DV-007-K-P-TR, C5885449"),
     ("L1", "Murata DFE201210U-2R2M=P2", "C2049745", "Extended"),
     ("R1 R2", "UniOhm 0402WGF4701TCE", "C25900", "Basic"),
     ("R3", "UniOhm 0402WGF4702TCE", "C25792", "Basic"),
@@ -272,8 +272,8 @@ for refs, mpn, lcsc, note in [
     ("R7 R8", "UniOhm 0402WGF3300TCE", "C25104", "Basic"),
     ("RT1", "Murata NCP15XH103F03RC", "C77131", "Extended"),
     ("SW1 SW2", "Omron B3U-1000P", "C231329", "Extended"),
-    ("U1", "Ezurio 453-00044C", "", "Not assembled by JLCPCB: buy from Newark (184 in stock 2026-10-05) and hand-solder"),
-    ("U2", "Nordic NPM1300-QEAA-R", "C7466043", "Listed, out of stock: pre-order / global sourcing"),
+    ("U1", "Ezurio 453-00044C", "", "Not assembled by JLCPCB: buy 453-00044R (the same module on reel, sold singly) from Digi-Key and hand-solder"),
+    ("U2", "Nordic NPM1300-QEAA-R", "C7466043", "Extended; in stock at JLCPCB 2026-10-11 (568)"),
     ("U3", "ST LSM6DSV16BXTR", "C5267394", "Extended; in stock at LCSC (2nd listing; C5381401 is the dead one)"),
     ("U4", "TDK MMICT5838-00-012", "C7230692", "Extended"),
     ("U5", "TI DRV2605LDGSR", "C527464", "Extended"),
