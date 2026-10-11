@@ -54,7 +54,7 @@ Other contents:
   Do NOT shorten the lead; leave a space to tuck the extra wire.
 - Vibration motor: Vybronics VG0832022D coin LRA, 8.0 mm diameter x 3.25 mm thick, on 100 mm leads that plug into
   J3. It vibrates perpendicular to its flat face, so the flat face goes against the head-side wall.
-- Antenna: Taoglas FXP830 flexible strip, 42 x 7 x 0.1 mm, stuck inside the outer face; its 1.13 mm cable
+- Antenna: Taoglas FXP830 flexible strip, 42 x 7 x 0.1 mm, stuck inside the outer face; its 0.81 mm cable
   (100 mm) plugs into the radio's socket at X 10.3, Y 18.5.
 - The device indicates on/off and coaching only by vibrating. There are no lights and no speaker.
 
@@ -215,7 +215,7 @@ motor pocket.
 ## Step 7: antenna pocket and final check
 
 ```
-Add a pocket for the radio's stick-on antenna: a Taoglas FXP830 flexible strip, 42 x 7 x 0.1 mm, with a 1.13 mm
+Add a pocket for the radio's stick-on antenna: a Taoglas FXP830 flexible strip, 42 x 7 x 0.1 mm, with a 0.81 mm
 coaxial cable (100 mm long) ending in a small MHF4 plug.
 - Put a flat pocket 43 x 8 mm, 0.4 mm deep, on the inside of the cover's outer face over the board's back half
   (about X -3 to 40, Y 1-9), running along the body's length. It must not sit over the battery (battery starts at
