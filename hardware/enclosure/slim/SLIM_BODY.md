@@ -92,7 +92,7 @@ What this means for the hardware:
    uses 38 × 12 × 8.6 mm.
 4. **Charging contacts**: where they go, and the cradle.
 5. **Antenna**: the BL54L15µ's chip antenna sits next to the head and under the ear. Check range.
-6. **Wear detection and buttons**: where the wear pad and a power button go on this body.
+6. **Buttons**: where a power button goes on this body. (Wear sensing was dropped on the dev board, 2026-10-11.)
 7. **Glasses**: body and wire share the groove with glasses arms.
 
 ## Next steps

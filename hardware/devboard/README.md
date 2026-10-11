@@ -32,7 +32,8 @@ Open before or at order:
   Low risk with the MHF4 module (ground pour is allowed there); move them on the next spin.
 - C2 (extra 10 µF on VBUS, 11 µF total vs the USB 10 µF limit) and C4 (extra 1 µF on VSYS) are not in Nordic's
   reference; both are optional.
-- R6 is 0 Ω; ST's Qvar example uses ~500 Ω per electrode. Confirm against AN5755.
+- **Wear sensing is not used** (decided 2026-10-11). Only U3's bone-conduction channel is used; its Qvar input,
+  the E1 pad on the back and R6 are left unused. They stay on the board, so nothing changes in the order.
 
 ## Open it
 
@@ -146,7 +147,8 @@ Firmware must:
 - keep P1.09–P1.12 below 1 MHz (cuff rule; harmless here);
 - configure the NFC pins as GPIO (UICR NFCPINS): PDM_CLK is on P1.03/NFC2;
 - read the T5838 as the PDM channel sampled on the rising edge (SELECT = GND);
-- enable Qvar on the LSM6DSV16BX (else tie-off is recommended) and drive/pull the TDM pins before use;
+- keep the LSM6DSV16BX's Qvar input enabled and ignore its data (wear sensing is not used, but a disabled input
+  leaves pin 6 floating on the unused E1 pad), and drive/pull the TDM pins before use;
 - enable pulls on inputs that can float (BTN_USER, EXP_P0_01).
 
 Optional improvements for a rev B: T5838 paste openings 0.05 mm smaller with a vented ground ring; move C10 closer

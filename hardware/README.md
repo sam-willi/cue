@@ -21,7 +21,7 @@ the µ.
 | Bluetooth + processor                 | Ezurio BL54L15µ module (Nordic nRF54L15, chip antenna, pre-certified); dev board: BL54L15 453-00044 |
 | Power: charger, 1.8 V and 3.0 V rails | Nordic nPM1300                                                                                      |
 | Hearing words                         | TDK T5838 PDM microphone                                                                            |
-| Bone conduction + touch               | ST LSM6DSV16BX (TDM audio-band accelerometer, Qvar touch)                                           |
+| Bone conduction                       | ST LSM6DSV16BX (TDM audio-band accelerometer; its Qvar wear/touch input is not used)                |
 | Tap                                   | TI DRV2605L driver + LRA vibration motor                                                            |
 | Optional bone-conduction comparison   | Knowles V2S200D (eval board on the dev board's expansion header)                                    |
 
