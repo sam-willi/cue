@@ -1,5 +1,9 @@
 # Cue enclosure: Zoo prompts (wearable test mule, right ear)
 
+> **Not in use (2026-10-11).** The enclosure is now being modelled by hand from the CAD brief, not with Zoo. These
+> prompts also still describe a thin window under the wear pad E1, which no longer applies: wear sensing was dropped
+> and only the bone-conduction sensing of U3 is used.
+
 Design background and decisions: `DESIGN.md`.
 
 How to use:

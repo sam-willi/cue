@@ -12,7 +12,7 @@ SWD,J4,PinHeader_2x05_P1.27mm_Vertical_SMD,C2932107,Samtec FTSH-105-01-L-DV-K-P-
 2.2uH,L1,L_0805_2012Metric,C2049745,Murata DFE201210U-2R2M=P2,1,FIT,Extended,"BUCK1. Nordic ref: 2.2 uH, DCR < 400 mOhm. Confirm Murata land pattern vs 0805."
 4.7k,"R1,R2",R_0402_1005Metric,C25900,UniOhm 0402WGF4701TCE,2,FIT,Basic,
 47k,R3,R_0402_1005Metric,C25792,UniOhm 0402WGF4702TCE,1,FIT,Basic,VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table
-0R,R6,R_0402_1005Metric,C17168,UniOhm 0402WGF0000TCE,1,FIT,Basic,"Qvar series element, value TBC with ST guidance"
+0R,R6,R_0402_1005Metric,C17168,UniOhm 0402WGF0000TCE,1,FIT,Basic,Unused: wear sensing (Qvar) was dropped 2026-10-11. Stays fitted so the board is unchanged
 330R,"R7,R8",R_0402_1005Metric,C25104,UniOhm 0402WGF3300TCE,2,FIT,Basic,Cuff (BL54L15u) Ezurio Note 7: >=330 R series on P1.09-P1.12; kept so the boards match
 10k NTC,RT1,R_0402_1005Metric,C77131,Murata NCP15XH103F03RC,1,FIT,Extended,10k 1% B25/50 3380 K (nPM1300 PS Table 11). Next to U2: with the cell on a lead it senses board temperature.
 USER,SW1,SW_SPST_B3U-1000P,C231329,Omron B3U-1000P,1,FIT,Extended; in stock at JLCPCB 2026-10-11 (128809),Fitted by JLCPCB.

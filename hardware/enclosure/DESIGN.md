@@ -18,20 +18,21 @@ board, and a smaller board is the route to a final-size body.
 1. Press the **power button**. Cue gives a short **buzz** to confirm it's on. There are no lights.
 2. Put it **behind the right ear**. It hangs from a swappable ear hook and rests flat on the mastoid (the bone
    behind the ear).
-3. When the **wear pad** senses it's on the head, it starts listening. Take it off and it pauses.
+3. It listens whenever it is switched on. There is **no wear sensing**: the wear pad on the board is not used
+   (decided 2026-10-11).
 4. The **bone-conduction sensor** confirms the wearer is the one speaking, and the **microphone** hears the words.
 5. It **buzzes** when the wearer speaks too quietly, too fast, or uses too many filler words.
 6. Press the **calibrate button** and read a sentence aloud to set the target speaking volume.
 7. Press power again to turn it off (different buzz pattern). Charge it from a **USB-C** charger.
 
 Differs from `CUE_CONTEXT.md` (on `main`): the docs say on/off is a long press on a touch surface. The mule uses a
-physical power button plus automatic wear detection instead. Update `CUE_CONTEXT.md` if this sticks.
+physical power button instead, with no wear or touch sensing. Update `CUE_CONTEXT.md` if this sticks.
 
 | Step                                 | Hardware                                                                                        |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------- |
 | Power on/off                         | SW2 "SHIP/WAKE" on the nPM1300 power chip (wakes from ship mode; firmware reads it to turn off) |
 | On/off confirmation, coaching alerts | Coin LRA vibration motor on J3, driven by U5 (TI DRV2605L)                                      |
-| Worn / not worn                      | E1 copper pad on the board's back, read by U3's Qvar input                                      |
+| Worn / not worn                      | Not sensed: E1 and U3's Qvar input are unused (2026-10-11)                                      |
 | Own-voice detection                  | U3 (ST LSM6DSV16BX) accelerometer as bone-conduction sensor                                     |
 | Words                                | U4 (TDK T5838) MEMS microphone, through a 0.6 mm hole in the board                              |
 | Volume calibration                   | SW1 "USER" button to the radio, repurposed as CALIBRATE                                         |
@@ -48,8 +49,8 @@ physical power button plus automatic wear detection instead. Update `CUE_CONTEXT
 - **U2** power chip (Nordic nPM1300).
   - BUCK1 makes 1.8 V for everything. BUCK2 is unused and tied off per the PS (Configuration 2).
   - Load switch 1 gates the mic supply. The charger is set to 32 mA; RT1 is the 10k thermistor for safe charging.
-- **U3** motion sensor (ST LSM6DSV16BX): bone conduction, motion, and Qvar (wear detection through E1/R6). Pin 9
-  (QVAR2) is tied to GND, as ST requires.
+- **U3** motion sensor (ST LSM6DSV16BX): bone conduction and motion only. Its Qvar input (pad E1, R6) is
+  not used. Pin 9 (QVAR2) is tied to GND, as ST requires.
 - **U4** microphone (TDK T5838), bottom port through a 0.6 mm board hole. Powered through load switch 1, so firmware
   can switch it fully off.
 - **U5** haptic driver (TI DRV2605L) for the coin LRA on **J3** (JST-SH 2-pin).
@@ -73,9 +74,8 @@ Checks done:
 2. **USB plugged in** (this also wakes the chip): show "charging" and don't start a session. Select the NTC and set
    32 mA charge current before enabling charging.
 3. **CALIBRATE (SW1):** run the read-aloud volume calibration for the current mode, then buzz when the target is saved.
-4. **Wear detection:**
-   - Enable Qvar on U3 and start/stop listening when E1 reads skin.
-   - Keep Qvar enabled. If it's disabled, pin 6 is effectively floating.
+4. **No wear detection.** Keep Qvar enabled on U3 and ignore its data: if it's disabled, pin 6 is effectively
+   floating on the unused E1 pad.
 5. **Mic power:** enable load switch 1 only after BUCK1 is confirmed at 1.8 V (the T5838's maximum is 1.98 V).
 6. **Buzz vs sensors:** the motor shakes the board. Ignore the bone sensor and mic for the length of each buzz.
 
@@ -104,7 +104,8 @@ The board model (`models/cue_board_v6_all_parts.glb`) has its corner at the orig
 
 - **Board:** sits flat on the base floor, with the back pressed directly on the head-side wall (no standoffs).
   - Wall under the bone sensor U3 (X 16–19, Y 5.6–9.2): solid contact.
-  - Wall under the wear pad E1 (X 10.6–14.6, Y 4.2–7.2): 0.6 mm thick.
+  - Wall under the pad E1 (X 10.6–14.6, Y 4.2–7.2): the normal 1.0 mm. The wear pad is not used, so it needs no
+    window.
 - **Battery:** Adafruit #1570, 31 × 11.5 × 3.8 mm, 100 mAh. Lies flat over the component side, on the forward half
   (X 0.5–31.5, Y 10–21.5, Z 5.6–9.4), above the tallest parts beneath it.
   - The 105 mm lead is **not shortened**: cutting LiPo leads risks a short (Tanisha).
@@ -143,7 +144,7 @@ The board model (`models/cue_board_v6_all_parts.glb`) has its corner at the orig
 - About **50 × 24 × 11.6 mm**. This is set by the board, the battery stacked on top, and the battery/USB connectors.
 - **Resin printed (SLA/MSLA), in a tough or ABS-like resin.** Standard resin is too brittle for the snap hooks
   and button flexures.
-  - Walls 1.0 mm (0.8 mm where tight), thin windows 0.6 mm (wear pad, motor).
+  - Walls 1.0 mm (0.8 mm where tight), thin window 0.6 mm (motor only).
   - Clearance 0.15 mm around parts, 0.2 mm for snap and sliding fits; 0.5 mm minimum feature, 0.6 mm minimum hole.
   - Print each part tilted about 30° with supports only inside and on the seam, keeping the head-side face, the
     outer face and the flexures support-free. No trapped hollow pockets.
@@ -280,7 +281,7 @@ Modelled in Zoo Design Studio and checked against the board model with `sim/fitc
 | Back of board to the head; snap-fit two-part shell                                             | Sam                  |
 | Vibration as the only on/off indicator (no LED, no board change)                               | Sam                  |
 | Physical power button (SW2); SW1 becomes CALIBRATE (volume calibration)                        | Sam                  |
-| Keep E1 as a wear sensor: auto start/stop listening                                            | Sam                  |
+| No wear sensing: E1 and U3's Qvar input unused, bone conduction only (2026-10-11)              | Sam                  |
 | USB-C opening for charging                                                                     | Sam                  |
 | Adafruit #1570 battery, lead not shortened, tuck space for the wire                            | Tanisha              |
 | No debug-port opening; open the shell to reprogram                                             | Tanisha              |
@@ -304,8 +305,9 @@ Modelled in Zoo Design Studio and checked against the board model with `sim/fitc
 3. **Size and weight:** about 50 × 24 × 11.6 mm and 10–15 g. Fine for a mule; a final-size body needs a smaller board.
 4. **Battery tipping:** the battery on the outer side shifts weight away from the head. The squeeze counters it,
    but watch for tipping in testing.
-5. **Wear detection through the shell is untested.** It may need a thinner window or an opening over E1.
-6. **R6 value:** it's 0 Ω now. ST's Qvar example uses about 500 Ω, so confirm against ST AN5755.
+5. **Wear detection: dropped (2026-10-11).** ST's Qvar guide (AN5755) needs skin on both the pad and ground, which
+   a closed shell cannot give without metal contacts through the case. Only U3's bone-conduction channel is used.
+6. **R6:** stays 0 Ω. It only served the wear pad.
 7. **J4 debug header:** keyed Arm cables need the -007 part (pin 7 removed), or pull pin 7.
 8. **Optional board tidy-ups:**
    - C2 (extra 10 µF on VBUS) and C4 (extra 1 µF on VSYS) aren't in Nordic's reference.
@@ -318,10 +320,9 @@ Modelled in Zoo Design Studio and checked against the board model with `sim/fitc
 3. **Comfort:** 2–4 h wear at about 60 g; check the ear root and mastoid.
 4. **Glasses:** do the hook and glasses arms coexist?
 5. **Stability:** walking, head turns, a short jog. Does it stay on without tipping?
-6. **Wear detection:** does E1 reliably tell on-head from on-desk through the shell?
-7. **Mic:** speech clarity through the forward port; noise during buzzes.
-8. **Buzz:** is it clearly felt but private?
-9. **Radio range:** Bluetooth link to a phone or laptop in a pocket, across a room, and behind the head.
+6. **Mic:** speech clarity through the forward port; noise during buzzes.
+7. **Buzz:** is it clearly felt but private?
+8. **Radio range:** Bluetooth link to a phone or laptop in a pocket, across a room, and behind the head.
 
 ## 8. Files
 

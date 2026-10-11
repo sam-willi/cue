@@ -158,13 +158,13 @@ res("R1", "4.7k", "I2C_SDA", "1V8"); res("R2", "4.7k", "I2C_SCL", "1V8")
 res("R3", "47k", "VSET1", "GND", note="VSET1 per Nordic reference circuit (BUCK1 1.8 V) - confirm in PS table")
 part("RT1", R0402[0], R0402[1], "10k NTC", "Murata NCP15XH103F03RC", {"1": "NTC", "2": "GND"},
      note="10k 1% B25/50 3380 K (nPM1300 PS Table 11). Next to U2: with the cell on a lead it senses board temperature.")
-res("R6", "0R", "QVAR1", "TOUCH_E", note="Qvar series element, value TBC with ST guidance")
+res("R6", "0R", "QVAR1", "TOUCH_E", note="Unused: wear sensing (Qvar) was dropped 2026-10-11. Stays fitted so the board is unchanged")
 note7 = "Cuff (BL54L15u) Ezurio Note 7: >=330 R series on P1.09-P1.12; kept so the boards match"
 res("R7", "330R", "U1_TDM_WCLK", "TDM_WCLK", note=note7)
 res("R8", "330R", "U1_PMIC_INT", "PMIC_INT", note=note7)
 
 part("E1", CUE, "Touch_Pad_4x3mm", "TOUCH", "Copper pad (shell contact)", {"1": "TOUCH_E"},
-     note="Qvar touch electrode; solder a wire to the shell or touch directly.")
+     note="Unused: wear sensing (Qvar) was dropped 2026-10-11. Bare pad, nothing connects to it.")
 part("SW1", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "USER", "Omron B3U-1000P",
      {"1": "BTN_USER", "2": "GND"}, note="Fitted by JLCPCB.")
 part("SW2", FP + "Button_Switch_SMD.pretty", "SW_SPST_B3U-1000P", "SHIP/WAKE", "Omron B3U-1000P",
