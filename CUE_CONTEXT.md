@@ -281,7 +281,7 @@ The exact ear location, clamp force, dimensions, mass, left/right symmetry, glas
 - **Radio and processor:** Ezurio BL54L15µ module (453-00223, Nordic nRF54L15, chip antenna, pre-certified). It is out of stock until about Dec 2026, so dev boards temporarily use the larger BL54L15 (453-00044, same nRF54L15 and pin map) until the small one is back.
 - **Power:** Nordic nPM1300 (charger, 1.8 V and 3.0 V rails). **Battery:** VARTA CP1254 coin cell; its external protection circuit is still open.
 - **Microphone:** TDK T5838 PDM mic; all logic runs at 1.8 V to suit it.
-- **Bone conduction and touch:** ST LSM6DSV16BX, whose bone-conduction (audio-band accelerometer) channel is the current wearer-voice sensor and whose Qvar input senses touch; an IQS227B touch controller is a do-not-populate (DNP) fallback. Knowles V2S200D is the alternative bone sensor (optional, DNP); the choice is made after the kit test on real ears.
+- **Bone conduction:** ST LSM6DSV16BX, whose bone-conduction (audio-band accelerometer) channel is the current wearer-voice sensor. Its Qvar touch/wear input is not used (decision 22); the rev 0 draft also listed an IQS227B touch controller as a do-not-populate (DNP) fallback. Knowles V2S200D is the alternative bone sensor (optional, DNP); the choice is made after the kit test on real ears.
 - **Haptics:** TI DRV2605L driver and an 8 mm Vybronics VG0832013D LRA, pressed toward the skin.
 - **Charging:** pogo-pin pads; no connectors and no external flash.
 
@@ -783,6 +783,10 @@ Cue is a **single, discreet behind-the-ear (BTE) device** with a satin metallic 
 ## 26. Decision log
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
+
+### 2026-10-11 — Bone conduction only
+
+22. **The prototype uses only the bone-conduction channel of the LSM6DSV16BX; its Qvar input is not used.** There is no wear detection and no touch sensing on the dev board: power and volume calibration are two physical buttons. Amends decision 4 for the prototype; whether a later device gets touch controls is an **[OPEN QUESTION]**. *Rationale:* ST's Qvar guide (AN5755) needs skin on both an electrode and a ground contact at once, which a closed shell cannot give without metal contacts through the case, and ST has withdrawn its presence-detection guidance; wear detection is a convenience that coaching does not depend on. *Consequences:* the E1 pad and R6 stay on the board unused, so the order is unchanged; firmware keeps the Qvar input enabled and ignores it so its pin is not left floating; Cue listens whenever it is switched on; the web app's simulated touch controls are unchanged for now.
 
 ### 2026-10-10 — Owner decisions after the first round of feedback
 
