@@ -44,7 +44,7 @@ physical power button plus automatic wear detection instead. Update `CUE_CONTEXT
 `hardware-rev0` as cue_devboard 6 (#33). Order-ready fab files are in `hardware/devboard/fab/`. See
 `hardware/devboard/README.md` for the full design notes and ordering steps.
 
-- **U1** radio module (Ezurio BL54L15 453-00044, nRF54L15). Needs a plug-in 2.4 GHz antenna (MHF4). Fitted by JLCPCB.
+- **U1** radio module (Ezurio BL54L15 453-00044, nRF54L15). Needs a plug-in 2.4 GHz antenna (MHF4). Soldered on by the team.
 - **U2** power chip (Nordic nPM1300).
   - BUCK1 makes 1.8 V for everything. BUCK2 is unused and tied off per the PS (Configuration 2).
   - Load switch 1 gates the mic supply. The charger is set to 32 mA; RT1 is the 10k thermistor for safe charging.
