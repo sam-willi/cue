@@ -175,7 +175,10 @@ export default function SignupForm({
           </p>
         )}
         <p id={`${id}-note`} className="mt-2 text-body-sm text-muted">
-          {copy.note}
+          {copy.note}{" "}
+          <a href="/privacy" className="underline underline-offset-4">
+            Privacy policy
+          </a>
         </p>
       </div>
 
