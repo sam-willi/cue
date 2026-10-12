@@ -124,6 +124,8 @@ Open http://localhost:3000.
 
 Five pages for a painted-door test, one per market, at `/for/<market>`: `speaking`, `sales`, `schools`, `english` and `interviews`. They share one layout (`src/app/for/[market]/page.tsx`) and differ only in copy (`src/lib/landing/markets.ts`). Search engines are asked not to index them, so visits come from ads.
 
+The photos are panels cut from one product concept sheet, [`assets/product/cue-concept-sheet.webp`](assets/product/cue-concept-sheet.webp), by `node scripts/landing-images.mjs`, which writes them to `public/landing/`. The sheet is the owner's image and is kept in the repo so other pages and materials can use it.
+
 Each page has a sign-up form. A sign-up records the market, the email, and the `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` and `utm_term` tags on the page address, so tag each ad's link (`/for/sales?utm_source=meta&utm_campaign=sales-a`). The schools page asks for a pilot and also takes a school and role.
 
 **Where sign-ups go.** A Google Sheet, through a small script that lives in the sheet:
