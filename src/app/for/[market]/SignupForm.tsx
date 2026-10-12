@@ -5,7 +5,7 @@ import { PILOT_ROLES, type MarketKind } from "@/lib/landing/markets";
 import { UTM_KEYS } from "@/lib/landing/signups";
 
 const FIELD =
-  "min-h-12 w-full rounded-lg border border-line bg-surface px-4 text-body text-text placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cue";
+  "min-h-12 w-full rounded-control border border-field bg-surface px-5 text-body text-text placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cue";
 
 /** The page's one action: leave an email (and, for a pilot, a school) against this market. */
 export default function SignupForm({ market, kind, cta }: { market: string; kind: MarketKind; cta: string }) {
@@ -53,7 +53,7 @@ export default function SignupForm({ market, kind, cta }: { market: string; kind
 
   if (state === "done") {
     return (
-      <div role="status" className="rounded-2xl border border-line bg-surface p-6">
+      <div role="status" className="rounded-card border border-line bg-surface p-6">
         <p className="text-title-m font-medium sm:text-title">
           {pilot ? "Thanks. Request received." : "You’re on the list."}
         </p>
@@ -116,7 +116,7 @@ export default function SignupForm({ market, kind, cta }: { market: string; kind
           <button
             type="submit"
             disabled={state === "sending"}
-            className="min-h-12 shrink-0 rounded-lg bg-text px-6 text-body font-medium text-bg transition-opacity duration-200 ease-out hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cue disabled:opacity-60"
+            className="min-h-12 shrink-0 rounded-control bg-action px-7 text-body font-semibold text-on-action transition-opacity duration-200 ease-out hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cue disabled:opacity-60"
           >
             {state === "sending" ? "Sending…" : cta}
           </button>

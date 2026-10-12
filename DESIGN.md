@@ -753,6 +753,11 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 
 ## 25. Change log
 
+### 2026-10-11
+
+- **Landing pages have one look per audience** (owner request). The five painted-door pages at `/for/<market>` each set their own palette, typeface, corner radius and one illustration, defined in `src/app/globals.css` and `src/app/for/[market]/`. This is an exception to the single-accent rule (§7) and Geist-only type (§8) for those pages alone; the app and the rest of the brand are unchanged. Speaking: oxblood and ivory, Newsreader. Sales: white, ink and orange-red, condensed Archivo capitals. Schools: green and marker yellow, Lexend. English: blue-white and blue, Atkinson Hyperlegible Next. Interviews: lilac and violet, Bricolage Grotesque. Each look is fixed and doesn't follow light or dark mode.
+- **Landing pages show the product concept sheet** (`assets/product/cue-concept-sheet.webp`), not the CAD model, captioned as a design concept. Its crescent form differs from the CAD's body-and-hook (§14).
+
 ### 2026-10-10
 
 - **Three cues** (`CUE_CONTEXT.md` §26, decision 18): the legend is one row of three (Speak up, Slow down, Pause) with no family columns, and the "Simpler cues" setting is gone. §11 updated.
