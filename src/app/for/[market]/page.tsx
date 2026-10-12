@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PATTERNS, type CuePattern } from "@/lib/cue/patterns";
 import { MARKETS, SHARED, marketFor } from "@/lib/landing/markets";
 import { LANDING_FONTS } from "./fonts";
+import JoinLink from "./JoinLink";
 import Signature from "./Signature";
 import SignupForm from "./SignupForm";
 
@@ -75,24 +76,26 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
 
   return (
     <div data-landing={market.slug} className={`w-full flex-1 ${LANDING_FONTS}`}>
-      <main className="mx-auto w-full max-w-6xl px-5 pb-16 pt-8 sm:px-8">
-        <header className="flex items-center justify-between gap-4">
+      <main className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-8">
+        {/* Stays in view, so signing up is one press away from anywhere on the page. */}
+        <header className="sticky top-0 z-10 -mx-5 flex items-center justify-between gap-4 bg-bg px-5 py-3 sm:-mx-8 sm:px-8">
           <Logo reversed={DARK_LOOKS.has(market.slug)} />
-          <a
-            href="#join"
-            className="rounded-lg px-1 text-label font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cue"
-          >
-            {market.cta}
-          </a>
+          <JoinLink target="signup">{market.cta}</JoinLink>
         </header>
 
-        <section className="pt-12 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:items-center lg:gap-16 lg:pt-20">
+        <section className="pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:items-center lg:gap-16 lg:pt-14">
           <div>
             <p className="text-label font-medium text-cue">{market.eyebrow}</p>
             <h1 className="landing-display landing-hero-title mt-4 text-balance">{market.headline}</h1>
             <p className="mt-6 max-w-xl text-body-lg-m text-muted sm:text-body-lg">{market.lead}</p>
             <div className="mt-8 max-w-xl">
-              <SignupForm market={market.slug} kind={market.kind} cta={market.cta} />
+              <SignupForm
+                market={market.slug}
+                kind={market.kind}
+                cta={market.cta}
+                title={market.kind === "pilot" ? "Request a pilot for your school" : "Get early access"}
+                anchor="signup"
+              />
             </div>
           </div>
           <figure className="mt-12 lg:mt-0">
@@ -245,7 +248,6 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
           <h2 id="join-title" className={SECTION_TITLE}>
             {shared.joinTitle}
           </h2>
-          <p className="mt-4 max-w-xl text-body-lg-m text-muted sm:text-body-lg">{shared.joinLine}</p>
           <div className="mt-8 max-w-xl">
             <SignupForm market={market.slug} kind={market.kind} cta={market.cta} />
           </div>

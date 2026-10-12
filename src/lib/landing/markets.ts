@@ -293,7 +293,6 @@ export interface SharedCopy {
   cuesIntro: string;
   detects: { pause: string; slow: string; speak: string };
   facts: { title: string; body: string }[];
-  joinLine: string;
   faq: { q: string; a: string }[];
 }
 
@@ -334,7 +333,6 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
         body: "Cue doesn’t script you or score you. It makes room for a pause; what you say next is up to you.",
       },
     ],
-    joinLine: "Leave your email and we’ll tell you when early access opens.",
     faq: [
       AVAILABILITY,
       LOOKS,
@@ -371,7 +369,6 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
         body: "Cue doesn’t script students or score them. It makes room for a pause; what they say next is up to them.",
       },
     ],
-    joinLine: "Tell us where you teach and we’ll be in touch about a pilot.",
     faq: [
       AVAILABILITY,
       LOOKS,

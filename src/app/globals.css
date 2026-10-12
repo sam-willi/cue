@@ -148,20 +148,20 @@ body {
  * light or dark setting. Text and control colors are checked for WCAG AA contrast.
  */
 
-/* Speakers and coaches: a stage curtain. Oxblood, ivory, an editorial serif, square corners. */
+/* Speakers and coaches: a dark stage. Midnight navy, ivory, a gold button, an editorial serif. */
 :root:has([data-landing="speaking"]) {
   color-scheme: dark;
-  --bg: #4b111c;
-  --surface: #5a1a26;
-  --surface-2: #3d0c15;
-  --line: #7d3a47;
-  --field-line: #a8707b;
-  --text: #f7eee7;
-  --muted: #dfc7c1;
-  --cue: #f2c9a0;
-  --cue-soft: rgba(242, 201, 160, 0.22);
-  --action: #f7eee7;
-  --on-action: #4b111c;
+  --bg: #101b33;
+  --surface: #1a2848;
+  --surface-2: #0a1326;
+  --line: #33456b;
+  --field-line: #7c8db5;
+  --text: #f6f1e7;
+  --muted: #c3cce0;
+  --cue: #e9c46a;
+  --cue-soft: rgba(233, 196, 106, 0.2);
+  --action: #e9c46a;
+  --on-action: #101b33;
 }
 [data-landing="speaking"] {
   --landing-display: var(--font-newsreader), Georgia, serif;
