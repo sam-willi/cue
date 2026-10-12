@@ -195,8 +195,8 @@ body {
   --landing-display-weight: 800;
   --landing-display-tracking: -0.015em;
   --landing-display-stretch: 78%;
-  --landing-hero-size: 76px;
-  --landing-hero-size-m: 46px;
+  --landing-hero-size: 64px;
+  --landing-hero-size-m: 42px;
   --landing-hero-leading: 0.96;
   --landing-hero-case: uppercase;
   --landing-hero-word-spacing: 0.12em;
