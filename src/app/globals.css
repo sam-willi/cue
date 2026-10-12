@@ -125,23 +125,7 @@ body {
   animation-delay: var(--beat-delay, 0ms);
 }
 
-/* Landing pages: the name of the cue being played on the device settles in as its rings start. */
-@keyframes cue-word-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.cue-word {
-  animation: cue-word-in 0.2s ease-out 1;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .cue-word,
   .cue-playing .beat,
   .touch-pad.pressing .press-ring {
     animation: none !important;

@@ -3,7 +3,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { PATTERNS, type CuePattern } from "@/lib/cue/patterns";
 import { MARKETS, SHARED, marketFor } from "@/lib/landing/markets";
-import HeroDevice from "./HeroDevice";
 import SignupForm from "./SignupForm";
 
 // Painted-door pages: one per market in src/lib/landing/markets.ts, and nothing else under /for.
@@ -32,6 +31,9 @@ const CUES: { pattern: CuePattern; key: "pause" | "slow" | "speak" }[] = [
 ];
 
 const REPORT_AREAS = ["Pauses", "Pace", "Volume", "Filler words", "Pitch and tone"];
+
+const PHOTO = "rounded-2xl bg-surface-2 object-cover";
+const CONCEPT_NOTE = "Design concept. The finished device may look different.";
 
 /** A cue's rhythm as bars: one per pulse, as long as the pulse (DESIGN.md §11). */
 function Rhythm({ pattern }: { pattern: CuePattern }) {
@@ -100,9 +102,18 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
             <SignupForm market={market.slug} kind={market.kind} cta={market.cta} />
           </div>
         </div>
-        <div className="mt-12 lg:mt-0">
-          <HeroDevice />
-        </div>
+        <figure className="mt-12 lg:mt-0">
+          <Image
+            src="/landing/cue-concept-on-ear.webp"
+            alt="Cue worn behind a person’s ear: a slim grey crescent that follows the back of the ear, with nothing in the ear itself."
+            width={794}
+            height={1024}
+            priority
+            sizes="(min-width: 1024px) 40vw, 100vw"
+            className={`h-auto w-full ${PHOTO}`}
+          />
+          <figcaption className="mt-3 text-caption text-muted">{CONCEPT_NOTE}</figcaption>
+        </figure>
       </section>
 
       <section aria-labelledby="problem" className="pt-24 sm:pt-32">
@@ -149,7 +160,7 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
           <p className="mt-4 max-w-xl text-body-lg-m text-muted sm:text-body-lg">{market.report.body}</p>
         </div>
         <ul aria-label="What the report covers" className="mt-10 rounded-2xl border border-line bg-surface lg:mt-0">
-          {REPORT_AREAS.map((area) => (
+          {[...REPORT_AREAS, ...(market.extraReportAreas ?? [])].map((area) => (
             <li key={area} className="border-b border-line px-6 py-4 text-body last:border-b-0">
               {area}
             </li>
@@ -157,8 +168,46 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
         </ul>
       </section>
 
-      <section aria-label="How Cue behaves" className="pt-24 sm:pt-32">
-        <ul className="grid gap-10 md:grid-cols-3 md:gap-8">
+      <section aria-labelledby="device" className="pt-24 sm:pt-32">
+        <h2 id="device" className={SECTION_TITLE}>
+          One small device, behind one ear
+        </h2>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          <Image
+            src="/landing/cue-concept-device.webp"
+            alt="The Cue device on its own: a smooth grey crescent with one slim button on its outer edge."
+            width={733}
+            height={419}
+            sizes="(min-width: 768px) 66vw, 100vw"
+            className={`h-auto w-full md:col-span-2 md:h-full ${PHOTO}`}
+          />
+          <Image
+            src="/landing/cue-concept-detail-button.webp"
+            alt="Close-up of the button and the small microphone opening beside it."
+            width={345}
+            height={324}
+            sizes="(min-width: 768px) 33vw, 100vw"
+            className={`h-auto w-full md:h-full ${PHOTO}`}
+          />
+          <Image
+            src="/landing/cue-concept-angles.webp"
+            alt="The device from the front, the side and the back."
+            width={733}
+            height={265}
+            sizes="(min-width: 768px) 66vw, 100vw"
+            className={`h-auto w-full md:col-span-2 md:h-full ${PHOTO}`}
+          />
+          <Image
+            src="/landing/cue-concept-detail-inner.webp"
+            alt="Close-up of the soft inner curve that rests against the ear."
+            width={378}
+            height={324}
+            sizes="(min-width: 768px) 33vw, 100vw"
+            className={`h-auto w-full md:h-full ${PHOTO}`}
+          />
+        </div>
+        <p className="mt-3 text-caption text-muted">{CONCEPT_NOTE}</p>
+        <ul className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
           {shared.facts.map((fact) => (
             <li key={fact.title} className="border-t border-line pt-5">
               <h3 className="text-title-m font-medium sm:text-title">{fact.title}</h3>

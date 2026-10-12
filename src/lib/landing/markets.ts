@@ -4,8 +4,9 @@
  *
  * Copy rules (CUE_CONTEXT.md §18, §20, §24; DESIGN.md §17): no numeric claims, nothing that
  * implies sensing or accuracy is proven, no "sound smarter", and Cue is always one
- * behind-the-ear device. Cue coaches delivery (pauses, pace, volume, filler words), so no
- * page promises feedback on content, pronunciation or grammar.
+ * behind-the-ear device. Cue's live cues coach delivery (pauses, pace, volume, filler words).
+ * The English page also offers grammar help in the report (owner decision, 2026-10-11): that
+ * is not built, and the page is how we find out whether people want it.
  */
 
 export type MarketKind = "early-access" | "pilot";
@@ -26,6 +27,8 @@ export interface Market {
   /** Where each cue lands for this audience, shown under what the cue detects. */
   moments: { label: string; pause: string; slow: string; speak: string };
   report: { title: string; body: string };
+  /** Report areas this page lists after the standard ones. */
+  extraReportAreas?: string[];
   faq: { q: string; a: string }[];
   metaTitle: string;
   metaDescription: string;
@@ -178,14 +181,14 @@ export const MARKETS: Market[] = [
     kind: "early-access",
     eyebrow: "For English learners",
     headline: "Know how you sound while you’re still speaking.",
-    lead: "When you speak English, your attention goes to finding the words. It’s hard to notice that you’re rushing, getting quieter or filling the gaps. Cue is a discreet behind-the-ear wearable that tells you in the moment, with a private tap.",
+    lead: "When you speak English, your attention goes to finding the words. It’s hard to notice that you’re rushing, getting quieter or repeating the same grammar slips. Cue is a discreet behind-the-ear wearable that taps you privately in the moment, then shows you the grammar to work on afterwards.",
     cta: "Join early access",
     wearer: "you",
     problemTitle: "Why it’s hard to fix on your own",
     problems: [
       {
         title: "You can’t listen to yourself and speak at once",
-        body: "Finding words takes all your attention. Pace, pauses and volume go unnoticed until someone asks you to repeat yourself.",
+        body: "Finding words takes all your attention. Pace, volume and small grammar slips go unnoticed until someone asks you to repeat yourself.",
       },
       {
         title: "Apps only help while you practice",
@@ -193,7 +196,7 @@ export const MARKETS: Market[] = [
       },
       {
         title: "People are too polite to say",
-        body: "Colleagues and friends rarely tell you that you’re speaking too fast or too quietly, so the habit stays.",
+        body: "Colleagues and friends rarely correct your grammar or tell you that you’re speaking too fast, so the habits stay.",
       },
     ],
     moments: {
@@ -203,13 +206,18 @@ export const MARKETS: Market[] = [
       speak: "Getting quieter when you’re unsure of a word.",
     },
     report: {
-      title: "A report after each conversation",
-      body: "Pauses, pace, volume and filler words, with up to three things to work on first.",
+      title: "Your grammar, from your own conversations",
+      body: "After each conversation, Cue shows the grammar slips that came up most, each with a corrected version of what you said. The same report covers pauses, pace, volume and filler words, with up to three things to work on first.",
     },
+    extraReportAreas: ["Grammar"],
     faq: [
       {
-        q: "Does Cue correct pronunciation or grammar?",
-        a: "No. Cue coaches delivery: pace, pauses, filler words and volume. It doesn’t judge your accent and isn’t trying to change it.",
+        q: "How does Cue help with grammar?",
+        a: "In the report after each conversation: the grammar slips that came up most, each with a corrected version of what you said. The taps while you speak stay on delivery (pace, pauses, filler words and volume), because a tap can’t tell you which word to change.",
+      },
+      {
+        q: "Does Cue correct my pronunciation or accent?",
+        a: "No. Cue doesn’t judge your accent and isn’t trying to change it.",
       },
       {
         q: "Will it work with my accent?",
@@ -218,7 +226,7 @@ export const MARKETS: Market[] = [
     ],
     metaTitle: "Cue for English learners",
     metaDescription:
-      "A discreet behind-the-ear wearable that tells you, with a private tap, when you’re rushing, getting quieter or filling the gaps.",
+      "A discreet behind-the-ear wearable that taps you privately when you’re rushing or getting quieter, then shows you the grammar to work on.",
   },
   {
     slug: "interviews",
@@ -291,7 +299,7 @@ const AVAILABILITY = {
 };
 const LOOKS = {
   q: "What does it look like?",
-  a: "One small device behind one ear, on a thin ear hook. Nothing goes in the ear, and it isn’t an earbud.",
+  a: "One small device that follows the curve behind one ear. Nothing goes in the ear, and it isn’t an earbud.",
 };
 const PRICE = { q: "What will it cost?", a: "We haven’t set a price." };
 const PATTERNS_FACT = {
@@ -312,7 +320,7 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
     facts: [
       {
         title: "Nothing in your ear",
-        body: "One small device sits behind one ear on a thin hook. Your ear stays open.",
+        body: "One small device follows the curve behind one ear. Your ear stays open.",
       },
       PATTERNS_FACT,
       {
@@ -347,7 +355,7 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
     facts: [
       {
         title: "Nothing in the ear",
-        body: "One small device sits behind one ear on a thin hook. The ear stays open.",
+        body: "One small device follows the curve behind one ear. The ear stays open.",
       },
       PATTERNS_FACT,
       {
