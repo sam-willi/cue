@@ -41,35 +41,35 @@ export const MARKETS: Market[] = [
     slug: "speaking",
     name: "Executive coaches / public speaking",
     kind: "early-access",
-    eyebrow: "For speakers and speaking coaches",
-    headline: "Stop saying “um” and rushing when you present.",
-    lead: "You practice the pause, then the stakes rise and the old habits come back. Cue is a discreet behind-the-ear wearable that taps you privately, mid-sentence, when you rush, skip a pause or lean on filler words.",
+    eyebrow: "For speakers, presenters and coaches",
+    headline: "Speak with confidence. Own the room.",
+    lead: "When the stakes rise, it’s easy to rush, ramble and say “um”. Cue is a discreet behind-the-ear wearable that taps you privately, mid-sentence, so you slow down, pause and hold the room.",
     cta: "Join early access",
     wearer: "you",
-    problemTitle: "Why you still rush and say “um” on stage",
+    problemTitle: "Why you rush and say “um” when it matters most",
     problems: [
       {
-        title: "Practice doesn’t hold up under pressure",
-        body: "Habits you fixed in practice return under pressure, when your attention is on the audience and not on your delivery.",
+        title: "You rehearse well, then rush on the day",
+        body: "In front of an audience, your attention goes to the room. The habits you fixed in practice come straight back.",
       },
       {
         title: "Feedback comes after the talk is over",
-        body: "A recording or a debrief tells you what happened after the talk. By then the moment to change it has passed.",
+        body: "A recording or a debrief shows you what went wrong once the talk is done. It can’t help you while you’re speaking.",
       },
       {
         title: "Your coach can’t be at every talk",
-        body: "Between sessions, clients are on their own. Cue carries the same few prompts into the meetings and stages a coach never sees.",
+        body: "Coaching happens in sessions. The talks that count happen in meetings and on stages, where you’re on your own.",
       },
     ],
     moments: {
       label: "In a talk",
-      pause: "Moving from one point to the next without letting the first one land.",
-      slow: "The opening minute, when adrenaline sets the pace.",
-      speak: "Trailing off at the end of a sentence.",
+      pause: "Rushing from one point to the next without a pause.",
+      slow: "The first minute, when nerves make you talk fast.",
+      speak: "Your voice dropping at the end of a sentence.",
     },
     report: {
       title: "See exactly what to improve after every talk",
-      body: "After each talk, Cue reports on pauses, pace, volume, filler words and pitch, with up to three things to work on first.",
+      body: "After each talk, Cue shows how you did on pauses, pace, volume, filler words and pitch, and picks up to three things to work on first. Bring it to your coach, or use it on your own.",
     },
     faq: [
       {
@@ -77,9 +77,9 @@ export const MARKETS: Market[] = [
         a: "That’s one of the uses we’re building for. Join early access and we’ll ask how you work with clients before we send anything out.",
       },
     ],
-    metaTitle: "Cue for speakers and speaking coaches",
+    metaTitle: "Cue for speakers and presenters",
     metaDescription:
-      "A discreet behind-the-ear wearable that taps you privately, mid-sentence, when you rush, skip a pause or lean on filler words.",
+      "A discreet behind-the-ear wearable that taps you privately, mid-sentence, so you slow down, pause and hold the room.",
   },
   {
     slug: "sales",

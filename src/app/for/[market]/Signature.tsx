@@ -32,7 +32,7 @@ function Speaking() {
         <Breath />I was twenty-two.
       </p>
       <figcaption className="mt-8 max-w-xl text-body text-muted">
-        A breath after each thought. Where one goes missing, Cue taps once.
+        An example. A pause after each thought keeps the room with you. When you run on without one, Cue taps you once.
       </figcaption>
     </>
   );
