@@ -139,6 +139,8 @@ Each sign-up is added as a row on its page's tab within a second or two of the v
 
 Without `SIGNUPS_SHEET_URL`, `npm run dev` saves sign-ups to `./signups/signups.jsonl` (git-ignored), and a deployed site tells the visitor it couldn't save and keeps nothing.
 
+**Counting visits.** The landing pages load [Vercel Web Analytics](https://vercel.com/docs/analytics) (`<Analytics />` in `src/app/for/[market]/page.tsx`), so the project's **Analytics** tab in Vercel shows visitors and page views per page. Turn it on once under Project → Analytics → Enable. It uses no cookies, counts nothing under `npm run dev`, and is not loaded on the coaching app at `/`. Compare each page's visitors with the rows on its tab in the sheet to get a sign-up rate.
+
 ## Scripts
 
 | Command                           | What it does                                                                                                                                                                                                                                       |
@@ -206,7 +208,7 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram Flux (v2/listen, flux-gene
 
 ## Privacy
 
-Live mode sends microphone audio to Deepgram for transcription. This is a disclosed exception for the MVP; the product is meant to move to on-device or phone-local recognition before launch ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 9). The coaching app stores nothing on a server: no audio, transcripts, or events leave the browser tab except as an explicit **Download session** file. The landing pages are separate: a sign-up sends the email address, market and ad tags to the sign-up sheet (see Landing pages). What stays in your browser: your own Deepgram key if you entered one (see above) and one volume number per mode if you calibrated. **Training recordings** are opt-in, only possible under `npm run dev`, and are written to `./training/` on your machine (git-ignored). Don't commit session files or training recordings; they contain transcripts and audio.
+Live mode sends microphone audio to Deepgram for transcription. This is a disclosed exception for the MVP; the product is meant to move to on-device or phone-local recognition before launch ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 9). The coaching app stores nothing on a server: no audio, transcripts, or events leave the browser tab except as an explicit **Download session** file. The landing pages are separate: a sign-up sends the email address, market and ad tags to the sign-up sheet, and each visit is counted by Vercel Web Analytics without cookies (see Landing pages). What stays in your browser: your own Deepgram key if you entered one (see above) and one volume number per mode if you calibrated. **Training recordings** are opt-in, only possible under `npm run dev`, and are written to `./training/` on your machine (git-ignored). Don't commit session files or training recordings; they contain transcripts and audio.
 
 ## Contributing
 
