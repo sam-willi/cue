@@ -51,3 +51,6 @@ scripts/out/
 
 # voice detector runtime and model, copied from node_modules by scripts/copy-vad-assets.mjs
 /public/vad/
+
+# landing-page sign-ups saved while running locally (email addresses) — never commit
+/signups/
