@@ -85,49 +85,53 @@ export const MARKETS: Market[] = [
     slug: "sales",
     name: "Sales",
     kind: "early-access",
-    eyebrow: "For sales reps",
-    headline: "Stop rambling on sales calls. Close more deals.",
-    lead: "On a live call, it’s easy to rush, run long and fill every silence. Cue is a discreet behind-the-ear wearable that taps you privately in the moment: pause, slow down, speak up.",
+    eyebrow: "For salespeople",
+    headline: "Stop rambling when you sell. Close more deals.",
+    lead: "On a call, on the showroom floor or at a showing, it’s easy to rush, run long and fill every silence. Cue is a discreet behind-the-ear wearable that taps you privately in the moment: pause, slow down, speak up.",
     cta: "Join early access",
     wearer: "you",
-    problemTitle: "Why reps rush and ramble on calls",
+    problemTitle: "Why salespeople rush and ramble with buyers",
     problems: [
       {
-        title: "Call reviews come a day too late",
-        body: "Recordings and scorecards show you what went wrong after the conversation is over.",
+        title: "Feedback comes after the buyer has gone",
+        body: "Call recordings and manager debriefs show you what went wrong once the conversation is over. Face to face, there’s usually no recording at all.",
       },
       {
         title: "Nerves make you talk too fast",
-        body: "A big meeting or a cold open speeds you up. Fast talk leaves the buyer no room to think or answer.",
+        body: "A big meeting, a cold call or a buyer walking onto the lot speeds you up. Fast talk leaves them no room to think or answer.",
       },
       {
         title: "Long answers lose the buyer",
-        body: "When one answer runs on, the buyer stops taking part. It’s hard to notice until you hear the recording.",
+        body: "When one answer runs on, the buyer stops taking part. It’s hard to notice while you’re the one talking.",
       },
     ],
     moments: {
-      label: "On a call",
+      label: "With a buyer",
       pause: "After you ask a question, when the urge is to keep talking.",
-      slow: "The first half-minute of a cold call.",
+      slow: "The first half-minute of a cold call or a walk-in.",
       speak: "Getting quieter as you name the price.",
     },
     report: {
-      title: "See what to fix after every call",
+      title: "See what to fix after every conversation",
       body: "Pauses, pace, volume, filler words and your longest stretch without a pause, with up to three things to work on first. Useful on your own, or as a starting point with your manager.",
     },
     faq: [
       {
-        q: "Does it work on phone and video calls?",
-        a: "Cue is being built to coach only the wearer’s voice, so the plan is for it to work the same in person and on a call. We’re testing that now.",
+        q: "Does it work in person and on calls?",
+        a: "That’s the plan. Cue is worn behind your ear and is being built to coach only your voice, so it should work the same on a showroom floor, at a showing, or on a phone or video call. We’re testing that now.",
       },
       {
-        q: "Is this for one rep or a whole team?",
+        q: "Will the buyer notice it?",
+        a: "It’s designed to be discreet: one small device behind one ear, with taps meant for you alone. If a buyer does ask, it’s a speaking coach.",
+      },
+      {
+        q: "Is this for one salesperson or a whole team?",
         a: "Either. Join with your work email and we’ll ask about team size before early access opens.",
       },
     ],
     metaTitle: "Cue for sales",
     metaDescription:
-      "A discreet behind-the-ear wearable that taps you privately on live calls: pause, slow down, speak up.",
+      "A discreet behind-the-ear wearable that taps you privately while you sell, in person or on a call: pause, slow down, speak up.",
   },
   {
     slug: "schools",
