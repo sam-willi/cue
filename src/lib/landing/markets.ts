@@ -7,8 +7,8 @@
  * behind-the-ear device. Cue's live cues coach delivery (pauses, pace, volume, filler words).
  * The English page also offers grammar help in the report (owner decision, 2026-10-11): that
  * is not built, and the page is how we find out whether people want it. Headlines state the
- * benefit outright, including outcomes ("Get the job", "Close more deals"), also at the owner's
- * request; the body copy and the FAQ stay within what Cue does.
+ * benefit outright at the owner's request, but stop short of promising a result ("get the job",
+ * "close more deals"): ad platforms reject pages that promise employment or income.
  */
 
 export type MarketKind = "early-access" | "pilot";
@@ -86,7 +86,7 @@ export const MARKETS: Market[] = [
     name: "Sales",
     kind: "early-access",
     eyebrow: "For salespeople",
-    headline: "Stop rambling when you sell. Close more deals.",
+    headline: "Stop rambling. Keep the buyer listening.",
     lead: "On a call, on the showroom floor or at a showing, it’s easy to rush, run long and fill every silence. Cue is a discreet behind-the-ear wearable that taps you privately in the moment: pause, slow down, speak up.",
     cta: "Join early access",
     wearer: "you",
@@ -239,7 +239,7 @@ export const MARKETS: Market[] = [
     name: "Interviewees",
     kind: "early-access",
     eyebrow: "For interviews",
-    headline: "Sound more professional. Get the job.",
+    headline: "Sound more professional in every interview.",
     lead: "In an interview, pressure makes people rush, ramble and reach for “um”. Cue is a discreet behind-the-ear wearable that taps you privately so you pause, breathe and answer at your own pace.",
     cta: "Join early access",
     wearer: "you",

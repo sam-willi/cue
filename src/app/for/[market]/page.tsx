@@ -255,7 +255,12 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
 
         <footer className="pt-12 text-caption text-muted">
           <p>Cue is in development. What this page describes is being built and tested, and may change.</p>
-          <p className="mt-1">© 2026 Cue</p>
+          <p className="mt-1">
+            © 2026 Cue ·{" "}
+            <a href="/privacy" className="underline underline-offset-4">
+              Privacy policy
+            </a>
+          </p>
         </footer>
       </main>
     </div>
