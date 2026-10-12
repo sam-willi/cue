@@ -120,6 +120,22 @@ Open http://localhost:3000.
 
 **Use your own Deepgram key** is always available, and when set it overrides the server's key. The key is kept in this browser only: `sessionStorage` (this tab), or `localStorage` if you tick **Remember on this device**. The browser connects straight to Deepgram with the key as a WebSocket `token` subprotocol; it never passes through Cue's server. If Deepgram rejects the key, the form reopens. Without a server key and without your own, **Start listening** opens the form (the token route answers 503).
 
+## Landing pages
+
+Five pages for a painted-door test, one per market, at `/for/<market>`: `speaking`, `sales`, `schools`, `english` and `interviews`. They share one layout (`src/app/for/[market]/page.tsx`) and differ only in copy (`src/lib/landing/markets.ts`). Search engines are asked not to index them, so visits come from ads.
+
+Each page has a sign-up form. A sign-up records the market, the email, and the `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` and `utm_term` tags on the page address, so tag each ad's link (`/for/sales?utm_source=meta&utm_campaign=sales-a`). The schools page asks for a pilot and also takes a school and role.
+
+**Where sign-ups go.** A Google Sheet, through a small script that lives in the sheet:
+
+1. Create a Google Sheet. Open **Extensions → Apps Script**, replace the editor's contents with [`scripts/signups-sheet.gs`](scripts/signups-sheet.gs), and save.
+2. **Deploy → New deployment → Web app**. Set **Execute as** to _Me_ and **Who has access** to _Anyone_, deploy, and approve the access prompt. Copy the web app URL (it ends in `/exec`).
+3. In Vercel, add that URL as the environment variable `SIGNUPS_SHEET_URL` (Project → Settings → Environment Variables), then redeploy.
+
+Anyone with the URL can add rows, so treat it like a password: it stays in Vercel and is never sent to the browser. If you change the script later, publish it with **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
+
+Without `SIGNUPS_SHEET_URL`, `npm run dev` saves sign-ups to `./signups/signups.jsonl` (git-ignored), and a deployed site tells the visitor it couldn't save and keeps nothing.
+
 ## Scripts
 
 | Command                           | What it does                                                                                                                                                                                                                                       |
@@ -187,7 +203,7 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram Flux (v2/listen, flux-gene
 
 ## Privacy
 
-Live mode sends microphone audio to Deepgram for transcription. This is a disclosed exception for the MVP; the product is meant to move to on-device or phone-local recognition before launch ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 9). Cue itself stores nothing on a server: no audio, transcripts, or events leave the browser tab except as an explicit **Download session** file. What stays in your browser: your own Deepgram key if you entered one (see above) and one volume number per mode if you calibrated. **Training recordings** are opt-in, only possible under `npm run dev`, and are written to `./training/` on your machine (git-ignored). Don't commit session files or training recordings; they contain transcripts and audio.
+Live mode sends microphone audio to Deepgram for transcription. This is a disclosed exception for the MVP; the product is meant to move to on-device or phone-local recognition before launch ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 9). The coaching app stores nothing on a server: no audio, transcripts, or events leave the browser tab except as an explicit **Download session** file. The landing pages are separate: a sign-up sends the email address, market and ad tags to the sign-up sheet (see Landing pages). What stays in your browser: your own Deepgram key if you entered one (see above) and one volume number per mode if you calibrated. **Training recordings** are opt-in, only possible under `npm run dev`, and are written to `./training/` on your machine (git-ignored). Don't commit session files or training recordings; they contain transcripts and audio.
 
 ## Contributing
 
