@@ -168,7 +168,7 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
 
         <section aria-labelledby="device" className="pt-24 sm:pt-32">
           <h2 id="device" className={SECTION_TITLE}>
-            One small device, behind one ear
+            {shared.deviceTitle}
           </h2>
           <div className="mt-10 grid gap-4 md:grid-cols-3">
             <Image
@@ -243,7 +243,7 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
           className="mt-24 scroll-mt-8 rounded-card bg-surface-2 px-6 py-12 sm:mt-32 sm:px-12 sm:py-16"
         >
           <h2 id="join-title" className={SECTION_TITLE}>
-            Speak with intention.
+            {shared.joinTitle}
           </h2>
           <p className="mt-4 max-w-xl text-body-lg-m text-muted sm:text-body-lg">{shared.joinLine}</p>
           <div className="mt-8 max-w-xl">

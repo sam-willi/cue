@@ -199,6 +199,7 @@ body {
   --landing-hero-size-m: 46px;
   --landing-hero-leading: 0.96;
   --landing-hero-case: uppercase;
+  --landing-hero-word-spacing: 0.12em;
   --landing-radius-control: 6px;
   --landing-radius-card: 10px;
 }
@@ -298,6 +299,7 @@ body {
   font-size: var(--landing-hero-size-m, 40px);
   line-height: var(--landing-hero-leading, 1.05);
   text-transform: var(--landing-hero-case, none);
+  word-spacing: var(--landing-hero-word-spacing, normal);
 }
 @media (min-width: 640px) {
   [data-landing] .landing-hero-title {

@@ -3,10 +3,12 @@
  * so the only thing that differs between them is who the page speaks to.
  *
  * Copy rules (CUE_CONTEXT.md §18, §20, §24; DESIGN.md §17): no numeric claims, nothing that
- * implies sensing or accuracy is proven, no "sound smarter", and Cue is always one
+ * implies sensing or accuracy is proven, and Cue is always one
  * behind-the-ear device. Cue's live cues coach delivery (pauses, pace, volume, filler words).
  * The English page also offers grammar help in the report (owner decision, 2026-10-11): that
- * is not built, and the page is how we find out whether people want it.
+ * is not built, and the page is how we find out whether people want it. Headlines state the
+ * benefit outright, including outcomes ("Get the job", "Close more deals"), also at the owner's
+ * request; the body copy and the FAQ stay within what Cue does.
  */
 
 export type MarketKind = "early-access" | "pilot";
@@ -40,22 +42,22 @@ export const MARKETS: Market[] = [
     name: "Executive coaches / public speaking",
     kind: "early-access",
     eyebrow: "For speakers and speaking coaches",
-    headline: "Coaching that comes into the room with you.",
+    headline: "Stop saying “um” and rushing when you present.",
     lead: "You practice the pause, then the stakes rise and the old habits come back. Cue is a discreet behind-the-ear wearable that taps you privately, mid-sentence, when you rush, skip a pause or lean on filler words.",
     cta: "Join early access",
     wearer: "you",
-    problemTitle: "Why practice alone doesn’t fix it",
+    problemTitle: "Why you still rush and say “um” on stage",
     problems: [
       {
-        title: "Rehearsal isn’t the room",
+        title: "Practice doesn’t hold up under pressure",
         body: "Habits you fixed in practice return under pressure, when your attention is on the audience and not on your delivery.",
       },
       {
-        title: "Feedback arrives too late",
+        title: "Feedback comes after the talk is over",
         body: "A recording or a debrief tells you what happened after the talk. By then the moment to change it has passed.",
       },
       {
-        title: "A coach can’t be at every talk",
+        title: "Your coach can’t be at every talk",
         body: "Between sessions, clients are on their own. Cue carries the same few prompts into the meetings and stages a coach never sees.",
       },
     ],
@@ -66,7 +68,7 @@ export const MARKETS: Market[] = [
       speak: "Trailing off at the end of a sentence.",
     },
     report: {
-      title: "Something concrete to bring to your next session",
+      title: "See exactly what to improve after every talk",
       body: "After each talk, Cue reports on pauses, pace, volume, filler words and pitch, with up to three things to work on first.",
     },
     faq: [
@@ -84,22 +86,22 @@ export const MARKETS: Market[] = [
     name: "Sales",
     kind: "early-access",
     eyebrow: "For sales reps",
-    headline: "Slow the pitch. Leave room for the buyer.",
+    headline: "Stop rambling on sales calls. Close more deals.",
     lead: "On a live call, it’s easy to rush, run long and fill every silence. Cue is a discreet behind-the-ear wearable that taps you privately in the moment: pause, slow down, speak up.",
     cta: "Join early access",
     wearer: "you",
-    problemTitle: "Why call reviews don’t fix it",
+    problemTitle: "Why reps rush and ramble on calls",
     problems: [
       {
-        title: "Call reviews come a day late",
+        title: "Call reviews come a day too late",
         body: "Recordings and scorecards show you what went wrong after the conversation is over.",
       },
       {
-        title: "Nerves set the pace",
+        title: "Nerves make you talk too fast",
         body: "A big meeting or a cold open speeds you up. Fast talk leaves the buyer no room to think or answer.",
       },
       {
-        title: "Long turns become monologues",
+        title: "Long answers lose the buyer",
         body: "When one answer runs on, the buyer stops taking part. It’s hard to notice until you hear the recording.",
       },
     ],
@@ -110,7 +112,7 @@ export const MARKETS: Market[] = [
       speak: "Getting quieter as you name the price.",
     },
     report: {
-      title: "A report after every call",
+      title: "See what to fix after every call",
       body: "Pauses, pace, volume, filler words and your longest stretch without a pause, with up to three things to work on first. Useful on your own, or as a starting point with your manager.",
     },
     faq: [
@@ -132,22 +134,22 @@ export const MARKETS: Market[] = [
     name: "Schools",
     kind: "pilot",
     eyebrow: "For schools and speech programs",
-    headline: "Individual speaking feedback for every student.",
+    headline: "Help every student become a confident speaker.",
     lead: "One teacher can’t coach thirty speakers at once. Cue gives each student a private cue while they’re speaking and a short report afterwards, so class time goes to what the feedback means.",
     cta: "Request a pilot",
     wearer: "students",
-    problemTitle: "Why speaking feedback is hard to give",
+    problemTitle: "Why most students get so little speaking feedback",
     problems: [
       {
-        title: "Feedback doesn’t scale",
+        title: "One teacher can’t coach every student",
         body: "Individual notes on every presentation take hours a teacher doesn’t have. Most students get a grade and a sentence.",
       },
       {
-        title: "It comes after the speech",
+        title: "Feedback comes days after the speech",
         body: "Notes a week later are hard to connect to what a student did at the front of the room.",
       },
       {
-        title: "Correcting in public costs confidence",
+        title: "Correcting a student in front of the class hurts confidence",
         body: "Stopping a student mid-speech in front of classmates is hard on them. A cue only they feel isn’t.",
       },
     ],
@@ -158,7 +160,7 @@ export const MARKETS: Market[] = [
       speak: "A quiet voice in a large classroom.",
     },
     report: {
-      title: "A report students can act on",
+      title: "A clear report for every student",
       body: "Each student gets a report on pauses, pace, volume and filler words, with up to three things to work on first. It describes habits; it doesn’t grade the student.",
     },
     faq: [
@@ -180,14 +182,14 @@ export const MARKETS: Market[] = [
     name: "Language learners",
     kind: "early-access",
     eyebrow: "For English learners",
-    headline: "Know how you sound while you’re still speaking.",
+    headline: "Speak clearer English and fix your grammar.",
     lead: "When you speak English, your attention goes to finding the words. It’s hard to notice that you’re rushing, getting quieter or repeating the same grammar slips. Cue is a discreet behind-the-ear wearable that taps you privately in the moment, then shows you the grammar to work on afterwards.",
     cta: "Join early access",
     wearer: "you",
-    problemTitle: "Why it’s hard to fix on your own",
+    problemTitle: "Why speaking habits are hard to fix on your own",
     problems: [
       {
-        title: "You can’t listen to yourself and speak at once",
+        title: "You can’t listen to yourself while you speak",
         body: "Finding words takes all your attention. Pace, volume and small grammar slips go unnoticed until someone asks you to repeat yourself.",
       },
       {
@@ -195,7 +197,7 @@ export const MARKETS: Market[] = [
         body: "Lessons and recordings happen alone with a phone. Real conversations get no feedback at all.",
       },
       {
-        title: "People are too polite to say",
+        title: "People are too polite to correct you",
         body: "Colleagues and friends rarely correct your grammar or tell you that you’re speaking too fast, so the habits stay.",
       },
     ],
@@ -206,7 +208,7 @@ export const MARKETS: Market[] = [
       speak: "Getting quieter when you’re unsure of a word.",
     },
     report: {
-      title: "Your grammar, from your own conversations",
+      title: "See your grammar mistakes, with corrections",
       body: "After each conversation, Cue shows the grammar slips that came up most, each with a corrected version of what you said. The same report covers pauses, pace, volume and filler words, with up to three things to work on first.",
     },
     extraReportAreas: ["Grammar"],
@@ -233,22 +235,22 @@ export const MARKETS: Market[] = [
     name: "Interviewees",
     kind: "early-access",
     eyebrow: "For interviews",
-    headline: "Nerves speed you up. Cue slows you down.",
+    headline: "Sound more professional. Get the job.",
     lead: "In an interview, pressure makes people rush, ramble and reach for “um”. Cue is a discreet behind-the-ear wearable that taps you privately so you pause, breathe and answer at your own pace.",
     cta: "Join early access",
     wearer: "you",
-    problemTitle: "Why practice alone doesn’t fix it",
+    problemTitle: "Why nerves ruin good answers",
     problems: [
       {
-        title: "Practiced answers vanish under pressure",
+        title: "You forget your practiced answers under pressure",
         body: "You know what you want to say. Then the interview starts, your pulse climbs and your pace goes with it.",
       },
       {
-        title: "You can’t tell it’s happening",
+        title: "You can’t tell when you’re rushing",
         body: "Rushing and filler words feel normal from the inside. You find out when you replay the conversation afterwards.",
       },
       {
-        title: "Mock interviews aren’t the real one",
+        title: "Mock interviews aren’t the real thing",
         body: "A friend or a practice app helps you rehearse. Neither is there when the real question lands.",
       },
     ],
@@ -259,7 +261,7 @@ export const MARKETS: Market[] = [
       speak: "Trailing off at the end of an answer.",
     },
     report: {
-      title: "Practice, then see what happened",
+      title: "Practice interviews and see what to fix",
       body: "Run a mock interview and get a report on pauses, pace, volume and filler words, with up to three things to work on before the real one.",
     },
     faq: [
@@ -286,6 +288,8 @@ export const PILOT_ROLES = ["Teacher", "Administrator", "Speech or debate coach"
 /** Copy every page shares, worded for whoever wears the device. */
 export interface SharedCopy {
   cuesTitle: string;
+  deviceTitle: string;
+  joinTitle: string;
   cuesIntro: string;
   detects: { pause: string; slow: string; speak: string };
   facts: { title: string; body: string }[];
@@ -303,13 +307,15 @@ const LOOKS = {
 };
 const PRICE = { q: "What will it cost?", a: "We haven’t set a price." };
 const PATTERNS_FACT = {
-  title: "Patterns, not every word",
+  title: "It doesn’t tap for every “um”",
   body: "The occasional “um” is normal. Cue taps when a habit builds, and stays quiet otherwise.",
 };
 
 export const SHARED: Record<Market["wearer"], SharedCopy> = {
   you: {
-    cuesTitle: "Three cues, while you’re speaking",
+    cuesTitle: "Cue taps you the moment you rush, ramble or go quiet",
+    deviceTitle: "A small device that sits behind your ear",
+    joinTitle: "Get early access to Cue",
     cuesIntro:
       "Cue listens for a habit as it builds, then taps behind your ear. Each cue has its own rhythm, so you know what it’s asking for without looking at anything.",
     detects: {
@@ -324,7 +330,7 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
       },
       PATTERNS_FACT,
       {
-        title: "Your voice stays yours",
+        title: "It doesn’t script you or score you",
         body: "Cue doesn’t script you or score you. It makes room for a pause; what you say next is up to you.",
       },
     ],
@@ -344,7 +350,9 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
     ],
   },
   students: {
-    cuesTitle: "Three cues, while a student is speaking",
+    cuesTitle: "Cue taps a student the moment they rush, ramble or go quiet",
+    deviceTitle: "A small device that sits behind the ear",
+    joinTitle: "Bring Cue to your school",
     cuesIntro:
       "Cue listens for a habit as it builds, then taps behind the student’s ear. Each cue has its own rhythm, so they know what it’s asking for without looking at anything.",
     detects: {
@@ -359,7 +367,7 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
       },
       PATTERNS_FACT,
       {
-        title: "Their voice stays theirs",
+        title: "It doesn’t script students or score them",
         body: "Cue doesn’t script students or score them. It makes room for a pause; what they say next is up to them.",
       },
     ],
