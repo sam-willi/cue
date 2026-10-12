@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const CONTACT = "speakwithcue@gmail.com";
-const UPDATED = "October 11, 2026";
+const UPDATED = "October 12, 2026";
 
 const H2 = "mt-12 text-heading-3-m font-semibold tracking-[-0.01em] sm:text-heading-3";
 const P = "mt-3 text-body text-muted";
@@ -16,7 +16,8 @@ const LIST = "mt-3 list-disc space-y-1.5 pl-5 text-body text-muted";
 const LINK = "font-medium text-text underline underline-offset-4";
 
 // Keep this page true to the code: the sign-up form (src/app/for/[market]/SignupForm.tsx), where
-// sign-ups are stored (src/lib/landing/store.ts) and the app's own privacy notes (README.md).
+// sign-ups are stored (src/lib/landing/store.ts), the visit counter on the landing pages
+// (src/app/for/[market]/page.tsx) and the app's own privacy notes (README.md).
 export default function PrivacyPage() {
   return (
     <main className="mx-auto w-full max-w-2xl px-5 pb-24 pt-8 sm:px-8">
@@ -75,7 +76,11 @@ export default function PrivacyPage() {
       </p>
 
       <h2 className={H2}>Cookies and tracking</h2>
-      <p className={P}>This website doesn’t set advertising or analytics cookies.</p>
+      <p className={P}>
+        This website doesn’t set advertising or analytics cookies. On our sign-up pages we count visits with Vercel Web
+        Analytics, which doesn’t use cookies and doesn’t identify you: it records the page visited, the site and
+        campaign tags that brought you there, and your general device type and country.
+      </p>
 
       <h2 className={H2}>The Cue prototype app</h2>
       <p className={P}>

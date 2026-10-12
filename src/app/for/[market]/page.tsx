@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -263,6 +264,8 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
           </p>
         </footer>
       </main>
+      {/* Counts visits to the landing pages only; the coaching app at / is left uncounted. No cookies. */}
+      <Analytics />
     </div>
   );
 }
