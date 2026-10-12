@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * One illustration per audience, drawn from their own setting: a speech script, a call's talk
+ * One illustration per audience, drawn from their own setting: a speech script, a sales conversation's talk
  * track, a classroom, a grammar report, an interview answer. Each is an example, not data.
  */
 
@@ -64,7 +64,8 @@ function Sales() {
         </div>
       </div>
       <figcaption className="mt-8 max-w-xl text-body text-muted">
-        A call, drawn as who was talking. One tap at the end of a long turn, and the buyer has a way back in.
+        A sales conversation, drawn as who was talking. One tap at the end of a long turn, and the buyer has a way back
+        in.
       </figcaption>
     </>
   );
@@ -181,7 +182,7 @@ function Interviews() {
 
 const ART: Record<string, { label: string; Art: () => ReactNode }> = {
   speaking: { label: "A speech with a pause mark after each thought and one tap from Cue", Art: Speaking },
-  sales: { label: "A sales call drawn as who was talking, with one tap from Cue", Art: Sales },
+  sales: { label: "A sales conversation drawn as who was talking, with one tap from Cue", Art: Sales },
   schools: { label: "A class of thirty with one teacher, and with Cue", Art: Schools },
   english: { label: "Grammar corrections from a report", Art: English },
   interviews: { label: "An interview answer before and after a tap from Cue", Art: Interviews },
