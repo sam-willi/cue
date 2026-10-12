@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { MARKETS } from "../markets";
 import { parseSignup } from "../signups";
@@ -68,5 +69,11 @@ describe("markets", () => {
     expect(MARKETS).toHaveLength(5);
     expect(new Set(MARKETS.map((m) => m.slug)).size).toBe(5);
     for (const market of MARKETS) expect(market.problems).toHaveLength(3);
+  });
+
+  it("has a tab in the sign-up sheet script for every page", () => {
+    const script = readFileSync("scripts/signups-sheet.gs", "utf8");
+    const tabs = script.slice(script.indexOf("const TABS = {"), script.indexOf("};"));
+    for (const market of MARKETS) expect(tabs).toContain(`${market.slug}: "`);
   });
 });

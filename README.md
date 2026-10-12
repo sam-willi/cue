@@ -128,13 +128,14 @@ The photos are panels cut from one product concept sheet, [`assets/product/cue-c
 
 Each page has a sign-up form. A sign-up records the market, the email, and the `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` and `utm_term` tags on the page address, so tag each ad's link (`/for/sales?utm_source=meta&utm_campaign=sales-a`). The schools page asks for a pilot and also takes a school and role.
 
-**Where sign-ups go.** A Google Sheet, through a small script that lives in the sheet:
+**Where sign-ups go.** A Google Sheet with one tab per landing page (Speaking, Sales, Schools, English learners, Interviews), through a small script that lives in the sheet:
 
 1. Create a Google Sheet. Open **Extensions → Apps Script**, replace the editor's contents with [`scripts/signups-sheet.gs`](scripts/signups-sheet.gs), and save.
-2. **Deploy → New deployment → Web app**. Set **Execute as** to _Me_ and **Who has access** to _Anyone_, deploy, and approve the access prompt. Copy the web app URL (it ends in `/exec`).
-3. In Vercel, add that URL as the environment variable `SIGNUPS_SHEET_URL` (Project → Settings → Environment Variables), then redeploy.
+2. Optional: choose `setup` in the editor's function menu and press **Run** to create the five tabs now. Otherwise each tab appears when its page gets its first sign-up.
+3. **Deploy → New deployment → Web app**. Set **Execute as** to _Me_ and **Who has access** to _Anyone_, deploy, and approve the access prompt. Copy the web app URL (it ends in `/exec`).
+4. In Vercel, add that URL as the environment variable `SIGNUPS_SHEET_URL` (Project → Settings → Environment Variables), then redeploy.
 
-Anyone with the URL can add rows, so treat it like a password: it stays in Vercel and is never sent to the browser. If you change the script later, publish it with **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
+Each sign-up is added as a row on its page's tab within a second or two of the visitor pressing the button. A sign-up from a page the script doesn't list goes to a tab called Other, so add new pages to `TABS` at the top of the script. Anyone with the URL can add rows, so treat it like a password: it stays in Vercel and is never sent to the browser. If you change the script later, publish it with **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
 
 Without `SIGNUPS_SHEET_URL`, `npm run dev` saves sign-ups to `./signups/signups.jsonl` (git-ignored), and a deployed site tells the visitor it couldn't save and keeps nothing.
 
