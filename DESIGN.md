@@ -761,7 +761,7 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 ### 2026-10-10
 
 - **Three cues** (`CUE_CONTEXT.md` §26, decision 18): the legend is one row of three (Speak up, Slow down, Pause) with no family columns, and the "Simpler cues" setting is gone. §11 updated.
-- **Session report** (decision 19): the review section opens with up to three things to work on, then one bordered card per area (pauses, pace, volume, filler words, pitch and tone, reading from notes, inclusive language). Cobalt marks only the areas to work on; everything else stays neutral. Pace has a small line chart with the rushing limit dashed.
+- **Session report** (decision 19): the review section opens with up to three things to work on, then one bordered card per area (pauses, pace, volume, filler words, pitch and tone, reading from notes, inclusive language). Cobalt marks only the areas to work on; everything else stays neutral. Pace has a small line chart with the rushing limit dashed. The section is titled **Speaking insights**, and a neutral secondary button with the same name sits beside the primary Start / Stop button: it opens the section and scrolls to it ("Stop and see insights" while a session runs).
 - **Your filler words** (decision 20): a field and removable chips in Settings.
 
 ### 2026-10-05
