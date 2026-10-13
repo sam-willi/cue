@@ -1636,7 +1636,7 @@ export default function CueApp() {
                   </p>
                   <Switch
                     label="Play cues as sounds"
-                    hint="Each cue has its own pitch: Pause high, Slow down middle, Speak up low. Confirmations swell in softly."
+                    hint="Pause is one high tick, Slow down is three notes stepping down, Speak up is a tone sweeping up. Confirmations swell in softly."
                     on={sound.on}
                     onChange={(on) => saveSound({ ...sound, on })}
                   />
@@ -1649,16 +1649,22 @@ export default function CueApp() {
                     format={(v) => `${v}%`}
                     onChange={(v) => saveSound({ ...sound, volume: v / 100 })}
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      earcon().unlock();
-                      earcon().play(cueTones("tap"), sound.volume);
-                    }}
-                    className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
-                  >
-                    Play a test cue
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-label text-muted">Hear each cue:</span>
+                    {(["tap", "steps", "push"] as const).map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => {
+                          earcon().unlock();
+                          earcon().play(cueTones(p), sound.volume);
+                        }}
+                        className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
+                      >
+                        {PATTERNS[p].action}
+                      </button>
+                    ))}
+                  </div>
                   <label className="block">
                     <span className="text-body">Microphone</span>
                     <select
