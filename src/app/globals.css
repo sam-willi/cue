@@ -15,6 +15,18 @@
   --neutral-soft: rgba(159, 154, 147, 0.28); /* warm-gray-500 wash */
   --cue: #2437d8; /* signal-cobalt */
   --cue-soft: rgba(36, 55, 216, 0.1);
+  /*
+   * The report's area colors (CUE_CONTEXT.md decision 26): a rainbow, in order round the score
+   * ring. Checked with a palette validator on both themes' backgrounds: every neighboring pair
+   * is clearly apart for full color vision (worst 16), and the closest pair for red-green color
+   * blindness is orange beside green (7.1, where 8 is the target), which is why an area is
+   * always named and given an icon as well as a color.
+   */
+  --area-pauses: #f0382e; /* red */
+  --area-pace: #ff8a00; /* orange */
+  --area-volume: #34c759; /* green */
+  --area-fillers: #00a3e0; /* blue */
+  --area-pitch: #9b3fe8; /* violet */
 }
 
 /* Dark mode (DESIGN.md §19): ink surfaces, bone text, warm gray and cobalt lifted for contrast. */
@@ -30,6 +42,12 @@
     --neutral-soft: rgba(201, 196, 188, 0.18);
     --cue: #8c9bff; /* cobalt, lifted for contrast on ink (provisional) */
     --cue-soft: rgba(140, 155, 255, 0.16);
+    /* The same rainbow, lifted for the dark background. */
+    --area-pauses: #ff453a;
+    --area-pace: #ff9f0a;
+    --area-volume: #30d158;
+    --area-fillers: #18a8f0;
+    --area-pitch: #8f5cf7;
   }
 }
 

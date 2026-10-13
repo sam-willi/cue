@@ -136,6 +136,8 @@ export interface SessionReport {
   sections: ReportSection[];
   /** Up to three things to work on next, most important first. */
   focus: string[];
+  /** The area each of those is about, in the same order. */
+  focusKeys: SectionKey[];
   /** Live cues given, by cue. */
   cues: { pattern: CuePattern; action: string; count: number; worked: number; judged: number }[];
   /** Pace through the session, words per minute, for a small chart. */
@@ -254,15 +256,14 @@ export function buildReport(input: ReportInput): SessionReport {
     originalitySection(words, input.script),
     inclusiveSection(inclusive),
   ];
+  const focus = sections.filter((s) => s.verdict === "improve").slice(0, 3);
   return {
     score: speakScore(sections),
     talkSec,
     wordCount: words.length,
     sections,
-    focus: sections
-      .filter((s) => s.verdict === "improve")
-      .slice(0, 3)
-      .map((s) => s.advice),
+    focus: focus.map((s) => s.advice),
+    focusKeys: focus.map((s) => s.key),
     cues: cueCounts(input.taps),
     paceTimeline: pace.timeline,
     paceLimitWpm: toApproxWpm(input.paceLimit),
