@@ -96,6 +96,21 @@ const TECHNIQUES = {
   },
 } satisfies Record<string, Technique>;
 
+/**
+ * The technique for each area, whatever the verdict: the report offers it on every card, so the
+ * advice is there to read even when a session flagged nothing. (A section that needs work
+ * carries its own `technique`, which for pace depends on whether it was too fast or too slow.)
+ */
+export const AREA_TECHNIQUE: Record<SectionKey, Technique> = {
+  pauses: TECHNIQUES.pauses,
+  pace: TECHNIQUES.paceFast,
+  volume: TECHNIQUES.volume,
+  fillers: TECHNIQUES.fillers,
+  pitch: TECHNIQUES.pitch,
+  originality: TECHNIQUES.originality,
+  inclusive: TECHNIQUES.inclusive,
+};
+
 export interface ReportSection {
   key: SectionKey;
   title: string;
