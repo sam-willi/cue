@@ -202,12 +202,35 @@ export function ReportView({
             </p>
 
             {s.key === "pace" && report.paceTimeline.length > 2 && (
-              <PaceChart timeline={report.paceTimeline} limitWpm={report.paceLimitWpm} band={report.paceBandWpm} />
+              <PaceChart
+                timeline={report.paceTimeline}
+                limitWpm={report.paceLimitWpm}
+                band={report.paceBandWpm}
+                startSec={report.startSec}
+              />
             )}
             {s.key === "pauses" && report.stretches.length > 1 && (
               <StretchStrip stretches={report.stretches} limitSec={report.stretchLimitSec} />
             )}
-            {s.key === "pitch" && report.pitchContour.length > 2 && <PitchChart contour={report.pitchContour} />}
+            {s.key === "pitch" && report.pitchContour.length > 2 && (
+              <PitchChart contour={report.pitchContour} startSec={report.startSec} />
+            )}
+            {s.key === "pace" && report.rushed.length > 0 && (
+              <div className="mt-5">
+                <p className="text-caption text-muted">What you were saying when you sped up</p>
+                <ul className="mt-2 space-y-3">
+                  {report.rushed.map((p) => (
+                    <li key={p.start} className="border-l-2 border-text pl-3">
+                      <p className="text-caption tabular-nums text-muted">
+                        {clock(p.start - report.startSec)} to {clock(p.end - report.startSec)}, about{" "}
+                        {Math.round(p.wpm / 5) * 5} words a minute
+                      </p>
+                      <p className="mt-0.5 max-w-prose text-body-sm">“{p.text}”</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {s.share && <ShareMeter share={s.share} color={AREA[s.key]} />}
             {s.key === "fillers" && report.fillers.length > 0 && (
               <FillerBars fillers={report.fillers} accent={s.verdict === "improve"} />
@@ -615,6 +638,7 @@ function TimeChart({
   accentAbove,
   color,
   washTo,
+  startSec,
   mark,
   format,
   label,
@@ -628,6 +652,8 @@ function TimeChart({
   color: string;
   /** Shade between the line and this value. */
   washTo?: number;
+  /** When the talk began (s): times are shown from here, so they match the quotes and the pause strip. */
+  startSec?: number;
   /** Which point gets the dot and the value label, if any does. */
   mark: "peak" | "none";
   format: (v: number) => string;
@@ -640,6 +666,7 @@ function TimeChart({
   const padBottom = 8;
   const padX = 6;
   const t0 = points[0].t;
+  const origin = startSec ?? t0;
   const span = Math.max(1, points[points.length - 1].t - t0);
   const x = (t: number) => padX + ((t - t0) / span) * Math.max(1, width - 2 * padX);
   const y = (v: number) => padTop + (1 - (v - domain[0]) / (domain[1] - domain[0])) * (height - padTop - padBottom);
@@ -768,21 +795,21 @@ function TimeChart({
               x: x(points[shown].t),
               y: y(points[shown].v),
               value: format(points[shown].v),
-              detail: `at ${clock(points[shown].t - t0)}`,
+              detail: `at ${clock(points[shown].t - origin)}`,
             }}
           />
         )}
       </div>
       {/* The reference line is named down here, beside a key, where no data can run through the words. */}
       <div className="mt-1.5 flex items-center justify-between gap-3 text-caption tabular-nums text-muted" aria-hidden>
-        <span>0:00</span>
+        <span>{clock(t0 - origin)}</span>
         {rule && (
           <span className="flex items-center gap-2">
             <span className="h-px w-5 bg-muted" />
             {rule.label}
           </span>
         )}
-        <span>{clock(span)}</span>
+        <span>{clock(t0 + span - origin)}</span>
       </div>
     </figure>
   );
@@ -793,10 +820,12 @@ function PaceChart({
   timeline,
   limitWpm,
   band,
+  startSec,
 }: {
   timeline: SessionReport["paceTimeline"];
   limitWpm: number;
   band: [number, number];
+  startSec: number;
 }) {
   const values = timeline.map((p) => p.wpm);
   const lo = Math.min(band[0] * 0.85, ...values);
@@ -810,6 +839,7 @@ function PaceChart({
       accentAbove={limitWpm}
       color={AREA.pace}
       washTo={lo}
+      startSec={startSec}
       mark="peak"
       format={(v) => `${Math.round(v)} wpm`}
       label={`Pace through the session, between ${Math.round(Math.min(...values))} and ${Math.round(Math.max(...values))} words a minute. Rushing is above about ${limitWpm}.`}
@@ -818,7 +848,7 @@ function PaceChart({
 }
 
 /** The voice's pitch through the session, around the wearer's typical pitch. */
-function PitchChart({ contour }: { contour: SessionReport["pitchContour"] }) {
+function PitchChart({ contour, startSec }: { contour: SessionReport["pitchContour"]; startSec: number }) {
   const reach = Math.max(4, ...contour.map((p) => Math.abs(p.st))) * 1.15;
   const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)} semitones`;
   return (
@@ -829,6 +859,7 @@ function PitchChart({ contour }: { contour: SessionReport["pitchContour"] }) {
       rule={{ v: 0, label: "your typical pitch" }}
       color={AREA.pitch}
       washTo={0}
+      startSec={startSec}
       mark="none"
       format={signed}
       label={`Pitch through the session, from ${signed(Math.min(...contour.map((p) => p.st)))} to ${signed(Math.max(...contour.map((p) => p.st)))} around your typical pitch.`}
