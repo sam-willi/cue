@@ -51,6 +51,51 @@ const READING_SHARE = 0.5;
 export type Verdict = "good" | "improve" | "none";
 export type SectionKey = "pauses" | "pace" | "volume" | "fillers" | "pitch" | "originality" | "inclusive";
 
+/** One concrete thing to practise, given when a section needs work. */
+export interface Technique {
+  name: string;
+  how: string;
+}
+
+/**
+ * What a speaking coach would have you practise for each habit. Each is one physical action
+ * plus a drill, since "slow down" on its own tells nobody how.
+ */
+const TECHNIQUES = {
+  pauses: {
+    name: "One thought, one breath",
+    how: "At the end of each thought, close your mouth and breathe in through your nose before you start the next one. The silence feels long to you and normal to listeners. To practise, read a paragraph aloud and stop for a full breath at every full stop.",
+  },
+  paceFast: {
+    name: "Land the last word",
+    how: "Rushing usually comes from starting the next sentence before the last one has finished. Say the final word of each sentence all the way to its last sound, breathe in, then begin. To practise, read a page aloud with a slash marked at every comma and full stop, and stop at each slash.",
+  },
+  paceSlow: {
+    name: "Speak in phrases",
+    how: "Say five or six words in one breath, then pause, instead of placing each word on its own. To practise, time yourself reading a 150-word paragraph aloud and aim to finish in about a minute.",
+  },
+  volume: {
+    name: "Finish the sentence at full volume",
+    how: "Quiet stretches are usually sentence endings fading out. Breathe in low, so your stomach moves and your shoulders stay still, and keep the last three words as loud as the first three. To practise, pick a spot on the far wall and say each sentence to it.",
+  },
+  fillers: {
+    name: "Close your mouth",
+    how: "A filler covers the moment while you find the next words. When you feel one coming, close your lips and let the silence stand: you can’t say “um” with your mouth shut. To practise, talk for one minute about your day and start the sentence again every time a filler slips out.",
+  },
+  pitch: {
+    name: "Lift one word",
+    how: "In each sentence, choose the word that matters most and say it a little higher and a little longer. To practise, say one sentence five times, lifting a different word each time, and listen to how the meaning moves.",
+  },
+  originality: {
+    name: "Keywords, not sentences",
+    how: "Cut your notes down to three to five words for each point. Glance at the keywords, look up, then say the point in your own words. Full sentences on the page get read out; keywords can’t be.",
+  },
+  inclusive: {
+    name: "Rehearse the replacement",
+    how: "Choose the word you’d rather use, then say the whole sentence aloud three times with it. The swap only sticks once you have practised saying it.",
+  },
+} satisfies Record<string, Technique>;
+
 export interface ReportSection {
   key: SectionKey;
   title: string;
@@ -58,6 +103,8 @@ export interface ReportSection {
   verdict: Verdict;
   headline: string;
   advice: string;
+  /** How to work on it; only when the verdict is "improve". */
+  technique?: Technique;
   stats: { label: string; value: string }[];
 }
 
@@ -209,6 +256,7 @@ function pauseSection(words: Word[], talkSec: number, config: CueConfig, enough:
     advice: improve
       ? `Pause more. Your longest stretch without one was ${secs(longest)}; end a thought, breathe, then start the next.`
       : "Your pauses gave listeners room to keep up. Keep ending thoughts with a breath.",
+    technique: improve ? TECHNIQUES.pauses : undefined,
     stats: [
       { label: "Pauses", value: `${pauses} (${perMin.toFixed(1)} a minute)` },
       { label: "Longest without one", value: secs(longest) },
@@ -266,6 +314,7 @@ function paceSection(
         : tooSlow
           ? `Pick up the pace a little. Listeners follow most easily between ${lo} and ${hi} words a minute.`
           : `Your pace sat in the comfortable ${lo} to ${hi} range.`,
+      technique: tooFast ? TECHNIQUES.paceFast : tooSlow ? TECHNIQUES.paceSlow : undefined,
       stats: [
         { label: "Average", value: `${round(avg)} wpm` },
         { label: "Fastest stretch", value: `${round(fastest)} wpm` },
@@ -351,6 +400,7 @@ function volumeSection(
     advice: improve
       ? `Speak up. You dropped well below your set volume for ${pct(quietShare)} of the session, often a sign of trailing off at the end of a thought.`
       : "Your volume held up through the session.",
+    technique: improve ? TECHNIQUES.volume : undefined,
     stats: [
       { label: "Against your set volume", value: `${diff >= 0 ? "+" : "−"}${Math.abs(round(diff))} dB` },
       { label: "Time too quiet", value: pct(quietShare) },
@@ -390,6 +440,7 @@ function fillerSection(fillers: SessionReport["fillers"], talkSec: number): Repo
       : rated
         ? "A few fillers are normal and listeners don’t notice them at this rate."
         : "",
+    technique: improve ? TECHNIQUES.fillers : undefined,
     stats,
   };
 }
@@ -421,6 +472,7 @@ function pitchSection(words: Word[], pitch: [number, number][]): ReportSection {
     advice: flat
       ? "Vary your voice. Let your pitch rise on questions and the points that matter, and drop at the end of a thought."
       : "Your voice rose and fell enough to sound engaged.",
+    technique: flat ? TECHNIQUES.pitch : undefined,
     stats: [
       { label: "Typical pitch", value: `${round(typical)} Hz` },
       { label: "Variation", value: `${sd.toFixed(1)} semitones` },
@@ -469,6 +521,7 @@ function originalitySection(words: Word[], script?: string): ReportSection {
     advice: improve
       ? "Talk around your notes instead of reading them. Keep the key points and say each one the way you’d explain it to a friend."
       : "You used your notes as a guide and didn’t read them out.",
+    technique: improve ? TECHNIQUES.originality : undefined,
     stats: [
       { label: "Word for word", value: pct(share) },
       { label: "Longest run read", value: plural(longest, "word") },
@@ -486,6 +539,7 @@ function inclusiveSection(flags: InclusiveFlag[]): ReportSection {
     advice: total
       ? `Consider other words for “${flags[0].phrase}”${flags.length > 1 ? ` and ${plural(flags.length - 1, "other term")}` : ""}: some listeners hear them as dated or excluding.`
       : "No terms from Cue’s list came up.",
+    technique: total ? TECHNIQUES.inclusive : undefined,
     stats: [],
   };
 }

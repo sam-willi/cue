@@ -24,8 +24,8 @@ Cue is a behavioral coach, not a filler counter ([`SOFTWARE.md`](SOFTWARE.md)). 
 \* Presentation priority when several are due at once: rushing > no pause > filler > too quiet. The Presentation numbers are research-based starting points to test ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 11).
 
 - **Patterns, not single fillers.** One "um" is normal. Settings has an "every filler" testing mode (cooldown drops to 1.5 s). Whether patterns or every filler helps more is still a working assumption to test.
-- **Pace against your own normal.** Rushing starts at the preset and, after your first minute of speech, becomes 20% (Conversation) or 10% (Presentation) over your own pace, never below 3.6 syl/s.
-- **Sustained behaviors wait for a natural break** (up to a few seconds) so the tap doesn't land mid-word.
+- **Pace against your own normal.** Rushing starts at the preset and, after your first minute of speech, becomes 20% (Conversation) or 10% (Presentation) over your own pace, never below 3.6 syl/s and never above 6 syl/s (about 250 words a minute), so a session that opens with very fast talking can't teach Cue that it is normal. A pace just over the limit has to hold for 3 s; at 1.25 times the limit or more, 1.5 s is enough.
+- **Sustained behaviors wait for a natural break** (up to 3 s; 1 s for rushing, since someone racing ahead rarely leaves one) so the tap doesn't land mid-word.
 - **Did it work?** 8 s after each tap Cue checks whether you paused, slowed down, stopped the fillers or spoke up, and gives more room next time if you did. Review shows "tapped: 3 in 9 s, and it worked".
 
 ## What it detects
@@ -60,7 +60,7 @@ On screen, each cue is drawn as rings leaving the motor on the 3D device. A fain
 
 ### Session report
 
-When a session ends, the app builds a report (decision 19, `src/lib/cue/report.ts`): up to three things to work on, then one card per area. It appears under **Speaking insights**. The button of the same name beside Start listening opens it and scrolls to it; while a session is running the button reads "Stop and see insights" and ends the session first.
+When a session ends, the app builds a report (decision 19, `src/lib/cue/report.ts`): up to three things to work on, then one card per area. A card that needs work also names a **technique to try** (decision 24): one physical action plus a drill, such as "Land the last word" for rushing. It appears under **Speaking insights**. The button of the same name beside Start listening opens it and scrolls to it; while a session is running the button reads "Stop and see insights" and ends the session first.
 
 | Area               | What it reports                                                                                                                                                                        |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
