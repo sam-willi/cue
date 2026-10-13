@@ -105,10 +105,31 @@ export interface ReportSection {
   advice: string;
   /** How to work on it; only when the verdict is "improve". */
   technique?: Technique;
+  /** For sections judged by a share of the session: the share (0–1) and the line worth working on. */
+  share?: { value: number; line: number; label: string };
+  /** How well it went, 0–1, for the Speak score. Absent when there was too little to judge. */
+  quality?: number;
   stats: { label: string; value: string }[];
 }
 
+export type ScoreLevel = "Very high" | "High" | "OK" | "Low" | "Very low";
+
+/**
+ * The Speak score (decision 25): one number out of 100 for how easy the session was to listen
+ * to, built from points per area the way a sleep score is. An area that couldn't be measured
+ * (no microphone, no volume set) is left out and the others are scaled up to 100.
+ */
+export interface SpeakScore {
+  total: number;
+  level: ScoreLevel;
+  parts: { key: SectionKey; title: string; earned: number; max: number }[];
+  /** Areas that count toward the score but weren't measured this time. */
+  missing: string[];
+}
+
 export interface SessionReport {
+  /** Null until there's enough speech to judge pace, pauses and filler words. */
+  score: SpeakScore | null;
   /** Seconds the wearer spent talking, counting their own short pauses. */
   talkSec: number;
   wordCount: number;
@@ -120,6 +141,14 @@ export interface SessionReport {
   /** Pace through the session, words per minute, for a small chart. */
   paceTimeline: { t: number; wpm: number }[];
   paceLimitWpm: number;
+  /** The comfortable average pace for this mode, words per minute. */
+  paceBandWpm: [number, number];
+  /** Each stretch of talking between two real pauses, in session seconds, for the pauses strip. */
+  stretches: { start: number; end: number }[];
+  /** A stretch longer than this (s) is worth a pause. */
+  stretchLimitSec: number;
+  /** The voice's pitch through the session, in semitones from the wearer's typical pitch. */
+  pitchContour: { t: number; st: number }[];
   /** Each filler said, most frequent first. */
   fillers: { word: string; count: number }[];
   /** Habit words said often that aren't on the wearer's filler list, to offer as additions. */
@@ -158,6 +187,56 @@ const pct = (x: number) => `${round(x * 100)}%`;
 const secs = (x: number) => (x >= 90 ? `${(x / 60).toFixed(1)} min` : `${round(x)} s`);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/**
+ * Points per area, out of 100. Pace, pauses and fillers are what Cue coaches live and what
+ * listeners notice first; volume and pitch count for less and need a microphone. Reading from
+ * notes and wording are choices, not delivery, so they aren't scored.
+ */
+const SCORE_WEIGHTS: Partial<Record<SectionKey, number>> = { pace: 30, pauses: 25, fillers: 25, volume: 10, pitch: 10 };
+/** Without these three there is no score: they're the ones every session can measure. */
+const SCORE_NEEDS: SectionKey[] = ["pace", "pauses", "fillers"];
+const SCORE_LEVELS: [number, ScoreLevel][] = [
+  [90, "Very high"],
+  [75, "High"],
+  [55, "OK"],
+  [35, "Low"],
+  [0, "Very low"],
+];
+/** Fillers a minute at or under this score full marks (it is not a test of saying none); this many score nothing. */
+const FILLERS_FREE = 2;
+const FILLERS_ZERO = 12;
+
+const unit = (x: number) => Math.max(0, Math.min(1, x));
+
+function speakScore(sections: ReportSection[]): SpeakScore | null {
+  const counted = sections.filter((s) => SCORE_WEIGHTS[s.key] !== undefined);
+  const measured = counted.filter((s) => s.quality !== undefined);
+  if (SCORE_NEEDS.some((key) => !measured.some((s) => s.key === key))) return null;
+  // Scale the measured areas' weights up to 100 in whole points (largest remainders get the spare ones).
+  const weightSum = measured.reduce((n, s) => n + SCORE_WEIGHTS[s.key]!, 0);
+  const exact = measured.map((s) => (SCORE_WEIGHTS[s.key]! / weightSum) * 100);
+  const max = exact.map(Math.floor);
+  const spare = 100 - max.reduce((a, b) => a + b, 0);
+  exact
+    .map((x, k) => ({ k, frac: x - Math.floor(x) }))
+    .sort((a, b) => b.frac - a.frac)
+    .slice(0, spare)
+    .forEach(({ k }) => max[k]++);
+  const parts = measured.map((s, k) => ({
+    key: s.key,
+    title: s.title,
+    max: max[k],
+    earned: round(s.quality! * max[k]),
+  }));
+  const total = parts.reduce((n, part) => n + part.earned, 0);
+  return {
+    total,
+    level: SCORE_LEVELS.find(([floor]) => total >= floor)![1],
+    parts,
+    missing: counted.filter((s) => s.quality === undefined).map((s) => s.title),
+  };
+}
+
 export function buildReport(input: ReportInput): SessionReport {
   const { words, config } = input;
   const talkSec = talkSeconds(words);
@@ -165,16 +244,18 @@ export function buildReport(input: ReportInput): SessionReport {
   const fillers = countFillers(input.history);
   const inclusive = findInclusiveFlags(words);
   const pace = paceSection(words, input.paceLimit, config, enough);
+  const pitch = pitchSection(words, input.pitch);
   const sections: ReportSection[] = [
     pauseSection(words, talkSec, config, enough),
     pace.section,
     volumeSection(words, input.levels, input.voice ?? [], config),
     fillerSection(fillers, talkSec),
-    pitchSection(words, input.pitch),
+    pitch.section,
     originalitySection(words, input.script),
     inclusiveSection(inclusive),
   ];
   return {
+    score: speakScore(sections),
     talkSec,
     wordCount: words.length,
     sections,
@@ -185,6 +266,10 @@ export function buildReport(input: ReportInput): SessionReport {
     cues: cueCounts(input.taps),
     paceTimeline: pace.timeline,
     paceLimitWpm: toApproxWpm(input.paceLimit),
+    paceBandWpm: PACE_BAND[config.mode],
+    stretches: enough ? stretchesOf(words) : [],
+    stretchLimitSec: modeRules(config).noPauseSec,
+    pitchContour: pitch.contour,
     fillers,
     suggestedFillers: suggestFillers(words, config.customFillers, talkSec),
     inclusive,
@@ -228,6 +313,19 @@ function cueCounts(taps: TapRecord[]): SessionReport["cues"] {
   });
 }
 
+/** The stretches of talking between real pauses: what the pauses section counts, as spans. */
+function stretchesOf(words: Word[]): { start: number; end: number }[] {
+  const out: { start: number; end: number }[] = [];
+  let start = words[0].start;
+  for (let k = 1; k < words.length; k++) {
+    if (words[k].start - words[k - 1].end < MEANINGFUL_PAUSE) continue;
+    out.push({ start, end: words[k - 1].end });
+    start = words[k].start;
+  }
+  out.push({ start, end: words[words.length - 1].end });
+  return out;
+}
+
 function pauseSection(words: Word[], talkSec: number, config: CueConfig, enough: boolean): ReportSection {
   const title = "Pauses";
   if (!enough)
@@ -257,6 +355,8 @@ function pauseSection(words: Word[], talkSec: number, config: CueConfig, enough:
       ? `Pause more. Your longest stretch without one was ${secs(longest)}; end a thought, breathe, then start the next.`
       : "Your pauses gave listeners room to keep up. Keep ending thoughts with a breath.",
     technique: improve ? TECHNIQUES.pauses : undefined,
+    // Full marks up to the point where a pause was due; nothing at three times that.
+    quality: 1 - unit((longest - limit) / (2 * limit)),
     stats: [
       { label: "Pauses", value: `${pauses} (${perMin.toFixed(1)} a minute)` },
       { label: "Longest without one", value: secs(longest) },
@@ -315,6 +415,8 @@ function paceSection(
           ? `Pick up the pace a little. Listeners follow most easily between ${lo} and ${hi} words a minute.`
           : `Your pace sat in the comfortable ${lo} to ${hi} range.`,
       technique: tooFast ? TECHNIQUES.paceFast : tooSlow ? TECHNIQUES.paceSlow : undefined,
+      // The worse of two things: how much of the time was rushed, and how far the average sat outside the band.
+      quality: Math.min(1 - unit(fastShare / 0.6), 1 - unit(Math.max(avg - hi, lo - avg) / 40)),
       stats: [
         { label: "Average", value: `${round(avg)} wpm` },
         { label: "Fastest stretch", value: `${round(fastest)} wpm` },
@@ -401,6 +503,8 @@ function volumeSection(
       ? `Speak up. You dropped well below your set volume for ${pct(quietShare)} of the session, often a sign of trailing off at the end of a thought.`
       : "Your volume held up through the session.",
     technique: improve ? TECHNIQUES.volume : undefined,
+    share: { value: quietShare, line: QUIET_SHARE, label: "Time too quiet" },
+    quality: 1 - unit(quietShare / 0.6),
     stats: [
       { label: "Against your set volume", value: `${diff >= 0 ? "+" : "−"}${Math.abs(round(diff))} dB` },
       { label: "Time too quiet", value: pct(quietShare) },
@@ -426,6 +530,7 @@ function fillerSection(fillers: SessionReport["fillers"], talkSec: number): Repo
       verdict: rated ? "good" : "none",
       headline: "No filler words",
       advice: rated ? "Nothing to change here." : "",
+      quality: rated ? 1 : undefined,
       stats,
     };
   // Audiences start marking speakers down at around five a minute (CUE_CONTEXT.md decision 11).
@@ -441,43 +546,66 @@ function fillerSection(fillers: SessionReport["fillers"], talkSec: number): Repo
         ? "A few fillers are normal and listeners don’t notice them at this rate."
         : "",
     technique: improve ? TECHNIQUES.fillers : undefined,
+    quality: rated ? 1 - unit((perMin - FILLERS_FREE) / (FILLERS_ZERO - FILLERS_FREE)) : undefined,
     stats,
   };
 }
 
-function pitchSection(words: Word[], pitch: [number, number][]): ReportSection {
+/** The pitch contour is drawn from one point a second, or fewer for a long session (at most this many). */
+const CONTOUR_POINTS = 240;
+
+function pitchSection(
+  words: Word[],
+  pitch: [number, number][],
+): { section: ReportSection; contour: SessionReport["pitchContour"] } {
   const title = "Pitch and tone";
-  const voiced = duringWords(pitch, words).map((p) => p[1]);
+  const samples = duringWords(pitch, words);
+  const voiced = samples.map((p) => p[1]);
   if (voiced.length < MIN_PITCH_FRAMES)
     return {
-      key: "pitch",
-      title,
-      verdict: "none",
-      headline: "Needs a microphone session",
-      advice: "",
-      stats: [],
+      section: { key: "pitch", title, verdict: "none", headline: "Needs a microphone session", advice: "", stats: [] },
+      contour: [],
     };
   const typical = median(voiced);
-  const st = voiced.map((hz) => semitones(hz, typical)).filter((x) => Math.abs(x) <= PITCH_OUTLIER);
+  const timed = samples
+    .map(([t, hz]): [number, number] => [t, semitones(hz, typical)])
+    .filter(([, x]) => Math.abs(x) <= PITCH_OUTLIER);
+  const st = timed.map(([, x]) => x);
   const mean = st.reduce((a, b) => a + b, 0) / st.length;
   const sd = Math.sqrt(st.reduce((a, b) => a + (b - mean) ** 2, 0) / st.length);
   const sorted = [...st].sort((a, b) => a - b);
   const range = sorted[Math.floor(sorted.length * 0.95)] - sorted[Math.floor(sorted.length * 0.05)];
   const flat = sd < FLAT_SEMITONES;
+  // One point per second (the median of that second's frames), so the line shows the melody, not the jitter.
+  const t0 = timed[0][0];
+  const binSec = Math.max(1, (timed[timed.length - 1][0] - t0) / CONTOUR_POINTS);
+  const bins = new Map<number, number[]>();
+  for (const [t, x] of timed) {
+    const b = Math.floor((t - t0) / binSec);
+    bins.set(b, [...(bins.get(b) ?? []), x]);
+  }
+  const contour = [...bins]
+    .sort((x, y) => x[0] - y[0])
+    .map(([b, xs]) => ({ t: t0 + (b + 0.5) * binSec, st: median(xs) }));
   return {
-    key: "pitch",
-    title,
-    verdict: flat ? "improve" : "good",
-    headline: flat ? "Your voice stayed fairly flat" : "Your pitch moved, which keeps people listening",
-    advice: flat
-      ? "Vary your voice. Let your pitch rise on questions and the points that matter, and drop at the end of a thought."
-      : "Your voice rose and fell enough to sound engaged.",
-    technique: flat ? TECHNIQUES.pitch : undefined,
-    stats: [
-      { label: "Typical pitch", value: `${round(typical)} Hz` },
-      { label: "Variation", value: `${sd.toFixed(1)} semitones` },
-      { label: "Range", value: `${round(range)} semitones` },
-    ],
+    contour,
+    section: {
+      key: "pitch",
+      title,
+      verdict: flat ? "improve" : "good",
+      headline: flat ? "Your voice stayed fairly flat" : "Your pitch moved, which keeps people listening",
+      advice: flat
+        ? "Vary your voice. Let your pitch rise on questions and the points that matter, and drop at the end of a thought."
+        : "Your voice rose and fell enough to sound engaged.",
+      technique: flat ? TECHNIQUES.pitch : undefined,
+      // Full marks once the voice moves enough not to sound flat; nothing for a near monotone.
+      quality: unit((sd - 0.5) / (FLAT_SEMITONES - 0.5)),
+      stats: [
+        { label: "Typical pitch", value: `${round(typical)} Hz` },
+        { label: "Variation", value: `${sd.toFixed(1)} semitones` },
+        { label: "Range", value: `${round(range)} semitones` },
+      ],
+    },
   };
 }
 
@@ -522,6 +650,7 @@ function originalitySection(words: Word[], script?: string): ReportSection {
       ? "Talk around your notes instead of reading them. Keep the key points and say each one the way you’d explain it to a friend."
       : "You used your notes as a guide and didn’t read them out.",
     technique: improve ? TECHNIQUES.originality : undefined,
+    share: { value: share, line: READING_SHARE, label: "Read word for word" },
     stats: [
       { label: "Word for word", value: pct(share) },
       { label: "Longest run read", value: plural(longest, "word") },

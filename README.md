@@ -60,7 +60,11 @@ On screen, each cue is drawn as rings leaving the motor on the 3D device. A fain
 
 ### Session report
 
-When a session ends, the app builds a report (decision 19, `src/lib/cue/report.ts`): up to three things to work on, then one card per area. A card that needs work also names a **technique to try** (decision 24): one physical action plus a drill, such as "Land the last word" for rushing. It appears under **Speaking insights**. The button of the same name beside Start listening opens it and scrolls to it; while a session is running the button reads "Stop and see insights" and ends the session first.
+When a session ends, the app builds a report (decision 19, `src/lib/cue/report.ts`, drawn by `src/app/ReportView.tsx`): a **Speak score**, up to three things to work on, then one card per area.
+
+**Speak score (decision 25).** One number out of 100 with a level (Very low, Low, OK, High, Very high), built from points per area the way a sleep score is: pace 30, pauses 25, filler words 25, volume 10, pitch 10. Each area earns points on a sliding scale, not pass or fail. An area that couldn't be measured (no microphone, no volume set) is left out and the rest are scaled to 100. Fillers at or under two a minute earn full points, so it is not a test of saying none. It needs about 30 seconds of talking. Reading from notes and wording are not scored.
+
+**Graphics.** Pace is a line over the comfortable range with any rushing picked out; pauses are a strip of the session where each bar is a stretch of talking and each gap a pause; pitch is a contour around your typical pitch; fillers are bars; volume and reading from notes are meters with the line worth working on marked. Cobalt marks only what is worth working on. A card that needs work also names a **technique to try** (decision 24): one physical action plus a drill, such as "Land the last word" for rushing. It appears under **Speaking insights**. The button of the same name beside Start listening opens it and scrolls to it; while a session is running the button reads "Stop and see insights" and ends the session first.
 
 | Area               | What it reports                                                                                                                                                                        |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

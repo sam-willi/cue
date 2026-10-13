@@ -144,6 +144,10 @@ describe("session report", () => {
     const lively = report(TALK, { extra: { pitch: frames((k) => 120 * 2 ** (Math.sin(k / 6) * 0.35)) } });
     expect(section(lively, "pitch").verdict).toBe("good");
     expect(section(report(TALK), "pitch").verdict).toBe("none");
+    // The contour is one point a second, in semitones around the typical pitch.
+    expect(lively.pitchContour.length).toBeGreaterThan(20);
+    expect(Math.max(...lively.pitchContour.map((p) => Math.abs(p.st)))).toBeLessThan(6);
+    expect(report(TALK).pitchContour).toEqual([]);
   });
 
   it("ignores octave slips when measuring pitch variation", () => {
@@ -198,6 +202,70 @@ describe("findInclusiveFlags", () => {
       phrase: "chairman",
       instead: "chair, head, chairperson",
     });
+  });
+
+  it("lays the session out as stretches of talking with pauses between", () => {
+    const r = report(LONG, { wpm: 150 });
+    // Eighteen sentences, each followed by a real pause.
+    expect(r.stretches).toHaveLength(18);
+    expect(r.stretches.every((x, k) => x.end > x.start && (k === 0 || x.start > r.stretches[k - 1].end))).toBe(true);
+    expect(r.stretchLimitSec).toBe(30);
+    expect(report("I like tofu.").stretches).toEqual([]);
+  });
+});
+
+describe("Speak score", () => {
+  const parts = (r: ReturnType<typeof report>) => Object.fromEntries(r.score!.parts.map((p) => [p.key, p]));
+
+  it("needs enough speech to judge pace, pauses and fillers", () => {
+    expect(report("I like tofu.").score).toBeNull();
+  });
+
+  it("is out of 100, scaled from what could be measured", () => {
+    const r = report(LONG, { wpm: 150 });
+    // No microphone: volume and pitch are left out and the other three share the 100 points.
+    expect(r.score!.parts.map((p) => p.key)).toEqual(["pauses", "pace", "fillers"]);
+    expect(r.score!.parts.reduce((n, p) => n + p.max, 0)).toBe(100);
+    expect(r.score!.missing).toEqual(["Volume", "Pitch and tone"]);
+    expect(r.score!.total).toBe(100);
+    expect(r.score!.level).toBe("Very high");
+  });
+
+  it("takes points off the area that went wrong, and only that one", () => {
+    const fast = report(LONG, { wpm: 230 });
+    expect(parts(fast).pace.earned).toBeLessThan(parts(fast).pace.max);
+    expect(parts(fast).fillers.earned).toBe(parts(fast).fillers.max);
+    expect(fast.score!.total).toBe(fast.score!.parts.reduce((n, p) => n + p.earned, 0));
+    expect(fast.score!.total).toBeLessThan(100);
+  });
+
+  it("doesn't reward saying no fillers at all: a couple a minute still score full points", () => {
+    // Two fillers in about 50 seconds of talking.
+    const r = report(`${TALK} Um that is the plan. ${TALK} Uh any questions.`);
+    expect(section(r, "fillers").stats[0].value).toBe("2");
+    expect(parts(r).fillers.earned).toBe(parts(r).fillers.max);
+  });
+
+  it("counts volume and pitch when a microphone measured them", () => {
+    const words = simulateWords(LONG);
+    const frames = (value: (t: number) => number): [number, number][] => {
+      const out: [number, number][] = [];
+      for (let t = 0; t <= words.at(-1)!.end; t += 0.05)
+        if (words.some((w) => t >= w.start && t <= w.end)) out.push([t, value(t)]);
+      return out;
+    };
+    const r = report(LONG, {
+      config: { volumeTarget: { conversation: { db: -20, noiseDb: -60 } } },
+      extra: { levels: frames(() => -21), pitch: frames((t) => 120 * 2 ** (Math.sin(t * 3) * 0.35)) },
+    });
+    expect(r.score!.parts.map((p) => [p.key, p.max])).toEqual([
+      ["pauses", 25],
+      ["pace", 30],
+      ["volume", 10],
+      ["fillers", 25],
+      ["pitch", 10],
+    ]);
+    expect(r.score!.missing).toEqual([]);
   });
 });
 

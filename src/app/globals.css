@@ -131,6 +131,32 @@ body {
   animation-delay: var(--beat-delay, 0ms);
 }
 
+/*
+ * The report's graphics arrive once, calmly (DESIGN.md §11: 300–450 ms for reflections): lines
+ * draw from the start of the session to its end, bars grow from their baseline.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .report-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: report-draw 450ms ease-out forwards;
+  }
+  .report-grow {
+    transform-origin: left;
+    animation: report-grow 400ms ease-out both;
+  }
+}
+@keyframes report-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes report-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cue-playing .beat,
   .touch-pad.pressing .press-ring {
