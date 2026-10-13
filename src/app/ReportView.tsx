@@ -1,13 +1,36 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { ReportSection, SessionReport, SpeakScore } from "@/lib/cue/report";
+import type { ReportSection, SectionKey, SessionReport, SpeakScore } from "@/lib/cue/report";
 
 /*
- * The after-session report (decision 19), drawn. One rule runs through every graphic here
- * (DESIGN.md §7, §13): warm neutral for what was measured, cobalt only for the part worth
- * working on. Nothing is scored, and no color means "bad".
+ * The after-session report (decision 19), drawn in color (decision 26). Two rules run through
+ * every graphic here:
+ *  - Each scored area has its own color, the same wherever it appears: its segment of the
+ *    score ring, its icon, its chart, its technique. The five run in rainbow order, at full
+ *    strength, on gray: no pale washes. Color says which area, never good or bad.
+ *  - The part worth working on is drawn in ink (the page's text color), so it stands out from
+ *    any of the hues, for every kind of color vision.
  */
+
+/**
+ * Each area's color, from the set in globals.css: a rainbow, in order round the score ring
+ * (pauses red, pace orange, volume green, fillers blue, pitch violet). The two areas that aren't
+ * scored stay neutral.
+ */
+const AREA: Record<SectionKey, string> = {
+  pauses: "var(--area-pauses)",
+  pace: "var(--area-pace)",
+  volume: "var(--area-volume)",
+  fillers: "var(--area-fillers)",
+  pitch: "var(--area-pitch)",
+  originality: "var(--neutral)",
+  inclusive: "var(--neutral)",
+};
+const INK = "var(--text)";
+
+/** What a track or ring shows where it isn't filled: plain gray, so the only color on show is the vivid one. */
+const EMPTY = "var(--neutral-soft)";
 
 const VERDICT_TAG: Record<ReportSection["verdict"], string> = {
   improve: "Work on this",
@@ -76,17 +99,18 @@ export function ReportView({
         </h3>
         {report.focus.length ? (
           <ol className="mt-4 grid gap-3">
-            {report.focus.map((advice, k) => (
-              <li key={k} className="flex items-start gap-4 rounded-xl bg-surface-2 p-4">
-                <span
-                  aria-hidden
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-cue text-label font-semibold tabular-nums text-bg"
-                >
-                  {k + 1}
-                </span>
-                <span className="max-w-prose pt-0.5 text-body">{advice}</span>
-              </li>
-            ))}
+            {report.focus.map((advice, k) => {
+              const area = report.sections.find((x) => x.key === report.focusKeys[k]);
+              return (
+                <li key={k} className="flex items-start gap-4 rounded-xl bg-surface-2 p-4">
+                  {area && <AreaChip area={area.key} />}
+                  <span className="max-w-prose">
+                    {area && <span className="block text-caption text-muted">{area.title}</span>}
+                    <span className="block text-body">{advice}</span>
+                  </span>
+                </li>
+              );
+            })}
           </ol>
         ) : (
           <p className="mt-2 max-w-prose text-body text-muted">
@@ -121,14 +145,14 @@ export function ReportView({
             unit={judged ? `of ${judged}` : undefined}
             hint={judged ? "You paused, slowed or spoke up after" : "None judged yet"}
           >
-            {judged > 0 && <Track value={worked / judged} accent={false} className="mt-2" />}
+            {judged > 0 && <Track value={worked / judged} className="mt-2" />}
           </Figure>
         </dl>
         {/* Every area at a glance: a dot for what to work on, a tick for what's going well, a ring for no data. */}
         <ul className="flex flex-wrap gap-x-5 gap-y-2 border-t border-line px-5 py-4">
           {report.sections.map((s) => (
             <li key={s.key} className="flex items-center gap-2 text-body-sm">
-              <VerdictMark verdict={s.verdict} />
+              <VerdictMark verdict={s.verdict} color={AREA[s.key]} />
               <span className={s.verdict === "none" ? "text-muted" : ""}>{s.title}</span>
               <span className="sr-only">: {VERDICT_TAG[s.verdict]}</span>
             </li>
@@ -143,13 +167,16 @@ export function ReportView({
             className={`flex min-w-0 flex-col rounded-2xl border border-line p-5 sm:p-6 ${hasChart(s) ? "sm:col-span-2" : ""}`}
           >
             <div className="flex items-center justify-between gap-3">
-              <h4 className="text-label font-medium text-muted">{s.title}</h4>
+              <div className="flex items-center gap-3">
+                <AreaChip area={s.key} quiet={s.verdict === "none"} />
+                <h4 className="text-label font-medium">{s.title}</h4>
+              </div>
               <span
                 className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-caption ${
-                  s.verdict === "improve" ? "bg-cue-soft font-medium text-cue" : "text-muted"
+                  s.verdict === "improve" ? "bg-text font-medium text-bg" : "text-muted"
                 }`}
               >
-                <VerdictMark verdict={s.verdict} />
+                <VerdictMark verdict={s.verdict} color={AREA[s.key]} />
                 {VERDICT_TAG[s.verdict]}
               </span>
             </div>
@@ -168,7 +195,7 @@ export function ReportView({
               <StretchStrip stretches={report.stretches} limitSec={report.stretchLimitSec} />
             )}
             {s.key === "pitch" && report.pitchContour.length > 2 && <PitchChart contour={report.pitchContour} />}
-            {s.share && <ShareMeter share={s.share} />}
+            {s.share && <ShareMeter share={s.share} color={AREA[s.key]} />}
             {s.key === "fillers" && report.fillers.length > 0 && (
               <FillerBars fillers={report.fillers} accent={s.verdict === "improve"} />
             )}
@@ -186,7 +213,10 @@ export function ReportView({
             {s.advice && <p className="mt-4 max-w-prose text-body-sm text-muted">{s.advice}</p>}
             {s.technique && (
               <div className="mt-4 rounded-xl bg-surface-2 p-4">
-                <p className="text-caption text-muted">Technique to try</p>
+                <p className="flex items-center gap-2 text-caption text-muted">
+                  <span aria-hidden className="size-2 rounded-full" style={{ background: AREA[s.key] }} />
+                  Technique to try
+                </p>
                 <p className="mt-1 text-body font-medium">{s.technique.name}</p>
                 <p className="mt-1 max-w-prose text-body-sm text-muted">{s.technique.how}</p>
               </div>
@@ -291,14 +321,14 @@ function ScoreCard({ score }: { score: SpeakScore }) {
         <svg width={size} height={size} aria-hidden>
           {segments.map((seg, k) => (
             <g key={k} opacity={on === null || on === k ? 1 : 0.3} className="transition-opacity duration-200">
-              <path d={arc(c, r, seg.start, seg.end)} fill="none" stroke="var(--neutral-soft)" strokeWidth={12} />
+              <path d={arc(c, r, seg.start, seg.end)} fill="none" stroke={EMPTY} strokeWidth={12} />
               {seg.filled - seg.start > 0.5 && (
                 <path
                   d={arc(c, r, seg.start, seg.filled)}
                   pathLength={1}
                   className="report-draw"
                   fill="none"
-                  stroke="var(--text)"
+                  stroke={AREA[score.parts[k].key]}
                   strokeWidth={12}
                 />
               )}
@@ -323,8 +353,11 @@ function ScoreCard({ score }: { score: SpeakScore }) {
               onPointerEnter={() => setOn(k)}
               onPointerLeave={() => setOn(null)}
             >
-              <span className="text-body-sm">{part.title}</span>
-              <Track value={part.earned / part.max} accent={false} />
+              <span className="flex items-center gap-2 text-body-sm">
+                <span aria-hidden className="size-2.5 rounded-[3px]" style={{ background: AREA[part.key] }} />
+                {part.title}
+              </span>
+              <Track value={part.earned / part.max} color={AREA[part.key]} />
               <span className="text-right text-body-sm tabular-nums">
                 <span className="font-medium">{part.earned}</span>
                 <span className="text-muted"> / {part.max}</span>
@@ -370,17 +403,20 @@ function Figure({
   );
 }
 
-/** A dot for "work on this", a tick for "going well", a ring for "no data": shape as well as color. */
-function VerdictMark({ verdict }: { verdict: ReportSection["verdict"] }) {
-  if (verdict === "improve") return <span aria-hidden className="size-2 shrink-0 rounded-full bg-cue" />;
+/**
+ * A dot for "work on this", a tick for "going well", a ring for "no data": shape first, so it
+ * never rests on color. The tick takes its area's color; the dot takes the ink around it.
+ */
+function VerdictMark({ verdict, color }: { verdict: ReportSection["verdict"]; color: string }) {
+  if (verdict === "improve") return <span aria-hidden className="size-2 shrink-0 rounded-full bg-current" />;
   if (verdict === "good")
     return (
-      <svg aria-hidden width="12" height="12" viewBox="0 0 12 12" className="shrink-0 text-muted">
+      <svg aria-hidden width="12" height="12" viewBox="0 0 12 12" className="shrink-0" style={{ color }}>
         <path
           d="M2.5 6.5l2.3 2.3 4.7-5.3"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.6"
+          strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
@@ -389,20 +425,61 @@ function VerdictMark({ verdict }: { verdict: ReportSection["verdict"] }) {
   return <span aria-hidden className="size-2 shrink-0 rounded-full border border-muted/60" />;
 }
 
-/** A share of something as a filled track. The track is a lighter step of whatever fills it. */
-function Track({ value, accent, className = "" }: { value: number; accent: boolean; className?: string }) {
+/** An area's icon on its color: the same mark on its card and in "work on next". */
+function AreaChip({ area, quiet = false }: { area: SectionKey; quiet?: boolean }) {
+  const line = { fill: "none", stroke: "currentColor", strokeLinecap: "round", strokeLinejoin: "round" } as const;
   return (
-    <div className={`h-2 overflow-hidden rounded-full ${accent ? "bg-cue-soft" : "bg-neutral-soft"} ${className}`}>
+    <span
+      aria-hidden
+      className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white"
+      style={{ background: quiet ? "var(--neutral)" : AREA[area], opacity: quiet ? 0.5 : 1 }}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        {area === "pauses" && <path d="M5.5 3.5v9M10.5 3.5v9" {...line} strokeWidth="2.4" />}
+        {area === "pace" && <path d="M3 4l4 4-4 4M8.5 4l4 4-4 4" {...line} strokeWidth="1.8" />}
+        {area === "volume" && <path d="M3.5 10.5v2M8 6.5v6M12.5 3v9.5" {...line} strokeWidth="2.2" />}
+        {area === "fillers" && (
+          <path
+            d="M4 3h8a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 12 11H7.5l-3 2.5V11H4a1.5 1.5 0 0 1-1.5-1.5v-5A1.5 1.5 0 0 1 4 3z"
+            {...line}
+            strokeWidth="1.6"
+          />
+        )}
+        {area === "pitch" && <path d="M1.5 8q2.25-7.5 4.5 0t4.5 0t4 0" {...line} strokeWidth="1.8" />}
+        {area === "originality" && <path d="M3.5 4.5h9M3.5 8h9M3.5 11.5h5.5" {...line} strokeWidth="1.8" />}
+        {area === "inclusive" && (
+          <>
+            <circle cx="6" cy="8" r="3.5" {...line} strokeWidth="1.6" />
+            <circle cx="10" cy="8" r="3.5" {...line} strokeWidth="1.6" />
+          </>
+        )}
+      </svg>
+    </span>
+  );
+}
+
+/** A share of something as a filled track: the fill in color, the rest gray. */
+function Track({
+  value,
+  color = "var(--neutral)",
+  className = "",
+}: {
+  value: number;
+  color?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`h-2 overflow-hidden rounded-full ${className}`} style={{ background: EMPTY }}>
       <div
-        className={`report-grow h-full rounded-full ${accent ? "bg-cue" : "bg-neutral"}`}
-        style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }}
+        className="report-grow h-full rounded-full"
+        style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, background: color }}
       />
     </div>
   );
 }
 
 /** A share of the session against the line worth working on, which is marked on the track. */
-function ShareMeter({ share }: { share: NonNullable<ReportSection["share"]> }) {
+function ShareMeter({ share, color }: { share: NonNullable<ReportSection["share"]>; color: string }) {
   const over = share.value >= share.line;
   return (
     <figure className="mt-5">
@@ -411,7 +488,17 @@ function ShareMeter({ share }: { share: NonNullable<ReportSection["share"]> }) {
         <span className="font-medium tabular-nums">{percent(share.value)}</span>
       </p>
       <div className="relative mt-2.5 pb-5">
-        <Track value={share.value} accent={over} />
+        {/* The area's color up to the line worth working on; anything past it in ink. */}
+        <div className="relative h-2 overflow-hidden rounded-full" style={{ background: EMPTY }}>
+          <div
+            className="report-grow absolute inset-y-0 left-0 rounded-full"
+            style={{ width: `${Math.min(1, share.value) * 100}%`, background: over ? INK : color }}
+          />
+          <div
+            className="report-grow absolute inset-y-0 left-0 rounded-l-full"
+            style={{ width: `${Math.min(share.value, share.line) * 100}%`, background: color }}
+          />
+        </div>
         <span aria-hidden className="absolute -top-1 h-4 w-px bg-text" style={{ left: `${share.line * 100}%` }} />
         <span
           className="absolute top-4 whitespace-nowrap text-caption text-muted"
@@ -428,7 +515,7 @@ function ShareMeter({ share }: { share: NonNullable<ReportSection["share"]> }) {
   );
 }
 
-/** Each filler as a bar, most used first. Only the top one takes the accent, and only when it's worth working on. */
+/** Each filler as a bar, most used first. The top one turns to ink when fillers are worth working on. */
 function FillerBars({ fillers, accent }: { fillers: SessionReport["fillers"]; accent: boolean }) {
   const shown = fillers.slice(0, 6);
   const rest = fillers.slice(6);
@@ -441,8 +528,8 @@ function FillerBars({ fillers, accent }: { fillers: SessionReport["fillers"]; ac
             <span className="text-body-sm">“{f.word}”</span>
             <span className="block h-2.5">
               <span
-                className={`report-grow block h-full min-w-1 rounded-r-[4px] ${accent && k === 0 ? "bg-cue" : "bg-neutral"}`}
-                style={{ width: `${(f.count / max) * 100}%` }}
+                className="report-grow block h-full min-w-1 rounded-r-[4px]"
+                style={{ width: `${(f.count / max) * 100}%`, background: accent && k === 0 ? INK : AREA.fillers }}
               />
             </span>
             <span className="text-right text-body-sm font-medium tabular-nums">{f.count}</span>
@@ -480,8 +567,9 @@ function Tip({ hover, width }: { hover: Hover; width: number }) {
 }
 
 /**
- * A value through the session as a line. Optional extras: a shaded band (a comfortable range),
- * a reference line, and an accent on whatever rises above a limit. Pointer and arrow keys read
+ * A value through the session as a line. Optional extras: a band marked by two hairlines (a comfortable range),
+ * a reference line, ink on whatever rises above a limit, and a wash between the line and a
+ * baseline. The line takes its area's color. Pointer and arrow keys read
  * out the nearest point.
  */
 function TimeChart({
@@ -491,6 +579,8 @@ function TimeChart({
   band,
   rule,
   accentAbove,
+  color,
+  washTo,
   mark,
   format,
   label,
@@ -501,6 +591,9 @@ function TimeChart({
   band?: { lo: number; hi: number; label: string };
   rule?: { v: number; label: string };
   accentAbove?: number;
+  color: string;
+  /** Shade between the line and this value. */
+  washTo?: number;
   /** Which point gets the dot and the value label, if any does. */
   mark: "peak" | "none";
   format: (v: number) => string;
@@ -549,27 +642,29 @@ function TimeChart({
           <svg width={width} height={height} className="absolute left-0 top-0 overflow-visible" aria-hidden>
             {band && (
               <>
-                <rect
-                  x={0}
-                  width={width}
-                  y={y(band.hi)}
-                  height={Math.max(0, y(band.lo) - y(band.hi))}
-                  rx={6}
-                  fill="var(--neutral-soft)"
-                />
+                {/* The comfortable range as two hairlines, so the color under the line stays clean. */}
+                <line x1={0} x2={width} y1={y(band.hi)} y2={y(band.hi)} stroke="var(--line)" strokeWidth={1} />
+                <line x1={0} x2={width} y1={y(band.lo)} y2={y(band.lo)} stroke="var(--line)" strokeWidth={1} />
                 <text x={8} y={y(band.lo) - 7} className="fill-muted text-[11px]">
                   {band.label}
                 </text>
               </>
             )}
             {rule && <line x1={0} x2={width} y1={y(rule.v)} y2={y(rule.v)} stroke="var(--muted)" strokeWidth={1} />}
+            {washTo !== undefined && (
+              <path
+                d={`${path}L${x(points[points.length - 1].t).toFixed(1)} ${y(washTo)}L${x(t0).toFixed(1)} ${y(washTo)}Z`}
+                fill={color}
+                fillOpacity={0.3}
+              />
+            )}
             <path
               d={path}
               pathLength={1}
               className="report-draw"
               fill="none"
-              stroke="var(--text)"
-              strokeWidth={2}
+              stroke={color}
+              strokeWidth={2.5}
               strokeLinejoin="round"
               strokeLinecap="round"
             />
@@ -579,17 +674,12 @@ function TimeChart({
                   <rect x={0} y={0} width={width} height={y(accentAbove)} />
                 </clipPath>
                 <path
-                  d={`${path}L${x(points[points.length - 1].t).toFixed(1)} ${y(accentAbove)}L${x(t0).toFixed(1)} ${y(accentAbove)}Z`}
-                  fill="var(--cue)"
-                  fillOpacity={0.1}
-                />
-                <path
                   d={path}
                   pathLength={1}
                   className="report-draw"
                   fill="none"
-                  stroke="var(--cue)"
-                  strokeWidth={2.5}
+                  stroke={INK}
+                  strokeWidth={3}
                   strokeLinejoin="round"
                   strokeLinecap="round"
                 />
@@ -601,7 +691,7 @@ function TimeChart({
                   cx={x(points[marked].t)}
                   cy={y(points[marked].v)}
                   r={4.5}
-                  fill={over ? "var(--cue)" : "var(--text)"}
+                  fill={over ? INK : color}
                   stroke="var(--bg)"
                   strokeWidth={2}
                 />
@@ -629,7 +719,7 @@ function TimeChart({
                   cx={x(points[shown].t)}
                   cy={y(points[shown].v)}
                   r={4.5}
-                  fill={accentAbove !== undefined && points[shown].v > accentAbove ? "var(--cue)" : "var(--text)"}
+                  fill={accentAbove !== undefined && points[shown].v > accentAbove ? INK : color}
                   stroke="var(--bg)"
                   strokeWidth={2}
                 />
@@ -684,6 +774,8 @@ function PaceChart({
       band={{ lo: band[0], hi: band[1], label: `comfortable, ${band[0]} to ${band[1]} wpm` }}
       rule={{ v: limitWpm, label: `rushing above about ${limitWpm} wpm` }}
       accentAbove={limitWpm}
+      color={AREA.pace}
+      washTo={lo}
       mark="peak"
       format={(v) => `${Math.round(v)} wpm`}
       label={`Pace through the session, between ${Math.round(Math.min(...values))} and ${Math.round(Math.max(...values))} words a minute. Rushing is above about ${limitWpm}.`}
@@ -701,6 +793,8 @@ function PitchChart({ contour }: { contour: SessionReport["pitchContour"] }) {
       domain={[-reach, reach]}
       height={140}
       rule={{ v: 0, label: "your typical pitch" }}
+      color={AREA.pitch}
+      washTo={0}
       mark="none"
       format={signed}
       label={`Pitch through the session, from ${signed(Math.min(...contour.map((p) => p.st)))} to ${signed(Math.max(...contour.map((p) => p.st)))} around your typical pitch.`}
@@ -710,7 +804,7 @@ function PitchChart({ contour }: { contour: SessionReport["pitchContour"] }) {
 
 /**
  * The session as a strip: each bar is a stretch of talking, each gap a pause. The longest
- * stretch is labeled, and takes the accent if it ran past the point where a pause was due.
+ * stretch is labeled, and turns to ink if it ran past the point where a pause was due.
  */
 function StretchStrip({ stretches, limitSec }: { stretches: SessionReport["stretches"]; limitSec: number }) {
   const [ref, width] = useWidth<HTMLDivElement>();
@@ -763,7 +857,7 @@ function StretchStrip({ stretches, limitSec }: { stretches: SessionReport["stret
                   width={w}
                   height={barH}
                   rx={Math.min(4, w / 2)}
-                  fill={k === longest && tooLong ? "var(--cue)" : "var(--neutral)"}
+                  fill={k === longest && tooLong ? INK : AREA.pauses}
                   opacity={at === null || at === k ? 1 : 0.45}
                 />
               );

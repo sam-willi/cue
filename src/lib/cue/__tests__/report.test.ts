@@ -89,6 +89,9 @@ describe("session report", () => {
     const pauses = section(r, "pauses");
     expect(pauses.verdict).toBe("improve");
     expect(r.focus[0]).toMatch(/^Pause more/);
+    // Each thing to work on names its area, so the report can show that area's icon and color.
+    expect(r.focusKeys[0]).toBe("pauses");
+    expect(r.focusKeys).toHaveLength(r.focus.length);
   });
 
   it("counts fillers by word, including the wearer's own", () => {
