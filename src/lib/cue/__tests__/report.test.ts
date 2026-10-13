@@ -109,6 +109,27 @@ describe("session report", () => {
     expect(report(LONG, { wpm: 150 }).rushed).toEqual([]);
   });
 
+  it("says what to do differently next time, the costliest thing first", () => {
+    // Rushed and full of fillers: both lose points.
+    const text =
+      "Um so we basically rebuilt it. Um the old one was um slow. Um nobody liked it. Um and uh we started over. " +
+      "Um it took a while. Um but it works. Um so that is where we are. Um any questions.";
+    const r = report(`${text} ${text} ${text}`, { wpm: 230 });
+    expect(r.next.length).toBeGreaterThanOrEqual(2);
+    const lost = r.next.map((n) => {
+      const part = r.score!.parts.find((p) => p.key === n.key)!;
+      return part.max - part.earned;
+    });
+    expect([...lost].sort((a, b) => b - a)).toEqual(lost);
+    const pace = r.next.find((n) => n.key === "pace")!;
+    expect(pace.action).toBe("Slow down");
+    expect(pace.how).toMatch(/^Finish the last word/);
+    expect(pace.why).toBe(section(r, "pace").headline);
+    expect(r.focusKeys).toEqual(r.next.map((n) => n.key));
+    // Nothing to change after a steady talk.
+    expect(report(LONG, { wpm: 150 }).next).toEqual([]);
+  });
+
   it("gives a technique to practise for what needs work, and none for what doesn't", () => {
     const fast = report(LONG, { wpm: 230 });
     expect(section(fast, "pace").technique?.name).toBe("Land the last word");
