@@ -60,7 +60,7 @@ On screen, each cue is drawn as rings leaving the motor on the 3D device. A fain
 
 ### Session report
 
-When a session ends, the app builds a report (decision 19, `src/lib/cue/report.ts`): up to three things to work on, then one card per area.
+When a session ends, the app builds a report (decision 19, `src/lib/cue/report.ts`): up to three things to work on, then one card per area. It appears under **Speaking insights**. The button of the same name beside Start listening opens it and scrolls to it; while a session is running the button reads "Stop and see insights" and ends the session first.
 
 | Area               | What it reports                                                                                                                                                                        |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

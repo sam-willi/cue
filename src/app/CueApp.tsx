@@ -135,6 +135,8 @@ export default function CueApp() {
   const [playhead, setPlayhead] = useState<number | null>(null);
   const [trainingSaved, setTrainingSaved] = useState<string | null>(null);
   const toggle = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+  /** The collapsed sections under the live view; "Speaking insights" is the first, so the button scrolls here. */
+  const sectionsRef = useRef<HTMLDivElement>(null);
   const [demoText, setDemoText] = useState(EXAMPLES[0]);
   const [demoWpm, setDemoWpm] = useState(150);
 
@@ -648,6 +650,14 @@ export default function CueApp() {
     } else if (words.length) setOpen((o) => ({ ...o, review: true }));
     if (words.length) setReport(makeReport(script));
   };
+  /** Stop if a session is running (which builds the report), then open the insights and bring them into view. */
+  const showInsights = () => {
+    if (busy) endSession();
+    setOpen((o) => ({ ...o, review: true }));
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // Next frame, once the section has opened and the page has its new height.
+    requestAnimationFrame(() => sectionsRef.current?.scrollIntoView({ behavior: calm ? "auto" : "smooth" }));
+  };
   const setCustomFillers = (customFillers: string[]) => {
     setConfig((c) => ({ ...c, customFillers }));
     try {
@@ -823,22 +833,38 @@ export default function CueApp() {
             <p className="mt-4 min-h-12 max-w-md text-body text-muted">{heroLine}</p>
 
             <div className="mt-8 flex flex-col items-center gap-3">
-              {live ? (
-                <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
-                  Stop
-                </button>
-              ) : status === "demo" ? (
-                <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
-                  Stop practice
-                </button>
-              ) : (
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {live ? (
+                  <button
+                    onClick={endSession}
+                    className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+                  >
+                    Stop
+                  </button>
+                ) : status === "demo" ? (
+                  <button
+                    onClick={endSession}
+                    className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+                  >
+                    Stop practice
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => startLive()}
+                    className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+                  >
+                    Start listening
+                  </button>
+                )}
+                {/* The after-session report, one press away: like a rehearsal coach's report when you finish. */}
                 <button
-                  onClick={() => startLive()}
-                  className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+                  type="button"
+                  onClick={showInsights}
+                  className="min-h-12 rounded-lg border border-line px-6 text-body font-medium hover:border-text"
                 >
-                  Start listening
+                  {busy ? "Stop and see insights" : "Speaking insights"}
                 </button>
-              )}
+              </div>
               <p className="max-w-md text-body-sm text-muted">
                 {status === "demo"
                   ? "Practice doesn’t use the microphone."
@@ -1059,17 +1085,17 @@ export default function CueApp() {
           </section>
 
           {/* --- Everything else waits below, collapsed --- */}
-          <div className="mt-20 border-t border-line">
+          <div ref={sectionsRef} className="mt-20 scroll-mt-6 border-t border-line">
             <Disclosure
-              title="Session report"
+              title="Speaking insights"
               summary={reviewSummary}
               open={open.review}
               onToggle={() => toggle("review")}
             >
               {words.length === 0 ? (
-                <p className="text-body text-muted">
-                  After you stop, this is your report: pauses, pace, volume, filler words, pitch and more, with a
-                  transcript you can correct.
+                <p className="max-w-prose text-body text-muted">
+                  No session yet. Start listening, talk for a minute or two, then stop. Your report appears here:
+                  pauses, pace, volume, filler words, pitch and more, with a transcript you can correct.
                 </p>
               ) : (
                 <div className="space-y-12">
