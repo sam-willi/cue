@@ -54,7 +54,7 @@ export default function PrivacyPage() {
       <p className={P}>When you join early access or ask for a pilot, we keep:</p>
       <ul className={LIST}>
         <li>your email address</li>
-        <li>your school or organization and your role, if you ask for a school pilot</li>
+        <li>your school or organization, if you add it when asking for a school pilot</li>
         <li>which of our pages you signed up on</li>
         <li>the campaign tags in the link you followed, which tell us which ad or post brought you here</li>
         <li>the date and time</li>

@@ -24,8 +24,10 @@ describe("parseSignup", () => {
     expect(parseSignup(null, NOW)).toMatchObject({ ok: false });
   });
 
-  it("needs an organization for a pilot request and keeps only a listed role", () => {
-    expect(parseSignup({ market: "schools", email: "t@school.edu" }, NOW)).toMatchObject({ ok: false });
+  it("takes a pilot request with or without an organization and keeps only a listed role", () => {
+    const bare = parseSignup({ market: "schools", email: "t@school.edu" }, NOW);
+    expect(bare).toMatchObject({ ok: true, signup: { kind: "pilot", email: "t@school.edu" } });
+    expect("signup" in bare && bare.signup.organization).toBeUndefined();
     expect(
       parseSignup({ market: "schools", email: "t@school.edu", organization: "Lincoln High", role: "Teacher" }, NOW),
     ).toMatchObject({ ok: true, signup: { kind: "pilot", organization: "Lincoln High", role: "Teacher" } });
