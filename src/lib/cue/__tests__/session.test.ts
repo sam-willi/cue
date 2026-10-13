@@ -191,6 +191,15 @@ describe("CueSession", () => {
     expect(s.likeChecks.map((c) => [c.verdict.use, c.counted])).toEqual([["verb", false]]);
   });
 
+  it("says so sooner when the rushing is unmistakable", () => {
+    const tapAt = (wpm: number) =>
+      run(longText, { wpm }).find((d) => d.delivered && d.event.type === "rushing")!.event.end;
+    // 240 wpm is ~5.3 syllables/s, just over the 4.5 limit: it has to hold for the full 3 s.
+    expect(tapAt(240)).toBeGreaterThan(5.4);
+    // 420 wpm is ~9 syllables/s, twice the limit: about 2.5 s to measure, 1.5 s to be sure, 1 s for a break.
+    expect(tapAt(420)).toBeLessThan(5.5);
+  });
+
   it("keeps the rushing clock running through brief dips", () => {
     // Fast speech with commas (short pauses) that briefly lower the measured rate.
     const text = Array.from({ length: 6 }, () => "we should get the team together, plan the launch, and ship it").join(

@@ -864,6 +864,19 @@ export default function CueApp() {
                 >
                   {busy ? "Stop and see insights" : "Speaking insights"}
                 </button>
+                {volumeOn && !busy && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVolumeNote(null);
+                      setCalibratingFor(config.mode);
+                      void startLive();
+                    }}
+                    className="min-h-12 rounded-lg border border-line px-6 text-body font-medium hover:border-text"
+                  >
+                    {volumeSet ? "Set volume again" : "Set my volume"}
+                  </button>
+                )}
               </div>
               <p className="max-w-md text-body-sm text-muted">
                 {status === "demo"
@@ -971,19 +984,7 @@ export default function CueApp() {
                 : (volumeNote ??
                   (volumeSet
                     ? `Your ${modeName} volume is set${micLabel ? ` for ${micLabel}` : ""}.`
-                    : `Speak-up cues start once you set your ${modeName} volume${micLabel ? ` with ${micLabel}` : ""}.`))}{" "}
-              {volumeOn && !live && status !== "demo" && (
-                <button
-                  onClick={() => {
-                    setVolumeNote(null);
-                    setCalibratingFor(config.mode);
-                    void startLive();
-                  }}
-                  className="underline underline-offset-2 hover:text-text"
-                >
-                  {volumeSet ? "Set it again" : "Set my volume"}
-                </button>
-              )}
+                    : `Speak-up cues start once you set your ${modeName} volume${micLabel ? ` with ${micLabel}` : ""}.`))}
             </p>
 
             {/* What each tap means */}
@@ -1046,7 +1047,7 @@ export default function CueApp() {
                   }
                   frac={paceFrac}
                   mark={1 / 1.4}
-                  alert={sps > config.paceThreshold}
+                  alert={sps > paceLimit}
                 />
                 <Meter
                   label="Volume"
@@ -2200,6 +2201,13 @@ function ReportView({
               {s.headline}
             </p>
             {s.advice && <p className="mt-2 text-body-sm text-muted">{s.advice}</p>}
+            {s.technique && (
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="text-caption text-muted">Technique to try</p>
+                <p className="mt-1 text-body-sm font-medium">{s.technique.name}</p>
+                <p className="mt-1 text-body-sm text-muted">{s.technique.how}</p>
+              </div>
+            )}
             {s.stats.length > 0 && (
               <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
                 {s.stats.map((x) => (

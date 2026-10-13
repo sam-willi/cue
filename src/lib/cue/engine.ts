@@ -8,7 +8,8 @@ import type { BehaviorType, CueDecision, SpeechEvent } from "./types";
  *  - Fillers only tap as a pattern: a cluster
  *    (3 within 12 s) or a high rate (8+ in the last minute), not one at a time (§7).
  *  - Sustained behaviors (rushing, no pause, long turn, too quiet) wait for a natural
- *    break in speech, up to a few seconds, so the tap doesn't land mid-word (§12).
+ *    break in speech, up to a few seconds (one second for rushing), so the tap doesn't land
+ *    mid-word (§12).
  *  - One tap at a time: a 10–20 s cooldown after any tap (§13). Presentation mode is sparser
  *    (decision 11): 25 s between taps, at most 2 a minute, fillers judged as a rate, and long
  *    turns left for the review.
@@ -49,6 +50,8 @@ const WORKED_PATIENCE = 2;
 const EVERY_FILLER_COOLDOWN = 1.5;
 /** A sustained behavior waits at most this long (s) for a break in speech. */
 const MAX_WAIT_FOR_BREAK = 3;
+/** Rushing waits less: someone racing ahead is the speaker least likely to leave a break. */
+const MAX_WAIT_FOR_BREAK_RUSHING = 1;
 /** The rate window for filler density, seconds. */
 const DENSITY_WINDOW = 60;
 
@@ -149,7 +152,8 @@ export class DecisionEngine {
       return { event: ev, delivered: false, withheldReason: held };
     }
     // Wait for a natural break so the tap doesn't land mid-word (bounded wait).
-    if (!m.atBreak && m.now - state.waitingSince < MAX_WAIT_FOR_BREAK) return null;
+    const maxWait = type === "rushing" ? MAX_WAIT_FOR_BREAK_RUSHING : MAX_WAIT_FOR_BREAK;
+    if (!m.atBreak && m.now - state.waitingSince < maxWait) return null;
     state.handledAt = m.now;
     state.waitingSince = m.now;
     return this.tap(ev, reason, m.now, "");

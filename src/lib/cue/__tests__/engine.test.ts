@@ -105,6 +105,19 @@ describe("decision engine (SOFTWARE.md §7, §12–14)", () => {
     speak(s2, fast.slice(16), { wpm: 260, gap: 0.7, startAt: r.end });
     expect(taps(s2)).toContain("rushing");
   });
+
+  it("never learns a very fast pace as normal", () => {
+    // A session that opens with two and a half minutes at ~8 syllables/s (a rap, say).
+    const s = new CueSession({ categories: { ...new CueSession().config.categories, pauses: false, turns: false } });
+    const rap = Array.from({ length: 70 }, () => CLEAN);
+    const { words } = speak(s, rap, { wpm: 400, gap: 0.7 });
+    // Their "normal" would put the limit near 10; it stops at 6 (about 250 words a minute).
+    expect(s.paceLimit()).toBe(6);
+    // So Cue still taps for it after the first minute, when the normal has been learned.
+    const rushingTaps = s.history.filter((d) => d.delivered && d.tapReason === "rushing").map((d) => d.event.end);
+    expect(rushingTaps.some((t) => t > 75)).toBe(true);
+    expect(words.at(-1)!.end).toBeGreaterThan(120);
+  });
 });
 
 describe("Presentation mode (decision 11)", () => {

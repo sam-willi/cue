@@ -52,6 +52,14 @@ const BREAK_SEC = 0.25;
 const PACE_RISE = { conversation: 1.2, presentation: 1.1 };
 /** Never call speech under this rushing (syllables/s), however slow the wearer's normal is. */
 const PACE_FLOOR = 3.6;
+/**
+ * Always call speech over this rushing (syllables/s, about 250 words a minute), however fast the
+ * wearer's normal is. Without it, a session that opens with a minute of very fast talking teaches
+ * Cue that pace as "normal" and it never taps for it.
+ */
+const PACE_CEILING = 6;
+/** At this many times the limit the rushing is unmistakable, and Cue waits half as long to say so. */
+const PACE_CLEAR = 1.25;
 /** A gap (s) between the wearer's words that counts as a meaningful pause (SOFTWARE.md §9). */
 const MEANINGFUL_PAUSE = 0.6;
 /** Bone frames this close (s) around a word still count toward it (sensor and audio timing differ slightly). */
@@ -526,7 +534,7 @@ export class CueSession {
     const c = this.config;
     if (c.paceMode === "custom" || this.paceBaseline === null) return c.paceThreshold;
     const rise = c.mode === "presentation" ? PACE_RISE.presentation : PACE_RISE.conversation;
-    return Math.max(PACE_FLOOR, this.paceBaseline * rise);
+    return Math.min(PACE_CEILING, Math.max(PACE_FLOOR, this.paceBaseline * rise));
   }
 
   private rushingActive(words: Word[], pace: Pace | null, limit: number): boolean {
@@ -537,7 +545,9 @@ export class CueSession {
       return false;
     }
     if (pace.sps > limit) this.paceAboveSince ??= now;
-    return this.paceAboveSince !== null && now - this.paceAboveSince >= this.config.paceSustainSec;
+    // A borderline pace has to hold for the full time; far over the limit, half of it is proof enough.
+    const sustain = this.config.paceSustainSec * (pace.sps >= limit * PACE_CLEAR ? 0.5 : 1);
+    return this.paceAboveSince !== null && now - this.paceAboveSince >= sustain;
   }
 
   /**

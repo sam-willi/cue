@@ -75,6 +75,14 @@ describe("session report", () => {
     expect(r.paceTimeline.length).toBeGreaterThan(2);
   });
 
+  it("gives a technique to practise for what needs work, and none for what doesn't", () => {
+    const fast = report(LONG, { wpm: 230 });
+    expect(section(fast, "pace").technique?.name).toBe("Land the last word");
+    expect(section(fast, "pace").technique?.how).toMatch(/To practise/);
+    const steady = report(LONG, { wpm: 150 });
+    expect(steady.sections.filter((s) => s.technique)).toEqual([]);
+  });
+
   it("flags a long stretch without a pause", () => {
     const noStops = TALK.replace(/[.,]/g, "");
     const r = report(`${noStops} ${noStops}`, { wpm: 150 });
