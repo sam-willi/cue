@@ -75,6 +75,40 @@ describe("session report", () => {
     expect(r.paceTimeline.length).toBeGreaterThan(2);
   });
 
+  it("quotes what was being said where the pace ran over the limit", () => {
+    const calm = simulateWords(TALK, { wpm: 150 });
+    const dash = simulateWords(
+      "and then we shipped it to everybody and the numbers went up and we kept on adding things",
+      {
+        wpm: 280,
+        startAt: calm.at(-1)!.end + 0.3,
+      },
+    );
+    const after = simulateWords(TALK, { wpm: 150, startAt: dash.at(-1)!.end + 1 });
+    const words = [...calm, ...dash, ...after];
+    const s = new CueSession();
+    s.ingest(words, true);
+    s.endUtterance();
+    const r = buildReport({
+      words,
+      history: s.history,
+      taps: s.engineTaps(),
+      levels: [],
+      pitch: [],
+      config: s.config,
+      paceLimit: s.config.paceThreshold,
+    });
+    expect(r.rushed).toHaveLength(1);
+    expect(r.rushed[0].text).toContain("we shipped it to everybody");
+    expect(r.rushed[0].text).not.toContain("onboarding");
+    expect(r.rushed[0].start).toBeGreaterThanOrEqual(dash[0].start - 1);
+    expect(r.rushed[0].end).toBeLessThanOrEqual(dash.at(-1)!.end);
+    expect(r.rushed[0].wpm).toBeGreaterThan(220);
+    expect(r.startSec).toBe(0);
+    // A steady talk has nothing to quote.
+    expect(report(LONG, { wpm: 150 }).rushed).toEqual([]);
+  });
+
   it("gives a technique to practise for what needs work, and none for what doesn't", () => {
     const fast = report(LONG, { wpm: 230 });
     expect(section(fast, "pace").technique?.name).toBe("Land the last word");

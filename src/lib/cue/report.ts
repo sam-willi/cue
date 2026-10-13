@@ -158,6 +158,10 @@ export interface SessionReport {
   /** Pace through the session, words per minute, for a small chart. */
   paceTimeline: { t: number; wpm: number }[];
   paceLimitWpm: number;
+  /** When the wearer's first word began (s), so the report can show times from the start of the talk. */
+  startSec: number;
+  /** What the wearer was saying where they rushed: the fastest few passages, in the order they were said. */
+  rushed: { start: number; end: number; wpm: number; text: string }[];
   /** The comfortable average pace for this mode, words per minute. */
   paceBandWpm: [number, number];
   /** Each stretch of talking between two real pauses, in session seconds, for the pauses strip. */
@@ -281,6 +285,8 @@ export function buildReport(input: ReportInput): SessionReport {
     focusKeys: focus.map((s) => s.key),
     cues: cueCounts(input.taps),
     paceTimeline: pace.timeline,
+    startSec: words[0]?.start ?? 0,
+    rushed: enough ? rushedPassages(words, input.paceLimit) : [],
     paceLimitWpm: toApproxWpm(input.paceLimit),
     paceBandWpm: PACE_BAND[config.mode],
     stretches: enough ? stretchesOf(words) : [],
@@ -440,6 +446,59 @@ function paceSection(
       ],
     },
   };
+}
+
+/** A word counts as rushed by the pace of the speech this many seconds around it. */
+const LOCAL_WINDOW = 4;
+/** A rushed passage is at least this many words; up to this many slower words in a row don't break it. */
+const MIN_PASSAGE_WORDS = 8;
+const PASSAGE_BRIDGE = 2;
+/** The report quotes this many passages, each cut off after this many words. */
+const MAX_PASSAGES = 3;
+const MAX_PASSAGE_WORDS = 40;
+
+/**
+ * The words said where the pace ran over the limit. The pace chart shows when the wearer
+ * rushed; this says what they were saying, which is usually what explains it (a list, a
+ * story they've told before, the part they were nervous about).
+ */
+function rushedPassages(words: Word[], paceLimit: number): SessionReport["rushed"] {
+  const fast = words.map((w, k) => {
+    let a = k;
+    let b = k;
+    while (a > 0 && words[a - 1].start >= w.start - LOCAL_WINDOW / 2) a--;
+    while (b + 1 < words.length && words[b + 1].end <= w.end + LOCAL_WINDOW / 2) b++;
+    const pace = measurePace(words.slice(a, b + 1), Infinity);
+    return pace !== null && pace.sps > paceLimit;
+  });
+  const passages: SessionReport["rushed"] = [];
+  for (let k = 0; k < words.length; k++) {
+    if (!fast[k]) continue;
+    let end = k;
+    for (let j = k + 1, slow = 0; j < words.length && slow <= PASSAGE_BRIDGE; j++) {
+      // A real pause ends the passage: whatever comes after it is a new thought.
+      if (words[j].start - words[j - 1].end >= MEANINGFUL_PAUSE) break;
+      if (fast[j]) {
+        end = j;
+        slow = 0;
+      } else slow++;
+    }
+    const said = words.slice(k, end + 1);
+    if (said.length >= MIN_PASSAGE_WORDS) {
+      const shown = said.slice(0, MAX_PASSAGE_WORDS).map((w) => w.text);
+      passages.push({
+        start: said[0].start,
+        end: said[said.length - 1].end,
+        wpm: (said.length / speakingOnly(said)) * 60,
+        text: shown.join(" ") + (said.length > MAX_PASSAGE_WORDS ? " …" : ""),
+      });
+    }
+    k = end;
+  }
+  return passages
+    .sort((a, b) => b.wpm - a.wpm)
+    .slice(0, MAX_PASSAGES)
+    .sort((a, b) => a.start - b.start);
 }
 
 /** Speaking time with pauses of 0.6 s or more removed, the way live pace is measured. */
