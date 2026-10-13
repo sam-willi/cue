@@ -7,8 +7,14 @@ import { CONFIRMS, PATTERNS, type ConfirmPattern, type CuePattern } from "./patt
  *
  * Each cue keeps its haptic rhythm exactly (the on/off steps in `patterns.ts`), so what people
  * learn by ear carries over to the motor. Cues start with a sharp onset like the haptics, and each
- * cue has its own pitch as a second hint: Pause high, Slow down middle, Speak up low. Touch-control
- * confirmations swell in and out with no sharp onset, so they never sound like a cue.
+ * has its own shape so they can't be confused mid-sentence:
+ *
+ *   Pause:      one high tick.
+ *   Slow down:  three notes stepping down, like easing off.
+ *   Speak up:   one tone sweeping up, like turning the volume up.
+ *
+ * Touch-control confirmations swell in and out at a steady pitch with no sharp onset, so they never
+ * sound like a cue.
  */
 
 export interface Tone {
@@ -24,10 +30,23 @@ export interface Tone {
   release: number;
   /** Relative level, 0–1. */
   peak: number;
+  /** When set, the pitch glides from `freq` to this by the end of the tone (Hz). */
+  freqEnd?: number;
+  /** Oscillator shape; sine when unset. Triangle is a little brighter, still soft in the ear. */
+  wave?: "sine" | "triangle";
 }
 
-/** Each cue's pitch: Pause high, Slow down middle, Speak up low. */
-export const CUE_HZ: Record<CuePattern, number> = { tap: 660, steps: 523.25, push: 392 };
+/**
+ * Each cue's notes, one per haptic pulse (Hz). Pause: a high tick. Slow down: G5, E5, C5 stepping
+ * down. Speak up: a sweep from E4 up an octave.
+ */
+export const CUE_NOTES: Record<CuePattern, number[]> = {
+  tap: [880],
+  steps: [783.99, 659.25, 523.25],
+  push: [329.63],
+};
+/** Where the Speak up sweep ends (Hz): an octave above where it starts. */
+const PUSH_END_HZ = 659.25;
 const CONFIRM_HZ = 440;
 /** A tap this short or shorter rings down like a knock; longer steps hold, then fade. */
 const SHORT_MS = 60;
@@ -43,14 +62,25 @@ export function onSegments(vibrate: number[]): { at: number; dur: number }[] {
   return out;
 }
 
-/** The tones for a coaching cue: its haptic rhythm, at its own pitch, each step with a sharp onset. */
+/** The tones for a coaching cue: its haptic rhythm, each step with a sharp onset, in the cue's own shape. */
 export function cueTones(pattern: CuePattern): Tone[] {
   const { vibrate } = PATTERNS[pattern];
-  return onSegments(vibrate).map(({ at, dur }) => {
+  const notes = CUE_NOTES[pattern];
+  return onSegments(vibrate).map(({ at, dur }, k) => {
     const short = dur * 1000 <= SHORT_MS;
     // Very short taps are hard to hear, so they ring a little past their haptic length.
     const len = short ? Math.max(dur, 0.09) : dur;
-    return { at, dur: len, freq: CUE_HZ[pattern], attack: 0.004, release: short ? len - 0.004 : 0.03, peak: 1 };
+    const tone: Tone = {
+      at,
+      dur: len,
+      freq: notes[Math.min(k, notes.length - 1)],
+      attack: 0.004,
+      release: short ? len - 0.004 : 0.03,
+      peak: 1,
+    };
+    if (pattern === "steps") tone.wave = "triangle";
+    if (pattern === "push") Object.assign(tone, { freqEnd: PUSH_END_HZ, wave: "triangle", release: 0.06 });
+    return tone;
   });
 }
 
@@ -105,10 +135,11 @@ export class EarconPlayer {
     for (const tone of tones) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = tone.freq;
+      osc.type = tone.wave ?? "sine";
       const start = t0 + tone.at;
       const end = start + tone.dur;
+      osc.frequency.setValueAtTime(tone.freq, start);
+      if (tone.freqEnd) osc.frequency.exponentialRampToValueAtTime(tone.freqEnd, end);
       const peak = level * tone.peak;
       const attackEnd = start + Math.min(tone.attack, tone.dur);
       const releaseStart = Math.max(attackEnd, end - tone.release);
