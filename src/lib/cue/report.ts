@@ -55,6 +55,10 @@ export type SectionKey = "pauses" | "pace" | "volume" | "fillers" | "pitch" | "o
 export interface Technique {
   name: string;
   how: string;
+  /** What to do differently, as two or three words ("Slow down"). */
+  action: string;
+  /** The technique as one sentence: what to do next time, without the drill. */
+  short: string;
 }
 
 /**
@@ -63,34 +67,50 @@ export interface Technique {
  */
 const TECHNIQUES = {
   pauses: {
+    action: "Pause more",
+    short: "At the end of each thought, close your mouth and take one full breath before you start the next.",
     name: "One thought, one breath",
     how: "At the end of each thought, close your mouth and breathe in through your nose before you start the next one. The silence feels long to you and normal to listeners. To practise, read a paragraph aloud and stop for a full breath at every full stop.",
   },
   paceFast: {
+    action: "Slow down",
+    short: "Finish the last word of each sentence, breathe in, then begin the next one.",
     name: "Land the last word",
     how: "Rushing usually comes from starting the next sentence before the last one has finished. Say the final word of each sentence all the way to its last sound, breathe in, then begin. To practise, read a page aloud with a slash marked at every comma and full stop, and stop at each slash.",
   },
   paceSlow: {
+    action: "Pick up the pace",
+    short: "Say five or six words in one breath, instead of placing each word on its own.",
     name: "Speak in phrases",
     how: "Say five or six words in one breath, then pause, instead of placing each word on its own. To practise, time yourself reading a 150-word paragraph aloud and aim to finish in about a minute.",
   },
   volume: {
+    action: "Speak up",
+    short: "Keep the last three words of every sentence as loud as the first three.",
     name: "Finish the sentence at full volume",
     how: "Quiet stretches are usually sentence endings fading out. Breathe in low, so your stomach moves and your shoulders stay still, and keep the last three words as loud as the first three. To practise, pick a spot on the far wall and say each sentence to it.",
   },
   fillers: {
+    action: "Swap fillers for a pause",
+    short: "When you feel a filler coming, close your lips and let the silence stand.",
     name: "Close your mouth",
     how: "A filler covers the moment while you find the next words. When you feel one coming, close your lips and let the silence stand: you can’t say “um” with your mouth shut. To practise, talk for one minute about your day and start the sentence again every time a filler slips out.",
   },
   pitch: {
+    action: "Vary your voice",
+    short: "In each sentence, pick the word that matters most and say it a little higher and longer.",
     name: "Lift one word",
     how: "In each sentence, choose the word that matters most and say it a little higher and a little longer. To practise, say one sentence five times, lifting a different word each time, and listen to how the meaning moves.",
   },
   originality: {
+    action: "Talk around your notes",
+    short: "Cut your notes to a few keywords for each point, look up, then say it in your own words.",
     name: "Keywords, not sentences",
     how: "Cut your notes down to three to five words for each point. Glance at the keywords, look up, then say the point in your own words. Full sentences on the page get read out; keywords can’t be.",
   },
   inclusive: {
+    action: "Swap a few words",
+    short: "Pick the word you’d rather use and say the sentence aloud three times with it.",
     name: "Rehearse the replacement",
     how: "Choose the word you’d rather use, then say the whole sentence aloud three times with it. The swap only sticks once you have practised saying it.",
   },
@@ -153,6 +173,11 @@ export interface SessionReport {
   focus: string[];
   /** The area each of those is about, in the same order. */
   focusKeys: SectionKey[];
+  /**
+   * What to do differently next time, at most three, the one that cost the most points first:
+   * the action in a few words, how in one sentence, and the finding behind it.
+   */
+  next: { key: SectionKey; title: string; action: string; how: string; why: string }[];
   /** Live cues given, by cue. */
   cues: { pattern: CuePattern; action: string; count: number; worked: number; judged: number }[];
   /** Pace through the session, words per minute, for a small chart. */
@@ -275,14 +300,30 @@ export function buildReport(input: ReportInput): SessionReport {
     originalitySection(words, input.script),
     inclusiveSection(inclusive),
   ];
-  const focus = sections.filter((s) => s.verdict === "improve").slice(0, 3);
+  const score = speakScore(sections);
+  // What cost the most points comes first; areas that aren't scored keep their usual order after those.
+  const lost = (s: ReportSection) => {
+    const part = score?.parts.find((x) => x.key === s.key);
+    return part ? part.max - part.earned : 0;
+  };
+  const focus = sections
+    .filter((s) => s.verdict === "improve")
+    .sort((a, b) => lost(b) - lost(a))
+    .slice(0, 3);
   return {
-    score: speakScore(sections),
+    score,
     talkSec,
     wordCount: words.length,
     sections,
     focus: focus.map((s) => s.advice),
     focusKeys: focus.map((s) => s.key),
+    next: focus.map((s) => ({
+      key: s.key,
+      title: s.title,
+      action: (s.technique ?? AREA_TECHNIQUE[s.key]).action,
+      how: (s.technique ?? AREA_TECHNIQUE[s.key]).short,
+      why: s.headline,
+    })),
     cues: cueCounts(input.taps),
     paceTimeline: pace.timeline,
     startSec: words[0]?.start ?? 0,

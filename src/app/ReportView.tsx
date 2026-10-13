@@ -90,46 +90,14 @@ export function ReportView({
 
   return (
     <div className="space-y-10">
-      {report.score ? (
-        <ScoreCard score={report.score} />
-      ) : (
-        <p className="rounded-2xl border border-line p-5 text-body-sm text-muted">
-          Talk for at least 30 seconds to get a Speak score.
-        </p>
-      )}
-
-      {/* Then what to do next; the numbers behind it follow. */}
-      <div>
-        <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-          {report.focus.length ? "Work on next" : "Nothing to work on from this one"}
-        </h3>
-        {report.focus.length ? (
-          <ol className="mt-4 grid gap-3">
-            {report.focus.map((advice, k) => {
-              const area = report.sections.find((x) => x.key === report.focusKeys[k]);
-              return (
-                <li key={k} className="flex items-start gap-4 rounded-xl bg-surface-2 p-4">
-                  {area && <AreaChip area={area.key} />}
-                  <span className="max-w-prose">
-                    {area && <span className="block text-caption text-muted">{area.title}</span>}
-                    <span className="block text-body">{advice}</span>
-                    {area?.technique && (
-                      <span className="mt-3 block border-t border-line pt-3">
-                        <span className="block text-caption text-muted">Technique to try</span>
-                        <span className="mt-0.5 block text-body font-medium">{area.technique.name}</span>
-                        <span className="mt-1 block text-body-sm text-muted">{area.technique.how}</span>
-                      </span>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+      {/* The score, and right under it what to do differently: the two things most people came for. */}
+      <div className="rounded-2xl border border-line">
+        {report.score ? (
+          <ScoreCard score={report.score} />
         ) : (
-          <p className="mt-2 max-w-prose text-body text-muted">
-            Nothing here crossed a line worth changing. Longer sessions give the report more to go on.
-          </p>
+          <p className="p-5 text-body-sm text-muted sm:p-6">Talk for at least 30 seconds to get a Speak score.</p>
         )}
+        <NextTime items={report.next} judged={report.score !== null} />
       </div>
 
       <div className="rounded-2xl border border-line">
@@ -247,12 +215,9 @@ export function ReportView({
               </dl>
             )}
             {s.advice && <p className="mt-4 max-w-prose text-body-sm text-muted">{s.advice}</p>}
-            {/* Every card offers its technique. It's open where the area needs work and the technique isn't
-                already spelled out under "Work on next"; otherwise one press shows it. */}
-            <details
-              className="group mt-4 rounded-xl bg-surface-2"
-              open={s.verdict === "improve" && !report.focusKeys.includes(s.key)}
-            >
+            {/* Every card offers its technique, drill included. It's open where the area needs work;
+                otherwise one press shows it. */}
+            <details className="group mt-4 rounded-xl bg-surface-2" open={s.verdict === "improve"}>
               <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 text-body-sm [&::-webkit-details-marker]:hidden">
                 <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: AREA[s.key] }} />
                 <span className="text-muted">Technique:</span>
@@ -373,7 +338,7 @@ function ScoreCard({ score }: { score: SpeakScore }) {
     return { start, end, filled: start + (end - start) * (part.earned / part.max) };
   });
   return (
-    <div className="flex flex-col gap-6 rounded-2xl border border-line p-5 sm:flex-row sm:items-center sm:gap-10 sm:p-6">
+    <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:gap-10 sm:p-6">
       <div className="relative mx-auto shrink-0 sm:mx-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} aria-hidden>
           {segments.map((seg, k) => (
@@ -429,6 +394,56 @@ function ScoreCard({ score }: { score: SpeakScore }) {
             ` Not measured this time, so left out: ${score.missing.join(" and ").toLowerCase()}.`}
         </p>
       </div>
+    </div>
+  );
+}
+
+/**
+ * What to do differently next time, directly under the score: each one an action in a few
+ * words, how in one sentence, and the finding behind it. The cards below carry the detail.
+ */
+function NextTime({ items, judged }: { items: SessionReport["next"]; judged: boolean }) {
+  return (
+    <div className="border-t border-line p-5 sm:p-6">
+      <h3 className="font-display text-heading-3-m font-semibold tracking-[-0.015em] sm:text-heading-3">
+        {items.length ? "Next time, do this" : "Next time, do the same again"}
+      </h3>
+      {items.length ? (
+        <ol className="mt-5 grid gap-5">
+          {items.map((item, k) => (
+            <li key={item.key} className="flex items-start gap-4">
+              <span
+                aria-hidden
+                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-text font-display text-body font-semibold tabular-nums text-bg"
+              >
+                {k + 1}
+              </span>
+              <div className="min-w-0">
+                <p className="font-display text-title-m font-semibold tracking-[-0.01em] sm:text-title">
+                  {item.action}
+                </p>
+                <p className="mt-1 max-w-prose text-body">{item.how}</p>
+                <p className="mt-2 flex items-start gap-2 text-body-sm text-muted">
+                  <span
+                    aria-hidden
+                    className="mt-1.5 size-2 shrink-0 rounded-full"
+                    style={{ background: AREA[item.key] }}
+                  />
+                  <span>
+                    {item.title}: {item.why.charAt(0).toLowerCase() + item.why.slice(1)}
+                  </span>
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-2 max-w-prose text-body text-muted">
+          {judged
+            ? "Nothing in this session crossed a line worth changing."
+            : "Nothing stood out yet. A longer session gives the report more to go on."}
+        </p>
+      )}
     </div>
   );
 }
