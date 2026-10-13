@@ -507,7 +507,7 @@ Motion should feel like a breath or a gentle cue—not an alarm.
 - Use accent color for the active or meaningful series, not every series.
 - Show measurement coverage or confidence when data is incomplete.
 - Do not use red to represent filler words as failures.
-- Do not gamify “perfect speech” or reward zero fillers.
+- Do not gamify “perfect speech” or reward zero fillers. **[PROVISIONAL — owner decision 25, 2026-10-13]** The report leads with a Speak score out of 100. It is built so this rule still holds: a few fillers and a brisk pace earn full points, the ring and its bars are neutral ink (never cobalt, never red or green), the levels are plain words, and nothing celebrates a high score.
 - Appropriate progress stories include:
   - Device interventions decreasing.
   - Self-caught moments increasing (once self-correction can be reliably inferred from speech; the device's touch surface is reserved for controls, so there is no self-catch tap).
@@ -761,7 +761,7 @@ Cue’s identity is built around **two interlocking voices creating space**. Use
 ### 2026-10-10
 
 - **Three cues** (`CUE_CONTEXT.md` §26, decision 18): the legend is one row of three (Speak up, Slow down, Pause) with no family columns, and the "Simpler cues" setting is gone. §11 updated.
-- **Session report** (decision 19): the review section opens with up to three things to work on, then one bordered card per area (pauses, pace, volume, filler words, pitch and tone, reading from notes, inclusive language). Cobalt marks only the areas to work on; everything else stays neutral. Pace has a small line chart with the rushing limit dashed. The section is titled **Speaking insights**, and a neutral secondary button with the same name sits beside the primary Start / Stop button: it opens the section and scrolls to it ("Stop and see insights" while a session runs).
+- **Session report** (decision 19): the review section opens with the Speak score (a ring cut into one segment per area, with the same points listed beside it), then up to three things to work on, a row of headline figures with every area's status at a glance, then one bordered card per area (pauses, pace, volume, filler words, pitch and tone, reading from notes, inclusive language). Cards with a chart span the full width. Charts are drawn at real pixel size, read out the nearest point on hover or with the arrow keys, and arrive once with a 400–450 ms draw (none under reduced motion). Cobalt marks only the areas to work on; everything else stays neutral. Pace has a small line chart with the rushing limit dashed. The section is titled **Speaking insights**, and a neutral secondary button with the same name sits beside the primary Start / Stop button: it opens the section and scrolls to it ("Stop and see insights" while a session runs).
 - **Your filler words** (decision 20): a field and removable chips in Settings.
 
 ### 2026-10-05

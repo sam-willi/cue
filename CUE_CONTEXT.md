@@ -784,6 +784,10 @@ Cue is a **single, discreet behind-the-ear (BTE) device** with a satin metallic 
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
 
+### 2026-10-13 — Speak score, and a drawn report
+
+25. **The report leads with a Speak score out of 100.** Amends decision 19 and the "do not gamify" rule in `DESIGN.md` §13. Points per area, in the manner of a sleep score: pace 30, pauses 25, filler words 25, volume 10, pitch 10, each on a sliding scale; areas that couldn't be measured are left out and the rest scaled to 100; five plain levels from Very low to Very high. *Rationale:* owner request for a single number like Apple's sleep score, so a session can be compared with the last at a glance. *Consequences:* built to keep the older rule's intent: fillers at or under two a minute earn full points (it is not a test of saying none), reading from notes and wording are not scored, and the score is drawn in neutral ink with no reward for a high one. Every weight and scale is a **[WORKING ASSUMPTION]**: none is fitted to how listeners rate real speakers yet. The report's areas are also drawn now (pace line, pause strip, pitch contour, filler bars, meters), with cobalt kept for what is worth working on.
+
 ### 2026-10-13 — Quicker pace cue, and techniques in the report
 
 24. **The report says how to work on each thing, not only what.** Amends decision 19. Every report card that needs work names one technique: a physical action plus a drill ("Land the last word" for rushing, "Close your mouth" for fillers, "Lift one word" for a flat voice, and so on). *Rationale:* owner feedback that "slow down" tells nobody how. *Consequences:* the techniques are common speaking-coach practice written for Cue, a **[WORKING ASSUMPTION]** to test with users; they are not yet tied to evidence for each one.
