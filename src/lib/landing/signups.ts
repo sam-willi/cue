@@ -39,9 +39,9 @@ export function parseSignup(body: unknown, now = new Date()): ParsedSignup {
   const signup: Signup = { at: now.toISOString(), market: market.slug, kind: market.kind, email };
 
   if (market.kind === "pilot") {
+    // The school is optional: an email alone is enough to start a pilot conversation.
     const organization = text(input.organization, 120);
-    if (!organization) return { ok: false, error: "Enter your school or organization." };
-    signup.organization = organization;
+    if (organization) signup.organization = organization;
     const role = text(input.role, 40);
     if (role && (PILOT_ROLES as readonly string[]).includes(role)) signup.role = role;
   }

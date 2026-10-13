@@ -126,7 +126,7 @@ Five pages for a painted-door test, one per market, at `/for/<market>`: `speakin
 
 The photos are panels cut from one product concept sheet, [`assets/product/cue-concept-sheet.webp`](assets/product/cue-concept-sheet.webp), by `node scripts/landing-images.mjs`, which writes them to `public/landing/`. The sheet is the owner's image and is kept in the repo so other pages and materials can use it.
 
-Each page has a sign-up form. A sign-up records the market, the email, and the `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` and `utm_term` tags on the page address, so tag each ad's link (`/for/sales?utm_source=meta&utm_campaign=sales-a`). The schools page asks for a pilot and also takes a school and role.
+Each page has a sign-up form. A sign-up records the market, the email, and the `utm_source`, `utm_medium`, `utm_campaign`, `utm_content` and `utm_term` tags on the page address, so tag each ad's link (`/for/sales?utm_source=meta&utm_campaign=sales-a`). The schools page asks for a pilot; the school is an optional field, so an email alone is enough. On every page the email field and button come first in the form, so they show on a phone without scrolling.
 
 **Where sign-ups go.** A Google Sheet with one tab per landing page (Speaking, Sales, Schools, English learners, Interviews), through a small script that lives in the sheet:
 
