@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { ReportSection, SectionKey, SessionReport, SpeakScore } from "@/lib/cue/report";
+import {
+  AREA_TECHNIQUE,
+  type ReportSection,
+  type SectionKey,
+  type SessionReport,
+  type SpeakScore,
+} from "@/lib/cue/report";
 
 /*
  * The after-session report (decision 19), drawn in color (decision 26). Two rules run through
@@ -107,6 +113,13 @@ export function ReportView({
                   <span className="max-w-prose">
                     {area && <span className="block text-caption text-muted">{area.title}</span>}
                     <span className="block text-body">{advice}</span>
+                    {area?.technique && (
+                      <span className="mt-3 block border-t border-line pt-3">
+                        <span className="block text-caption text-muted">Technique to try</span>
+                        <span className="mt-0.5 block text-body font-medium">{area.technique.name}</span>
+                        <span className="mt-1 block text-body-sm text-muted">{area.technique.how}</span>
+                      </span>
+                    )}
                   </span>
                 </li>
               );
@@ -211,16 +224,37 @@ export function ReportView({
               </dl>
             )}
             {s.advice && <p className="mt-4 max-w-prose text-body-sm text-muted">{s.advice}</p>}
-            {s.technique && (
-              <div className="mt-4 rounded-xl bg-surface-2 p-4">
-                <p className="flex items-center gap-2 text-caption text-muted">
-                  <span aria-hidden className="size-2 rounded-full" style={{ background: AREA[s.key] }} />
-                  Technique to try
-                </p>
-                <p className="mt-1 text-body font-medium">{s.technique.name}</p>
-                <p className="mt-1 max-w-prose text-body-sm text-muted">{s.technique.how}</p>
-              </div>
-            )}
+            {/* Every card offers its technique. It's open where the area needs work and the technique isn't
+                already spelled out under "Work on next"; otherwise one press shows it. */}
+            <details
+              className="group mt-4 rounded-xl bg-surface-2"
+              open={s.verdict === "improve" && !report.focusKeys.includes(s.key)}
+            >
+              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 text-body-sm [&::-webkit-details-marker]:hidden">
+                <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: AREA[s.key] }} />
+                <span className="text-muted">Technique:</span>
+                <span className="font-medium">{(s.technique ?? AREA_TECHNIQUE[s.key]).name}</span>
+                <svg
+                  aria-hidden
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="ml-auto shrink-0 text-muted transition-transform duration-200 group-open:rotate-180"
+                >
+                  <path
+                    d="M6 9l6 6 6-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </summary>
+              <p className="max-w-prose px-4 pb-4 text-body-sm text-muted">
+                {(s.technique ?? AREA_TECHNIQUE[s.key]).how}
+              </p>
+            </details>
 
             {s.key === "fillers" && suggested.length > 0 && (
               <div className="mt-4">

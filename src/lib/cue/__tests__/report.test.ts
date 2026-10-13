@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CONFIG, type CueConfig } from "../config";
 import { findInclusiveFlags } from "../inclusive";
-import { buildReport, talkSeconds, type ReportInput, type SectionKey } from "../report";
+import { AREA_TECHNIQUE, buildReport, talkSeconds, type ReportInput, type SectionKey } from "../report";
 import { CueSession } from "../session";
 import { simulateWords } from "../simulate";
 
@@ -81,6 +81,8 @@ describe("session report", () => {
     expect(section(fast, "pace").technique?.how).toMatch(/To practise/);
     const steady = report(LONG, { wpm: 150 });
     expect(steady.sections.filter((s) => s.technique)).toEqual([]);
+    // Even then, every area has a technique the report can offer.
+    for (const s of steady.sections) expect(AREA_TECHNIQUE[s.key].how).toMatch(/\w/);
   });
 
   it("flags a long stretch without a pause", () => {
