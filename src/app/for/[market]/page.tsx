@@ -87,6 +87,15 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
         <section className="pt-5 sm:pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:items-center lg:gap-16 lg:pt-14">
           <div>
             <p className="text-label font-medium text-cue">{market.eyebrow}</p>
+            {/* The early-list discount, said before anything else so nobody can miss it. */}
+            {market.kind === "early-access" && (
+              <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-action px-4 py-1.5 text-body-sm font-semibold text-on-action">
+                <span aria-hidden="true" className="text-body font-bold">
+                  %
+                </span>
+                20% off at launch for early sign-ups
+              </p>
+            )}
             <h1 className="landing-display landing-hero-title mt-3 text-balance sm:mt-4">{market.headline}</h1>
             <p className="mt-4 max-w-xl text-body text-muted sm:mt-6 sm:text-body-lg">{market.lead}</p>
             <div className="mt-5 max-w-xl sm:mt-8">
@@ -94,7 +103,7 @@ export default async function MarketPage({ params }: PageProps<"/for/[market]">)
                 market={market.slug}
                 kind={market.kind}
                 cta={market.cta}
-                title={market.kind === "pilot" ? "Request a school pilot" : "Get early access"}
+                title={market.kind === "pilot" ? "Request a school pilot" : "Get 20% off at launch"}
                 anchor="signup"
               />
             </div>
