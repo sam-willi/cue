@@ -27,6 +27,8 @@
   --area-volume: #34c759; /* green */
   --area-fillers: #00a3e0; /* blue */
   --area-pitch: #9b3fe8; /* violet */
+  /* Text on a vivid area color: ink in both themes, since every one of the five is bright enough for it. */
+  --on-area: #111111;
 }
 
 /* Dark mode (DESIGN.md §19): ink surfaces, bone text, warm gray and cobalt lifted for contrast. */
@@ -162,6 +164,18 @@ body {
   .report-grow {
     transform-origin: left;
     animation: report-grow 400ms ease-out both;
+  }
+}
+/* A cue arrives on screen with one small rise, not a flash. */
+@media (prefers-reduced-motion: no-preference) {
+  .cue-card {
+    animation: cue-card-in 220ms ease-out;
+  }
+}
+@keyframes cue-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
   }
 }
 @keyframes report-draw {

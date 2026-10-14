@@ -154,6 +154,13 @@ export default function CueApp() {
   const voiceRef = useRef<[number, boolean][]>([]);
   const clockRef = useRef<Clock | null>(null);
   const buzzTimer = useRef<number | undefined>(undefined);
+  /** The cue on screen: it stays a few seconds, long after the device's tap has finished. */
+  const [feedback, setFeedback] = useState<{ n: number; label: string; action: string; pattern: CuePattern } | null>(
+    null,
+  );
+  const feedbackTimer = useRef<number | undefined>(undefined);
+  /** Every cue this session, newest first, so one missed while looking away can still be read. */
+  const [feed, setFeed] = useState<{ n: number; at: number; label: string; action: string; pattern: CuePattern }[]>([]);
 
   /** Cue sounds: each cue also plays as a quiet tone in headphones (AirPods), for testing before the device exists. */
   const [sound, setSound] = useState<SoundSettings>(DEFAULT_SOUND);
@@ -263,6 +270,9 @@ export default function CueApp() {
     const pattern = patternFor(kind);
     setConfirm(null);
     setBuzz((b) => ({ n: (b?.n ?? 0) + 1, label: label ?? LABEL[kind], action: actionFor(kind), pattern }));
+    setFeedback((f) => ({ n: (f?.n ?? 0) + 1, label: label ?? LABEL[kind], action: actionFor(kind), pattern }));
+    window.clearTimeout(feedbackTimer.current);
+    feedbackTimer.current = window.setTimeout(() => setFeedback(null), FEEDBACK_MS);
     navigator.vibrate?.(PATTERNS[pattern].vibrate);
     if (soundRef.current.on) earconRef.current?.play(cueTones(pattern), soundRef.current.volume);
     window.clearTimeout(buzzTimer.current);
@@ -292,6 +302,18 @@ export default function CueApp() {
       if (hit) {
         setHeard(null);
         triggerBuzz(hit.event.type, describeTap(hit));
+        setFeed((f) =>
+          [
+            {
+              n: (f[0]?.n ?? 0) + 1,
+              at: hit.event.end,
+              label: describeTap(hit),
+              action: actionFor(hit.event.type),
+              pattern: patternFor(hit.event.type),
+            },
+            ...f,
+          ].slice(0, 50),
+        );
         const endedAt = isFiller(hit) ? clockRef.current?.toPage(hit.event.end) : null;
         if (endedAt != null) {
           const ms = Math.max(0, performance.now() - endedAt);
@@ -325,6 +347,8 @@ export default function CueApp() {
     setPace(null);
     setVolume(null);
     setReport(null);
+    setFeed([]);
+    setFeedback(null);
     levelsRef.current = [];
     pitchRef.current = [];
     voiceRef.current = [];
@@ -793,10 +817,875 @@ export default function CueApp() {
         <MicState status={status} recording={recordingTraining} />
       </header>
 
-      <div className="lg:flex lg:flex-row-reverse lg:items-start lg:gap-12">
-        {/* The behind-the-ear device, from its CAD: each cue leaves the motor on the skin side. Beside the page on wide
-          screens, above it on phones. */}
-        <aside aria-label="The device" className="mt-6 lg:sticky lg:top-8 lg:mt-8 lg:w-[44%] lg:shrink-0">
+      <div className="mx-auto w-full max-w-2xl">
+        {/* --- Live: the one thing on screen while you talk --- */}
+        <section aria-label="Live coaching" className="flex flex-col items-center pt-10 text-center lg:pt-20">
+          <p
+            className="font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl text-balance"
+            aria-live="polite"
+          >
+            {heroWord}
+          </p>
+          <p className="mt-4 min-h-12 max-w-md text-body text-muted">{heroLine}</p>
+
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {live ? (
+                <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
+                  Stop
+                </button>
+              ) : status === "demo" ? (
+                <button onClick={endSession} className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg">
+                  Stop practice
+                </button>
+              ) : (
+                <button
+                  onClick={() => startLive()}
+                  className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
+                >
+                  Start listening
+                </button>
+              )}
+              {/* The after-session report, one press away: like a rehearsal coach's report when you finish. */}
+              <button
+                type="button"
+                onClick={showInsights}
+                className="min-h-12 rounded-lg border border-line px-6 text-body font-medium hover:border-text"
+              >
+                {busy ? "Stop and see insights" : "Speaking insights"}
+              </button>
+              {volumeOn && !busy && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setVolumeNote(null);
+                    setCalibratingFor(config.mode);
+                    void startLive();
+                  }}
+                  className="min-h-12 rounded-lg border border-line px-6 text-body font-medium hover:border-text"
+                >
+                  {volumeSet ? "Set volume again" : "Set my volume"}
+                </button>
+              )}
+            </div>
+            <p className="max-w-md text-body-sm text-muted">
+              {status === "demo"
+                ? "Practice doesn’t use the microphone."
+                : "Your audio goes to Deepgram to be transcribed. Cue doesn’t store it."}
+            </p>
+            {live && micLabel && (
+              <p className="max-w-md text-body-sm text-muted" role="status">
+                Listening with {micLabel}
+                {sound.on ? ", cue sounds on" : ""}.
+              </p>
+            )}
+            {status !== "demo" && !live && (
+              <DeepgramKey
+                value={apiKey}
+                remember={rememberKey}
+                open={keyFormOpen}
+                onOpen={() => setKeyFormOpen(true)}
+                onCancel={() => setKeyFormOpen(false)}
+                onRemove={() => saveKey("", false)}
+                onSave={(key, remember) => {
+                  saveKey(key, remember);
+                  void startLive({ apiKey: key });
+                }}
+              />
+            )}
+          </div>
+
+          {/* Each cue on screen, big and in its color, as well as on the device. */}
+          {(busy || feedback || feed.length > 0) && <CueFeedback current={feedback} feed={feed} waiting={busy} />}
+
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
+            <Segmented
+              label="Mode"
+              value={config.mode}
+              options={[
+                { value: "conversation", label: "Conversation" },
+                { value: "presentation", label: "Presentation" },
+              ]}
+              onChange={(v) =>
+                setConfig((c) => ({
+                  ...c,
+                  mode: v,
+                  paceMode: v,
+                  paceThreshold: PACE_PRESETS[v].threshold,
+                }))
+              }
+            />
+            <Switch label="Cue on" on={!config.muted} onChange={(v) => setConfig((c) => ({ ...c, muted: !v }))} />
+            <Switch label="Cue sounds in AirPods" on={sound.on} onChange={(on) => saveSound({ ...sound, on })} />
+            <Switch label={`Volume feedback in ${modeName}`} on={volumeOn} onChange={setVolumeCues} />
+            <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
+          </div>
+
+          {/* Right under the controls, so it's on screen while you talk. */}
+          {showTranscript && (
+            <div className="mt-6 w-full rounded-lg border border-dashed border-line p-4 text-left">
+              <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
+              {signals && (
+                <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
+                  <div>
+                    <dt className="inline">Fillers in the last minute: </dt>
+                    <dd className="inline tabular-nums text-text">{signals.fillersLastMinute}</dd>
+                  </div>
+                  <div>
+                    <dt className="inline">Since your last pause: </dt>
+                    <dd className="inline tabular-nums text-text">{Math.round(signals.secondsSincePause)} s</dd>
+                  </div>
+                  <div>
+                    <dt className="inline">This turn: </dt>
+                    <dd className="inline tabular-nums text-text">{Math.round(signals.turnSeconds)} s</dd>
+                  </div>
+                  <div>
+                    <dt className="inline">Your normal pace: </dt>
+                    <dd className="inline tabular-nums text-text">
+                      {signals.paceBaseline === null ? "learning" : `${signals.paceBaseline.toFixed(1)} syllables/s`}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+              <p className="mt-2 text-body">
+                {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
+                {words.map((w, k) => {
+                  const d = flagged.get(wordKey(w.start));
+                  return (
+                    <span
+                      key={k}
+                      className={
+                        !w.wearer
+                          ? "italic text-muted/70"
+                          : d
+                            ? d.delivered
+                              ? "rounded bg-cue-soft px-1 text-cue"
+                              : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
+                            : undefined
+                      }
+                    >
+                      {w.text}{" "}
+                    </span>
+                  );
+                })}
+              </p>
+            </div>
+          )}
+          <p className="mt-4 max-w-md text-body-sm text-muted">
+            {!volumeOn
+              ? `No volume feedback in ${modeName}, so there's nothing to set.`
+              : (volumeNote ??
+                (volumeSet
+                  ? `Your ${modeName} volume is set${micLabel ? ` for ${micLabel}` : ""}.`
+                  : `Speak-up cues start once you set your ${modeName} volume${micLabel ? ` with ${micLabel}` : ""}.`))}
+          </p>
+
+          {/* What each tap means */}
+          <div className="mt-12 w-full">
+            <p className="text-body-sm text-muted">
+              What each tap means. Select one to {sound.on ? "hear" : "feel"} it.
+            </p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {CUE_LEGEND.map(({ kind, label }) => {
+                const p = patternFor(kind);
+                return (
+                  <button
+                    key={kind}
+                    onClick={() => {
+                      unlockSound();
+                      triggerBuzz(kind);
+                      sessionRef.current.hapticPlayed(PATTERNS[p].vibrate.reduce((x, y) => x + y, 0) / 1000);
+                    }}
+                    className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-label transition-colors duration-200 hover:border-cue ${
+                      buzz?.pattern === p ? "cue-playing border-cue" : "border-line"
+                    }`}
+                  >
+                    <RhythmGlyph pattern={p} />
+                    <span className="font-medium">{actionFor(kind)}</span>
+                    <span className="text-muted">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {(live || status === "demo" || pace || volume) && (
+            <div className="mt-10 grid w-full gap-5 text-left sm:grid-cols-2">
+              <Meter
+                label="Pace"
+                value={
+                  pace
+                    ? `${pace.sps.toFixed(1)} syllables/s, about ${Math.round(pace.wpm)} wpm`
+                    : "Measuring after a few words"
+                }
+                frac={paceFrac}
+                mark={1 / 1.4}
+                alert={sps > paceLimit}
+              />
+              <Meter
+                label="Volume"
+                value={
+                  !volumeOn
+                    ? `Volume feedback is off in ${modeName}`
+                    : !volume
+                      ? "Measuring once you speak"
+                      : volume.baselineDb === null || volume.expectedDb === null
+                        ? "Set your volume to compare against it"
+                        : volume.db === null
+                          ? "Volume set"
+                          : `${formatDb(volume.db - volume.expectedDb)} from your set volume${
+                              Math.abs(volume.expectedDb - volume.baselineDb) >= 3
+                                ? volume.expectedDb > volume.baselineDb
+                                  ? " for this noisy room"
+                                  : " for this quiet room"
+                                : ""
+                            }`
+                }
+                frac={
+                  volume?.expectedDb != null && volume.db !== null
+                    ? Math.max(0, Math.min(1, (volume.db - volume.expectedDb + 20) / 27))
+                    : 0
+                }
+                mark={volume?.expectedDb != null ? (20 - config.quietDropDb) / 27 : undefined}
+                alert={
+                  volume?.expectedDb != null && volume.db !== null && volume.db < volume.expectedDb - config.quietDropDb
+                }
+                learning={volume?.expectedDb == null}
+              />
+            </div>
+          )}
+        </section>
+
+        {/* --- Everything else waits below, collapsed --- */}
+        <div ref={sectionsRef} className="mt-20 scroll-mt-6 border-t border-line">
+          <Disclosure
+            title="Speaking insights"
+            summary={reviewSummary}
+            open={open.review}
+            onToggle={() => toggle("review")}
+          >
+            {words.length === 0 ? (
+              <p className="max-w-prose text-body text-muted">
+                No session yet. Start listening, talk for a minute or two, then stop. Your report appears here: pauses,
+                pace, volume, filler words, pitch and more, with a transcript you can correct.
+              </p>
+            ) : (
+              <div className="space-y-12">
+                {report && !busy && (
+                  <ReportView
+                    report={report}
+                    script={script}
+                    onScript={(notes) => {
+                      setScript(notes);
+                      setReport(makeReport(notes));
+                    }}
+                    customFillers={config.customFillers}
+                    onAddFiller={(phrase) => {
+                      if (config.customFillers.length < MAX_CUSTOM_FILLERS)
+                        setCustomFillers([...config.customFillers, phrase]);
+                    }}
+                  />
+                )}
+                {report && !busy ? (
+                  <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
+                    <Stat
+                      label="Cue delay"
+                      value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
+                      hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
+                    />
+                    <Stat
+                      label="You marked"
+                      value={`${falseBuzzes + misses}`}
+                      hint={`${falseBuzzes} wrong, ${misses} missed`}
+                    />
+                  </dl>
+                ) : (
+                  <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
+                    <Stat
+                      label="Speaking"
+                      value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`}
+                    />
+                    <Stat
+                      label="Taps"
+                      value={String(totalCues)}
+                      hint={judged ? `${worked} of ${judged} worked` : "none judged yet"}
+                    />
+                    <Stat
+                      label="Fillers noticed"
+                      value={String(noticed)}
+                      hint={
+                        speakingSec >= 30
+                          ? `${(noticed / (speakingSec / 60)).toFixed(1)} per minute`
+                          : "per minute after 30 s"
+                      }
+                    />
+                    <Stat
+                      label="Cue delay"
+                      value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
+                      hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
+                    />
+                    <Stat
+                      label="You marked"
+                      value={`${falseBuzzes + misses}`}
+                      hint={`${falseBuzzes} wrong, ${misses} missed`}
+                    />
+                  </dl>
+                )}
+
+                <div>
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">Transcript</h3>
+                  <p className="mt-1 text-body-sm text-muted">
+                    Select a word to mark a wrong cue or a filler Cue missed. Hover a marked word for the reason.
+                  </p>
+                  <TranscriptKey />
+                  <p className="mt-4 text-body leading-8">
+                    {words.map((w, k) => {
+                      if (!w.wearer)
+                        return (
+                          <span
+                            key={k}
+                            className="italic text-muted/70"
+                            title="The bone sensor didn’t hear you say this, so it isn’t coached."
+                          >
+                            {w.text}{" "}
+                          </span>
+                        );
+                      const d = flagged.get(wordKey(w.start));
+                      const c = !d && w.norm === "like" ? checked.get(wordKey(w.start)) : undefined;
+                      const fix = corrected.get(wordKey(w.start));
+                      const base = d
+                        ? d.delivered
+                          ? "rounded bg-cue-soft px-1 text-cue"
+                          : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
+                        : c
+                          ? "rounded bg-surface-2 px-1"
+                          : "";
+                      const marked = fix
+                        ? fix.label === "false_buzz"
+                          ? " line-through decoration-2"
+                          : " rounded ring-1 ring-text"
+                        : "";
+                      const why = d
+                        ? d.event.reason
+                        : c
+                          ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}`
+                          : "Select to mark as a missed filler";
+                      return (
+                        <span key={k}>
+                          <button
+                            type="button"
+                            onClick={() => toggleCorrection(w.start, d ? "false_buzz" : "missed")}
+                            title={`${why}${fix ? ". Marked, select to undo" : d ? ". Select if this wasn’t a filler" : ""}`}
+                            className={`cursor-pointer rounded hover:bg-surface-2 ${base}${marked}`}
+                          >
+                            {w.text}
+                          </button>{" "}
+                        </span>
+                      );
+                    })}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                    Why Cue acted
+                  </h3>
+                  <ul className="mt-4 divide-y divide-line">
+                    {entries.map(({ key, d, c }) =>
+                      c ? (
+                        <li key={key} className="py-4 text-body">
+                          <p className="font-medium">
+                            “like” wasn’t a filler <span className="font-normal text-muted">({c.verdict.use})</span>
+                          </p>
+                          <p className="mt-1 text-muted">{c.verdict.reason}</p>
+                          <p className="mt-1 text-body-sm text-muted">“…{c.context}…”</p>
+                          <CorrectionButton
+                            on={corrected.get(wordKey(c.start))?.label === "missed"}
+                            onClick={() => toggleCorrection(c.start, "missed")}
+                          >
+                            It was a filler
+                          </CorrectionButton>
+                        </li>
+                      ) : d ? (
+                        <li key={key} className="py-4 text-body">
+                          <p className="font-medium">
+                            {capitalize(labelFor(d.event))}{" "}
+                            <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
+                              {d.delivered
+                                ? `tapped${d.trigger ? `: ${d.trigger}` : ""}${
+                                    outcomes[d.event.id] === "worked"
+                                      ? ", and it worked"
+                                      : outcomes[d.event.id] === "no_change"
+                                        ? ", no change after"
+                                        : ""
+                                  }`
+                                : `held back: ${WITHHELD[d.withheldReason!]}${d.trigger ? ` (${d.trigger})` : ""}`}
+                            </span>
+                          </p>
+                          <p className="mt-1 text-muted">{d.event.reason}</p>
+                          <p className="mt-1 text-body-sm text-muted">
+                            “…{d.event.context}…” {Math.round(d.event.confidence * 100)}% sure
+                            {latency[d.event.id] != null && `, cued ${(latency[d.event.id] / 1000).toFixed(2)} s after`}
+                          </p>
+                          {isFiller(d) && (
+                            <CorrectionButton
+                              on={corrected.get(wordKey(d.event.start))?.label === "false_buzz"}
+                              onClick={() => toggleCorrection(d.event.start, "false_buzz")}
+                            >
+                              Not a filler
+                            </CorrectionButton>
+                          )}
+                        </li>
+                      ) : null,
+                    )}
+                  </ul>
+                </div>
+
+                {recorded > 0 && !busy && (
+                  <div>
+                    <button
+                      onClick={downloadSession}
+                      className="min-h-11 rounded-lg border border-line px-4 text-body hover:border-text"
+                    >
+                      Download session
+                    </button>
+                    <p className="mt-2 text-body-sm text-muted">
+                      Saves what Deepgram heard, your marks, and cue timing. No audio. Keep it out of the repo.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </Disclosure>
+
+          <Disclosure
+            title="Practice"
+            summary="Try a sentence without a mic, or try the device’s touch controls"
+            open={open.practice}
+            onToggle={() => toggle("practice")}
+          >
+            <div className="space-y-12">
+              <div>
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                  Try a sentence
+                </h3>
+                <p className="mt-1 text-body-sm text-muted">Cue reads it word by word, as if you were saying it.</p>
+                <textarea
+                  value={demoText}
+                  onChange={(e) => setDemoText(e.target.value)}
+                  rows={3}
+                  aria-label="Practice sentence"
+                  className="mt-4 w-full resize-none rounded-lg border border-line bg-surface p-3 text-body outline-none focus:border-cue"
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {EXAMPLES.map((ex) => (
+                    <button
+                      key={ex}
+                      onClick={() => {
+                        setDemoText(ex);
+                        setOpen((o) => ({ ...o, practice: true }));
+                        runDemo(ex);
+                      }}
+                      className="min-h-9 max-w-full truncate rounded-lg border border-line px-3 text-left text-body-sm text-muted hover:border-text hover:text-text"
+                    >
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-6 space-y-4">
+                  <Slider
+                    label="Speaking speed"
+                    value={demoWpm}
+                    min={100}
+                    max={280}
+                    step={10}
+                    format={(v) => `${v} wpm`}
+                    onChange={setDemoWpm}
+                  />
+                  <Switch label="Trail off quietly at the end" on={demoQuiet} onChange={setDemoQuiet} />
+                  <Switch
+                    label="A friend cuts in with “um… like went”"
+                    hint="The mic hears them; the device’s bone sensor doesn’t, so Cue ignores them."
+                    on={demoFriend}
+                    onChange={setDemoFriend}
+                  />
+                </div>
+                <button
+                  onClick={() => runDemo()}
+                  disabled={live}
+                  className="mt-6 min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
+                >
+                  Play sentence
+                </button>
+              </div>
+
+              <div>
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                  Try the device’s touch controls
+                </h3>
+                <p className="mt-1 text-body-sm text-muted">
+                  On the device, touch is only for controls. A single tap does nothing, so fixing your hair won’t
+                  trigger it.
+                </p>
+                <div className="mt-4">
+                  <TouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
+                </div>
+              </div>
+            </div>
+          </Disclosure>
+
+          {/* Saving recordings needs the local dev server (/api/training), so Training only shows there. */}
+          {process.env.NODE_ENV === "development" && (
+            <Disclosure
+              title="Training"
+              summary="Record yourself talking, then mark every filler to teach and test the detector"
+              open={open.training}
+              onToggle={() => toggle("training")}
+            >
+              <div className="space-y-8">
+                <div>
+                  <p className="max-w-prose text-body text-muted">
+                    Talk for a few minutes the way you normally do. Cue records the audio for this session only.
+                    Afterwards, select every word that was a filler, then save it to the training set on this computer.
+                  </p>
+                  <p className="mt-2 max-w-prose text-body-sm text-muted">
+                    Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub.
+                    Only record people who have agreed to it.
+                  </p>
+                  <div className="mt-4">
+                    {live && recordingTraining ? (
+                      <button
+                        onClick={endSession}
+                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                      >
+                        Stop and label
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => startLive({ record: true })}
+                        disabled={live || status === "demo"}
+                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
+                      >
+                        Start training recording
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
+                  <div>
+                    <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                      Mark the fillers
+                    </h3>
+                    <p className="mt-1 text-body-sm text-muted">
+                      Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
+                      unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
+                    </p>
+                    {trainingAudioUrl && (
+                      <audio
+                        controls
+                        src={trainingAudioUrl}
+                        className="mt-4 w-full"
+                        onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
+                        onEnded={() => setPlayhead(null)}
+                      />
+                    )}
+                    <p className="mt-4 text-body leading-9">
+                      {words.map((w, k) => {
+                        const marked = fillerMarks.has(wordKey(w.start));
+                        const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
+                        return (
+                          <span key={k}>
+                            <button
+                              type="button"
+                              aria-pressed={marked}
+                              onClick={() => toggleFillerMark(w.start)}
+                              className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
+                            >
+                              {w.text}
+                            </button>{" "}
+                          </span>
+                        );
+                      })}
+                    </p>
+                    <div className="mt-6 flex flex-wrap items-center gap-4">
+                      <button
+                        onClick={saveTraining}
+                        className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
+                      >
+                        Save to training set
+                      </button>
+                      <span className="text-body-sm text-muted">
+                        {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
+                      </span>
+                    </div>
+                    {trainingSaved && (
+                      <p className="mt-3 text-body-sm" role="status">
+                        {trainingSaved}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Disclosure>
+          )}
+
+          <Disclosure
+            title="Settings"
+            summary={`${presetLabel} mode, ${config.customFillers.length ? `${config.customFillers.length} of your own filler ${config.customFillers.length === 1 ? "word" : "words"}, ` : ""}${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}${sound.on ? ", cue sounds on" : ""}`}
+            open={open.settings}
+            onToggle={() => toggle("settings")}
+          >
+            <div className="space-y-10 text-body">
+              <fieldset>
+                <legend className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                  What Cue coaches
+                </legend>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(["um", "uh", "like", "lowkey", "rushing", "pauses", "turns", "quiet"] as const).map((k) => (
+                    <Chip
+                      key={k}
+                      on={config.categories[k]}
+                      onClick={() =>
+                        setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))
+                      }
+                    >
+                      {CHIP_LABEL[k] ?? `“${k}”`}
+                    </Chip>
+                  ))}
+                </div>
+              </fieldset>
+
+              <div>
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                  Your filler words
+                </h3>
+                <p className="mt-1 max-w-prose text-body-sm text-muted">
+                  Add words or short phrases you lean on, like “so”, “basically” or “you know”. Cue counts one every
+                  time you say it, so skip words you also use on purpose.
+                </p>
+                <form
+                  className="mt-3 flex max-w-md gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    addCustomFiller();
+                  }}
+                >
+                  <label className="sr-only" htmlFor="custom-filler">
+                    A filler word or phrase
+                  </label>
+                  <input
+                    id="custom-filler"
+                    value={fillerDraft}
+                    onChange={(e) => {
+                      setFillerDraft(e.target.value);
+                      setFillerError(null);
+                    }}
+                    placeholder="you know"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    aria-describedby={fillerError ? "custom-filler-error" : undefined}
+                    className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 text-body placeholder:text-muted/70 focus:border-cue focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
+                  >
+                    Add
+                  </button>
+                </form>
+                {fillerError && (
+                  <p id="custom-filler-error" role="alert" className="mt-2 text-body-sm">
+                    {fillerError}
+                  </p>
+                )}
+                {config.customFillers.length > 0 && (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {config.customFillers.map((f) => (
+                      <li key={f}>
+                        <button
+                          type="button"
+                          onClick={() => setCustomFillers(config.customFillers.filter((x) => x !== f))}
+                          aria-label={`Remove “${f}”`}
+                          className="flex min-h-11 items-center gap-2 rounded-lg border border-cue bg-cue-soft px-3 text-label hover:border-text"
+                        >
+                          “{f}”
+                          <span aria-hidden className="text-muted">
+                            ×
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">How Cue taps</h3>
+                <Switch
+                  label="Tap for patterns, not every filler"
+                  hint={
+                    config.tapOn === "patterns"
+                      ? `A tap needs ${config.clusterCount} fillers within ${config.clusterWindowSec} s, or ${config.densityPerMin} in a minute. One “um” is normal.`
+                      : "Testing mode: every filler taps (with a short gap)."
+                  }
+                  on={config.tapOn === "patterns"}
+                  onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                  Filler “like”
+                </h3>
+                <Switch
+                  label="Count quoting “like”"
+                  hint="“She was like, no way”"
+                  on={config.likeCounts.quotative}
+                  onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, quotative: v } }))}
+                />
+                <Switch
+                  label="Count “like” meaning “about”"
+                  hint="“Like twenty people”"
+                  on={config.likeCounts.approximator}
+                  onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, approximator: v } }))}
+                />
+              </div>
+
+              <div className="space-y-5">
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">Thresholds</h3>
+                <Slider
+                  label="Too fast above"
+                  value={config.paceThreshold}
+                  min={3}
+                  max={6.5}
+                  step={0.1}
+                  format={(v) => `${v.toFixed(1)} syllables/s, about ${toApproxWpm(v)} wpm`}
+                  onChange={(v) => {
+                    const preset = (Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]).find(
+                      (k) => Math.abs(PACE_PRESETS[k].threshold - v) < 0.01,
+                    );
+                    setConfig((c) => ({ ...c, paceThreshold: v, paceMode: preset ?? "custom" }));
+                  }}
+                />
+                <Slider
+                  label="Sensitivity"
+                  value={Math.round((1 - config.minConfidence) * 100)}
+                  min={5}
+                  max={35}
+                  step={5}
+                  format={(v) => (v <= 10 ? "Cautious" : v <= 25 ? "Balanced" : "Eager")}
+                  onChange={(v) => setConfig((c) => ({ ...c, minConfidence: 1 - v / 100 }))}
+                />
+                <Slider
+                  label="Quiet time between taps"
+                  hint={config.mode === "presentation" ? "Presentation mode waits at least 25 s." : undefined}
+                  value={config.cooldownSec}
+                  min={10}
+                  max={20}
+                  step={1}
+                  format={(v) => `${v} s`}
+                  onChange={(v) => setConfig((c) => ({ ...c, cooldownSec: v }))}
+                />
+              </div>
+
+              <div className="space-y-5">
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
+                  Testing with AirPods
+                </h3>
+                <p className="max-w-prose text-body-sm text-muted">
+                  Until the device exists, AirPods (or any headphones with a mic) can stand in for it: their mic
+                  listens, and each cue plays as a quiet sound in your ear with the same rhythm as the tap. Set your
+                  volume again with the AirPods in, since their mic hears you at a different level. Keep this page open
+                  while you talk.
+                </p>
+                <Switch
+                  label="Play cues as sounds"
+                  hint="Pause is one high tick, Slow down is three notes stepping down, Speak up is a tone sweeping up. Confirmations swell in softly."
+                  on={sound.on}
+                  onChange={(on) => saveSound({ ...sound, on })}
+                />
+                <Slider
+                  label="Cue sound volume"
+                  value={Math.round(sound.volume * 100)}
+                  min={10}
+                  max={100}
+                  step={5}
+                  format={(v) => `${v}%`}
+                  onChange={(v) => saveSound({ ...sound, volume: v / 100 })}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-label text-muted">Hear each cue:</span>
+                  {(["tap", "steps", "push"] as const).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => {
+                        earcon().unlock();
+                        earcon().play(cueTones(p), sound.volume);
+                      }}
+                      className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
+                    >
+                      {PATTERNS[p].action}
+                    </button>
+                  ))}
+                </div>
+                <label className="block">
+                  <span className="text-body">Microphone</span>
+                  <select
+                    value={micChoice.deviceId}
+                    disabled={live}
+                    onChange={(e) => {
+                      const pick = mics.find((m) => m.deviceId === e.target.value);
+                      const next = { deviceId: e.target.value, label: pick?.label ?? "" };
+                      setMicChoice(next);
+                      if (next.label) rememberMic(next.label);
+                      try {
+                        localStorage.setItem(MIC_STORAGE, JSON.stringify(next));
+                      } catch {
+                        // Storage blocked: the choice lasts until the page closes.
+                      }
+                    }}
+                    className="mt-2 block min-h-11 w-full max-w-sm rounded-lg border border-line bg-surface px-3 text-body"
+                  >
+                    <option value="">Default microphone</option>
+                    {mics.map((m, k) => (
+                      <option key={m.deviceId} value={m.deviceId}>
+                        {m.label || `Microphone ${k + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1 block text-body-sm text-muted">
+                    {mics.some((m) => m.label)
+                      ? micLabel
+                        ? `Last used: ${micLabel}.`
+                        : "Pick the AirPods, or leave the default."
+                      : "Names appear after you allow the microphone once (Start listening)."}{" "}
+                    On iPhone, connected AirPods are used automatically.
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">Privacy</h3>
+                <p className="mt-2 max-w-prose text-muted">
+                  While you listen, audio streams to Deepgram to be transcribed. If you add your own Deepgram key, it
+                  stays in this browser and goes straight to Deepgram. Cue keeps nothing on its own. A session is only
+                  saved if you choose Download session, and that file has words and timing, never audio. Cue never
+                  builds a voiceprint: on the device, a bone-conduction sensor hears only your own voice. In this web
+                  prototype the microphone hears everyone, so other people’s fillers can tap too.
+                </p>
+              </div>
+            </div>
+          </Disclosure>
+        </div>
+
+        {/* The device itself, last: the 3D model from its CAD (it still shows each tap leaving the motor) and the
+              exploded view. */}
+        <section aria-label="The device" className="mt-20">
+          <h2 className="font-display text-heading-3-m font-semibold tracking-[-0.015em] sm:text-heading-3">
+            The device
+          </h2>
           <figure
             role="img"
             aria-label={
@@ -808,914 +1697,33 @@ export default function CueApp() {
                     ? `Noticed ${heard.label}, no buzz yet`
                     : "The Cue behind-the-ear device, no cue right now"
             }
-            className="overflow-hidden rounded-2xl bg-surface-2"
+            className="mt-4 overflow-hidden rounded-2xl bg-surface-2"
           >
-            <DeviceModel
-              buzz={buzz}
-              confirm={confirm}
-              noticed={heard}
-              className="h-72 sm:h-96 lg:h-[calc(100svh-10rem)] lg:max-h-[44rem]"
-            />
+            <DeviceModel buzz={buzz} confirm={confirm} noticed={heard} className="h-80 sm:h-[28rem]" />
           </figure>
           <p className="mt-3 text-caption text-muted">
             Cue’s behind-the-ear (BTE) device, from its CAD. Taps leave the motor behind your ear; drag to turn it.
           </p>
-        </aside>
-
-        <div className="mx-auto w-full max-w-2xl lg:mx-0 lg:min-w-0 lg:flex-1">
-          {/* --- Live: the one thing on screen while you talk --- */}
-          <section aria-label="Live coaching" className="flex flex-col items-center pt-10 text-center lg:pt-20">
-            <p
-              className="font-display text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl text-balance"
-              aria-live="polite"
-            >
-              {heroWord}
-            </p>
-            <p className="mt-4 min-h-12 max-w-md text-body text-muted">{heroLine}</p>
-
-            <div className="mt-8 flex flex-col items-center gap-3">
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                {live ? (
-                  <button
-                    onClick={endSession}
-                    className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
-                  >
-                    Stop
-                  </button>
-                ) : status === "demo" ? (
-                  <button
-                    onClick={endSession}
-                    className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
-                  >
-                    Stop practice
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => startLive()}
-                    className="min-h-12 rounded-lg bg-text px-8 text-body font-medium text-bg"
-                  >
-                    Start listening
-                  </button>
-                )}
-                {/* The after-session report, one press away: like a rehearsal coach's report when you finish. */}
-                <button
-                  type="button"
-                  onClick={showInsights}
-                  className="min-h-12 rounded-lg border border-line px-6 text-body font-medium hover:border-text"
-                >
-                  {busy ? "Stop and see insights" : "Speaking insights"}
-                </button>
-                {volumeOn && !busy && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setVolumeNote(null);
-                      setCalibratingFor(config.mode);
-                      void startLive();
-                    }}
-                    className="min-h-12 rounded-lg border border-line px-6 text-body font-medium hover:border-text"
-                  >
-                    {volumeSet ? "Set volume again" : "Set my volume"}
-                  </button>
-                )}
-              </div>
-              <p className="max-w-md text-body-sm text-muted">
-                {status === "demo"
-                  ? "Practice doesn’t use the microphone."
-                  : "Your audio goes to Deepgram to be transcribed. Cue doesn’t store it."}
-              </p>
-              {live && micLabel && (
-                <p className="max-w-md text-body-sm text-muted" role="status">
-                  Listening with {micLabel}
-                  {sound.on ? ", cue sounds on" : ""}.
-                </p>
-              )}
-              {status !== "demo" && !live && (
-                <DeepgramKey
-                  value={apiKey}
-                  remember={rememberKey}
-                  open={keyFormOpen}
-                  onOpen={() => setKeyFormOpen(true)}
-                  onCancel={() => setKeyFormOpen(false)}
-                  onRemove={() => saveKey("", false)}
-                  onSave={(key, remember) => {
-                    saveKey(key, remember);
-                    void startLive({ apiKey: key });
-                  }}
-                />
-              )}
-            </div>
-
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
-              <Segmented
-                label="Mode"
-                value={config.mode}
-                options={[
-                  { value: "conversation", label: "Conversation" },
-                  { value: "presentation", label: "Presentation" },
-                ]}
-                onChange={(v) =>
-                  setConfig((c) => ({
-                    ...c,
-                    mode: v,
-                    paceMode: v,
-                    paceThreshold: PACE_PRESETS[v].threshold,
-                  }))
-                }
+          {/* What's inside: an exploded view from the CAD, so the taps on the 3D model have a body. */}
+          <figure className="mt-12 w-full text-left">
+            <p className="text-body-sm text-muted">Inside the device</p>
+            <div className="mt-3 overflow-hidden rounded-2xl bg-[#1c1c1c]">
+              <Image
+                src="/cad/cue-bte-exploded.png"
+                alt="Exploded view of the Cue device: the outer shell on top, the circuit board below it, then the coin battery and the vibration motor sitting in the inner shell that rests against the skin behind the ear."
+                width={934}
+                height={1188}
+                sizes="(min-width: 1024px) 36rem, 100vw"
+                className="mx-auto h-auto w-full max-w-sm"
               />
-              <Switch label="Cue on" on={!config.muted} onChange={(v) => setConfig((c) => ({ ...c, muted: !v }))} />
-              <Switch label="Cue sounds in AirPods" on={sound.on} onChange={(on) => saveSound({ ...sound, on })} />
-              <Switch label={`Volume feedback in ${modeName}`} on={volumeOn} onChange={setVolumeCues} />
-              <Switch label="Live transcript (testing)" on={showTranscript} onChange={setShowTranscript} />
             </div>
-
-            {/* Right under the controls, so it's on screen while you talk. */}
-            {showTranscript && (
-              <div className="mt-6 w-full rounded-lg border border-dashed border-line p-4 text-left">
-                <p className="text-body-sm text-muted">Live transcript, for testing the detector</p>
-                {signals && (
-                  <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
-                    <div>
-                      <dt className="inline">Fillers in the last minute: </dt>
-                      <dd className="inline tabular-nums text-text">{signals.fillersLastMinute}</dd>
-                    </div>
-                    <div>
-                      <dt className="inline">Since your last pause: </dt>
-                      <dd className="inline tabular-nums text-text">{Math.round(signals.secondsSincePause)} s</dd>
-                    </div>
-                    <div>
-                      <dt className="inline">This turn: </dt>
-                      <dd className="inline tabular-nums text-text">{Math.round(signals.turnSeconds)} s</dd>
-                    </div>
-                    <div>
-                      <dt className="inline">Your normal pace: </dt>
-                      <dd className="inline tabular-nums text-text">
-                        {signals.paceBaseline === null ? "learning" : `${signals.paceBaseline.toFixed(1)} syllables/s`}
-                      </dd>
-                    </div>
-                  </dl>
-                )}
-                <p className="mt-2 text-body">
-                  {words.length === 0 && <span className="text-muted">Words appear here as Deepgram hears them.</span>}
-                  {words.map((w, k) => {
-                    const d = flagged.get(wordKey(w.start));
-                    return (
-                      <span
-                        key={k}
-                        className={
-                          !w.wearer
-                            ? "italic text-muted/70"
-                            : d
-                              ? d.delivered
-                                ? "rounded bg-cue-soft px-1 text-cue"
-                                : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
-                              : undefined
-                        }
-                      >
-                        {w.text}{" "}
-                      </span>
-                    );
-                  })}
-                </p>
-              </div>
-            )}
-            <p className="mt-4 max-w-md text-body-sm text-muted">
-              {!volumeOn
-                ? `No volume feedback in ${modeName}, so there's nothing to set.`
-                : (volumeNote ??
-                  (volumeSet
-                    ? `Your ${modeName} volume is set${micLabel ? ` for ${micLabel}` : ""}.`
-                    : `Speak-up cues start once you set your ${modeName} volume${micLabel ? ` with ${micLabel}` : ""}.`))}
-            </p>
-
-            {/* What each tap means */}
-            <div className="mt-12 w-full">
-              <p className="text-body-sm text-muted">
-                What each tap means. Select one to {sound.on ? "hear" : "feel"} it.
-              </p>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {CUE_LEGEND.map(({ kind, label }) => {
-                  const p = patternFor(kind);
-                  return (
-                    <button
-                      key={kind}
-                      onClick={() => {
-                        unlockSound();
-                        triggerBuzz(kind);
-                        sessionRef.current.hapticPlayed(PATTERNS[p].vibrate.reduce((x, y) => x + y, 0) / 1000);
-                      }}
-                      className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-label transition-colors duration-200 hover:border-cue ${
-                        buzz?.pattern === p ? "cue-playing border-cue" : "border-line"
-                      }`}
-                    >
-                      <RhythmGlyph pattern={p} />
-                      <span className="font-medium">{actionFor(kind)}</span>
-                      <span className="text-muted">{label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* What's inside: an exploded view from the CAD, so the taps on the 3D model have a body. */}
-            <figure className="mt-12 w-full text-left">
-              <p className="text-body-sm text-muted">Inside the device</p>
-              <div className="mt-3 overflow-hidden rounded-2xl bg-[#1c1c1c]">
-                <Image
-                  src="/cad/cue-bte-exploded.png"
-                  alt="Exploded view of the Cue device: the outer shell on top, the circuit board below it, then the coin battery and the vibration motor sitting in the inner shell that rests against the skin behind the ear."
-                  width={934}
-                  height={1188}
-                  sizes="(min-width: 1024px) 36rem, 100vw"
-                  className="mx-auto h-auto w-full max-w-sm"
-                />
-              </div>
-              <figcaption className="mt-3 max-w-prose text-body-sm text-muted">
-                From top: the outer shell, the circuit board (Bluetooth, microphone, motion and bone-conduction sensor,
-                haptic driver), the coin battery, and the vibration motor in the inner shell. The motor presses against
-                the skin behind your ear, which is where each tap starts on the 3D model.
-              </figcaption>
-            </figure>
-
-            {(live || status === "demo" || pace || volume) && (
-              <div className="mt-10 grid w-full gap-5 text-left sm:grid-cols-2">
-                <Meter
-                  label="Pace"
-                  value={
-                    pace
-                      ? `${pace.sps.toFixed(1)} syllables/s, about ${Math.round(pace.wpm)} wpm`
-                      : "Measuring after a few words"
-                  }
-                  frac={paceFrac}
-                  mark={1 / 1.4}
-                  alert={sps > paceLimit}
-                />
-                <Meter
-                  label="Volume"
-                  value={
-                    !volumeOn
-                      ? `Volume feedback is off in ${modeName}`
-                      : !volume
-                        ? "Measuring once you speak"
-                        : volume.baselineDb === null || volume.expectedDb === null
-                          ? "Set your volume to compare against it"
-                          : volume.db === null
-                            ? "Volume set"
-                            : `${formatDb(volume.db - volume.expectedDb)} from your set volume${
-                                Math.abs(volume.expectedDb - volume.baselineDb) >= 3
-                                  ? volume.expectedDb > volume.baselineDb
-                                    ? " for this noisy room"
-                                    : " for this quiet room"
-                                  : ""
-                              }`
-                  }
-                  frac={
-                    volume?.expectedDb != null && volume.db !== null
-                      ? Math.max(0, Math.min(1, (volume.db - volume.expectedDb + 20) / 27))
-                      : 0
-                  }
-                  mark={volume?.expectedDb != null ? (20 - config.quietDropDb) / 27 : undefined}
-                  alert={
-                    volume?.expectedDb != null &&
-                    volume.db !== null &&
-                    volume.db < volume.expectedDb - config.quietDropDb
-                  }
-                  learning={volume?.expectedDb == null}
-                />
-              </div>
-            )}
-          </section>
-
-          {/* --- Everything else waits below, collapsed --- */}
-          <div ref={sectionsRef} className="mt-20 scroll-mt-6 border-t border-line">
-            <Disclosure
-              title="Speaking insights"
-              summary={reviewSummary}
-              open={open.review}
-              onToggle={() => toggle("review")}
-            >
-              {words.length === 0 ? (
-                <p className="max-w-prose text-body text-muted">
-                  No session yet. Start listening, talk for a minute or two, then stop. Your report appears here:
-                  pauses, pace, volume, filler words, pitch and more, with a transcript you can correct.
-                </p>
-              ) : (
-                <div className="space-y-12">
-                  {report && !busy && (
-                    <ReportView
-                      report={report}
-                      script={script}
-                      onScript={(notes) => {
-                        setScript(notes);
-                        setReport(makeReport(notes));
-                      }}
-                      customFillers={config.customFillers}
-                      onAddFiller={(phrase) => {
-                        if (config.customFillers.length < MAX_CUSTOM_FILLERS)
-                          setCustomFillers([...config.customFillers, phrase]);
-                      }}
-                    />
-                  )}
-                  {report && !busy ? (
-                    <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
-                      <Stat
-                        label="Cue delay"
-                        value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
-                        hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
-                      />
-                      <Stat
-                        label="You marked"
-                        value={`${falseBuzzes + misses}`}
-                        hint={`${falseBuzzes} wrong, ${misses} missed`}
-                      />
-                    </dl>
-                  ) : (
-                    <dl className="grid grid-cols-2 gap-6 sm:grid-cols-5">
-                      <Stat
-                        label="Speaking"
-                        value={speakingMin >= 1 ? `${speakingMin.toFixed(1)} min` : `${Math.round(speakingSec)} s`}
-                      />
-                      <Stat
-                        label="Taps"
-                        value={String(totalCues)}
-                        hint={judged ? `${worked} of ${judged} worked` : "none judged yet"}
-                      />
-                      <Stat
-                        label="Fillers noticed"
-                        value={String(noticed)}
-                        hint={
-                          speakingSec >= 30
-                            ? `${(noticed / (speakingSec / 60)).toFixed(1)} per minute`
-                            : "per minute after 30 s"
-                        }
-                      />
-                      <Stat
-                        label="Cue delay"
-                        value={p50 == null ? "None yet" : `${(p50 / 1000).toFixed(2)} s`}
-                        hint={p90 == null ? "after the filler ends" : `slowest ${(p90 / 1000).toFixed(2)} s`}
-                      />
-                      <Stat
-                        label="You marked"
-                        value={`${falseBuzzes + misses}`}
-                        hint={`${falseBuzzes} wrong, ${misses} missed`}
-                      />
-                    </dl>
-                  )}
-
-                  <div>
-                    <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                      Transcript
-                    </h3>
-                    <p className="mt-1 text-body-sm text-muted">
-                      Select a word to mark a wrong cue or a filler Cue missed. Hover a marked word for the reason.
-                    </p>
-                    <TranscriptKey />
-                    <p className="mt-4 text-body leading-8">
-                      {words.map((w, k) => {
-                        if (!w.wearer)
-                          return (
-                            <span
-                              key={k}
-                              className="italic text-muted/70"
-                              title="The bone sensor didn’t hear you say this, so it isn’t coached."
-                            >
-                              {w.text}{" "}
-                            </span>
-                          );
-                        const d = flagged.get(wordKey(w.start));
-                        const c = !d && w.norm === "like" ? checked.get(wordKey(w.start)) : undefined;
-                        const fix = corrected.get(wordKey(w.start));
-                        const base = d
-                          ? d.delivered
-                            ? "rounded bg-cue-soft px-1 text-cue"
-                            : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
-                          : c
-                            ? "rounded bg-surface-2 px-1"
-                            : "";
-                        const marked = fix
-                          ? fix.label === "false_buzz"
-                            ? " line-through decoration-2"
-                            : " rounded ring-1 ring-text"
-                          : "";
-                        const why = d
-                          ? d.event.reason
-                          : c
-                            ? `Not a filler (${c.verdict.use}): ${c.verdict.reason}`
-                            : "Select to mark as a missed filler";
-                        return (
-                          <span key={k}>
-                            <button
-                              type="button"
-                              onClick={() => toggleCorrection(w.start, d ? "false_buzz" : "missed")}
-                              title={`${why}${fix ? ". Marked, select to undo" : d ? ". Select if this wasn’t a filler" : ""}`}
-                              className={`cursor-pointer rounded hover:bg-surface-2 ${base}${marked}`}
-                            >
-                              {w.text}
-                            </button>{" "}
-                          </span>
-                        );
-                      })}
-                    </p>
-                  </div>
-
-                  <div>
-                    <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                      Why Cue acted
-                    </h3>
-                    <ul className="mt-4 divide-y divide-line">
-                      {entries.map(({ key, d, c }) =>
-                        c ? (
-                          <li key={key} className="py-4 text-body">
-                            <p className="font-medium">
-                              “like” wasn’t a filler <span className="font-normal text-muted">({c.verdict.use})</span>
-                            </p>
-                            <p className="mt-1 text-muted">{c.verdict.reason}</p>
-                            <p className="mt-1 text-body-sm text-muted">“…{c.context}…”</p>
-                            <CorrectionButton
-                              on={corrected.get(wordKey(c.start))?.label === "missed"}
-                              onClick={() => toggleCorrection(c.start, "missed")}
-                            >
-                              It was a filler
-                            </CorrectionButton>
-                          </li>
-                        ) : d ? (
-                          <li key={key} className="py-4 text-body">
-                            <p className="font-medium">
-                              {capitalize(labelFor(d.event))}{" "}
-                              <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
-                                {d.delivered
-                                  ? `tapped${d.trigger ? `: ${d.trigger}` : ""}${
-                                      outcomes[d.event.id] === "worked"
-                                        ? ", and it worked"
-                                        : outcomes[d.event.id] === "no_change"
-                                          ? ", no change after"
-                                          : ""
-                                    }`
-                                  : `held back: ${WITHHELD[d.withheldReason!]}${d.trigger ? ` (${d.trigger})` : ""}`}
-                              </span>
-                            </p>
-                            <p className="mt-1 text-muted">{d.event.reason}</p>
-                            <p className="mt-1 text-body-sm text-muted">
-                              “…{d.event.context}…” {Math.round(d.event.confidence * 100)}% sure
-                              {latency[d.event.id] != null &&
-                                `, cued ${(latency[d.event.id] / 1000).toFixed(2)} s after`}
-                            </p>
-                            {isFiller(d) && (
-                              <CorrectionButton
-                                on={corrected.get(wordKey(d.event.start))?.label === "false_buzz"}
-                                onClick={() => toggleCorrection(d.event.start, "false_buzz")}
-                              >
-                                Not a filler
-                              </CorrectionButton>
-                            )}
-                          </li>
-                        ) : null,
-                      )}
-                    </ul>
-                  </div>
-
-                  {recorded > 0 && !busy && (
-                    <div>
-                      <button
-                        onClick={downloadSession}
-                        className="min-h-11 rounded-lg border border-line px-4 text-body hover:border-text"
-                      >
-                        Download session
-                      </button>
-                      <p className="mt-2 text-body-sm text-muted">
-                        Saves what Deepgram heard, your marks, and cue timing. No audio. Keep it out of the repo.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Disclosure>
-
-            <Disclosure
-              title="Practice"
-              summary="Try a sentence without a mic, or try the device’s touch controls"
-              open={open.practice}
-              onToggle={() => toggle("practice")}
-            >
-              <div className="space-y-12">
-                <div>
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                    Try a sentence
-                  </h3>
-                  <p className="mt-1 text-body-sm text-muted">Cue reads it word by word, as if you were saying it.</p>
-                  <textarea
-                    value={demoText}
-                    onChange={(e) => setDemoText(e.target.value)}
-                    rows={3}
-                    aria-label="Practice sentence"
-                    className="mt-4 w-full resize-none rounded-lg border border-line bg-surface p-3 text-body outline-none focus:border-cue"
-                  />
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {EXAMPLES.map((ex) => (
-                      <button
-                        key={ex}
-                        onClick={() => {
-                          setDemoText(ex);
-                          setOpen((o) => ({ ...o, practice: true }));
-                          runDemo(ex);
-                        }}
-                        className="min-h-9 max-w-full truncate rounded-lg border border-line px-3 text-left text-body-sm text-muted hover:border-text hover:text-text"
-                      >
-                        {ex}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-6 space-y-4">
-                    <Slider
-                      label="Speaking speed"
-                      value={demoWpm}
-                      min={100}
-                      max={280}
-                      step={10}
-                      format={(v) => `${v} wpm`}
-                      onChange={setDemoWpm}
-                    />
-                    <Switch label="Trail off quietly at the end" on={demoQuiet} onChange={setDemoQuiet} />
-                    <Switch
-                      label="A friend cuts in with “um… like went”"
-                      hint="The mic hears them; the device’s bone sensor doesn’t, so Cue ignores them."
-                      on={demoFriend}
-                      onChange={setDemoFriend}
-                    />
-                  </div>
-                  <button
-                    onClick={() => runDemo()}
-                    disabled={live}
-                    className="mt-6 min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
-                  >
-                    Play sentence
-                  </button>
-                </div>
-
-                <div>
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                    Try the device’s touch controls
-                  </h3>
-                  <p className="mt-1 text-body-sm text-muted">
-                    On the device, touch is only for controls. A single tap does nothing, so fixing your hair won’t
-                    trigger it.
-                  </p>
-                  <div className="mt-4">
-                    <TouchPad onAction={onTouch} mode={presetLabel} on={!config.muted} />
-                  </div>
-                </div>
-              </div>
-            </Disclosure>
-
-            {/* Saving recordings needs the local dev server (/api/training), so Training only shows there. */}
-            {process.env.NODE_ENV === "development" && (
-              <Disclosure
-                title="Training"
-                summary="Record yourself talking, then mark every filler to teach and test the detector"
-                open={open.training}
-                onToggle={() => toggle("training")}
-              >
-                <div className="space-y-8">
-                  <div>
-                    <p className="max-w-prose text-body text-muted">
-                      Talk for a few minutes the way you normally do. Cue records the audio for this session only.
-                      Afterwards, select every word that was a filler, then save it to the training set on this
-                      computer.
-                    </p>
-                    <p className="mt-2 max-w-prose text-body-sm text-muted">
-                      Recordings stay in the project’s <code>training/</code> folder, which is never uploaded to GitHub.
-                      Only record people who have agreed to it.
-                    </p>
-                    <div className="mt-4">
-                      {live && recordingTraining ? (
-                        <button
-                          onClick={endSession}
-                          className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
-                        >
-                          Stop and label
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => startLive({ record: true })}
-                          disabled={live || status === "demo"}
-                          className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg disabled:opacity-40"
-                        >
-                          Start training recording
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {!busy && words.length > 0 && (trainingAudioUrl || fillerMarks.size > 0 || open.training) && (
-                    <div>
-                      <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                        Mark the fillers
-                      </h3>
-                      <p className="mt-1 text-body-sm text-muted">
-                        Select every word that was a filler; select again to unmark. Cue’s detections start selected, so
-                        unselect any it got wrong. {trainingAudioUrl && "Play the recording to follow along."}
-                      </p>
-                      {trainingAudioUrl && (
-                        <audio
-                          controls
-                          src={trainingAudioUrl}
-                          className="mt-4 w-full"
-                          onTimeUpdate={(e) => setPlayhead(e.currentTarget.currentTime)}
-                          onEnded={() => setPlayhead(null)}
-                        />
-                      )}
-                      <p className="mt-4 text-body leading-9">
-                        {words.map((w, k) => {
-                          const marked = fillerMarks.has(wordKey(w.start));
-                          const now = playhead !== null && playhead >= w.start - 0.05 && playhead <= w.end + 0.05;
-                          return (
-                            <span key={k}>
-                              <button
-                                type="button"
-                                aria-pressed={marked}
-                                onClick={() => toggleFillerMark(w.start)}
-                                className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
-                              >
-                                {w.text}
-                              </button>{" "}
-                            </span>
-                          );
-                        })}
-                      </p>
-                      <div className="mt-6 flex flex-wrap items-center gap-4">
-                        <button
-                          onClick={saveTraining}
-                          className="min-h-11 rounded-lg bg-text px-6 text-body font-medium text-bg"
-                        >
-                          Save to training set
-                        </button>
-                        <span className="text-body-sm text-muted">
-                          {fillerMarks.size} {fillerMarks.size === 1 ? "word" : "words"} marked as fillers
-                        </span>
-                      </div>
-                      {trainingSaved && (
-                        <p className="mt-3 text-body-sm" role="status">
-                          {trainingSaved}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </Disclosure>
-            )}
-
-            <Disclosure
-              title="Settings"
-              summary={`${presetLabel} mode, ${config.customFillers.length ? `${config.customFillers.length} of your own filler ${config.customFillers.length === 1 ? "word" : "words"}, ` : ""}${config.tapOn === "patterns" ? "taps for patterns" : "taps for every filler"}${sound.on ? ", cue sounds on" : ""}`}
-              open={open.settings}
-              onToggle={() => toggle("settings")}
-            >
-              <div className="space-y-10 text-body">
-                <fieldset>
-                  <legend className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                    What Cue coaches
-                  </legend>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(["um", "uh", "like", "lowkey", "rushing", "pauses", "turns", "quiet"] as const).map((k) => (
-                      <Chip
-                        key={k}
-                        on={config.categories[k]}
-                        onClick={() =>
-                          setConfig((c) => ({ ...c, categories: { ...c.categories, [k]: !c.categories[k] } }))
-                        }
-                      >
-                        {CHIP_LABEL[k] ?? `“${k}”`}
-                      </Chip>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <div>
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                    Your filler words
-                  </h3>
-                  <p className="mt-1 max-w-prose text-body-sm text-muted">
-                    Add words or short phrases you lean on, like “so”, “basically” or “you know”. Cue counts one every
-                    time you say it, so skip words you also use on purpose.
-                  </p>
-                  <form
-                    className="mt-3 flex max-w-md gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      addCustomFiller();
-                    }}
-                  >
-                    <label className="sr-only" htmlFor="custom-filler">
-                      A filler word or phrase
-                    </label>
-                    <input
-                      id="custom-filler"
-                      value={fillerDraft}
-                      onChange={(e) => {
-                        setFillerDraft(e.target.value);
-                        setFillerError(null);
-                      }}
-                      placeholder="you know"
-                      autoComplete="off"
-                      autoCapitalize="none"
-                      aria-describedby={fillerError ? "custom-filler-error" : undefined}
-                      className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 text-body placeholder:text-muted/70 focus:border-cue focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
-                    >
-                      Add
-                    </button>
-                  </form>
-                  {fillerError && (
-                    <p id="custom-filler-error" role="alert" className="mt-2 text-body-sm">
-                      {fillerError}
-                    </p>
-                  )}
-                  {config.customFillers.length > 0 && (
-                    <ul className="mt-3 flex flex-wrap gap-2">
-                      {config.customFillers.map((f) => (
-                        <li key={f}>
-                          <button
-                            type="button"
-                            onClick={() => setCustomFillers(config.customFillers.filter((x) => x !== f))}
-                            aria-label={`Remove “${f}”`}
-                            className="flex min-h-11 items-center gap-2 rounded-lg border border-cue bg-cue-soft px-3 text-label hover:border-text"
-                          >
-                            “{f}”
-                            <span aria-hidden className="text-muted">
-                              ×
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                    How Cue taps
-                  </h3>
-                  <Switch
-                    label="Tap for patterns, not every filler"
-                    hint={
-                      config.tapOn === "patterns"
-                        ? `A tap needs ${config.clusterCount} fillers within ${config.clusterWindowSec} s, or ${config.densityPerMin} in a minute. One “um” is normal.`
-                        : "Testing mode: every filler taps (with a short gap)."
-                    }
-                    on={config.tapOn === "patterns"}
-                    onChange={(v) => setConfig((c) => ({ ...c, tapOn: v ? "patterns" : "every" }))}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                    Filler “like”
-                  </h3>
-                  <Switch
-                    label="Count quoting “like”"
-                    hint="“She was like, no way”"
-                    on={config.likeCounts.quotative}
-                    onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, quotative: v } }))}
-                  />
-                  <Switch
-                    label="Count “like” meaning “about”"
-                    hint="“Like twenty people”"
-                    on={config.likeCounts.approximator}
-                    onChange={(v) => setConfig((c) => ({ ...c, likeCounts: { ...c.likeCounts, approximator: v } }))}
-                  />
-                </div>
-
-                <div className="space-y-5">
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">Thresholds</h3>
-                  <Slider
-                    label="Too fast above"
-                    value={config.paceThreshold}
-                    min={3}
-                    max={6.5}
-                    step={0.1}
-                    format={(v) => `${v.toFixed(1)} syllables/s, about ${toApproxWpm(v)} wpm`}
-                    onChange={(v) => {
-                      const preset = (Object.keys(PACE_PRESETS) as (keyof typeof PACE_PRESETS)[]).find(
-                        (k) => Math.abs(PACE_PRESETS[k].threshold - v) < 0.01,
-                      );
-                      setConfig((c) => ({ ...c, paceThreshold: v, paceMode: preset ?? "custom" }));
-                    }}
-                  />
-                  <Slider
-                    label="Sensitivity"
-                    value={Math.round((1 - config.minConfidence) * 100)}
-                    min={5}
-                    max={35}
-                    step={5}
-                    format={(v) => (v <= 10 ? "Cautious" : v <= 25 ? "Balanced" : "Eager")}
-                    onChange={(v) => setConfig((c) => ({ ...c, minConfidence: 1 - v / 100 }))}
-                  />
-                  <Slider
-                    label="Quiet time between taps"
-                    hint={config.mode === "presentation" ? "Presentation mode waits at least 25 s." : undefined}
-                    value={config.cooldownSec}
-                    min={10}
-                    max={20}
-                    step={1}
-                    format={(v) => `${v} s`}
-                    onChange={(v) => setConfig((c) => ({ ...c, cooldownSec: v }))}
-                  />
-                </div>
-
-                <div className="space-y-5">
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">
-                    Testing with AirPods
-                  </h3>
-                  <p className="max-w-prose text-body-sm text-muted">
-                    Until the device exists, AirPods (or any headphones with a mic) can stand in for it: their mic
-                    listens, and each cue plays as a quiet sound in your ear with the same rhythm as the tap. Set your
-                    volume again with the AirPods in, since their mic hears you at a different level. Keep this page
-                    open while you talk.
-                  </p>
-                  <Switch
-                    label="Play cues as sounds"
-                    hint="Pause is one high tick, Slow down is three notes stepping down, Speak up is a tone sweeping up. Confirmations swell in softly."
-                    on={sound.on}
-                    onChange={(on) => saveSound({ ...sound, on })}
-                  />
-                  <Slider
-                    label="Cue sound volume"
-                    value={Math.round(sound.volume * 100)}
-                    min={10}
-                    max={100}
-                    step={5}
-                    format={(v) => `${v}%`}
-                    onChange={(v) => saveSound({ ...sound, volume: v / 100 })}
-                  />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-label text-muted">Hear each cue:</span>
-                    {(["tap", "steps", "push"] as const).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => {
-                          earcon().unlock();
-                          earcon().play(cueTones(p), sound.volume);
-                        }}
-                        className="min-h-11 rounded-lg border border-line px-4 text-label hover:border-cue"
-                      >
-                        {PATTERNS[p].action}
-                      </button>
-                    ))}
-                  </div>
-                  <label className="block">
-                    <span className="text-body">Microphone</span>
-                    <select
-                      value={micChoice.deviceId}
-                      disabled={live}
-                      onChange={(e) => {
-                        const pick = mics.find((m) => m.deviceId === e.target.value);
-                        const next = { deviceId: e.target.value, label: pick?.label ?? "" };
-                        setMicChoice(next);
-                        if (next.label) rememberMic(next.label);
-                        try {
-                          localStorage.setItem(MIC_STORAGE, JSON.stringify(next));
-                        } catch {
-                          // Storage blocked: the choice lasts until the page closes.
-                        }
-                      }}
-                      className="mt-2 block min-h-11 w-full max-w-sm rounded-lg border border-line bg-surface px-3 text-body"
-                    >
-                      <option value="">Default microphone</option>
-                      {mics.map((m, k) => (
-                        <option key={m.deviceId} value={m.deviceId}>
-                          {m.label || `Microphone ${k + 1}`}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="mt-1 block text-body-sm text-muted">
-                      {mics.some((m) => m.label)
-                        ? micLabel
-                          ? `Last used: ${micLabel}.`
-                          : "Pick the AirPods, or leave the default."
-                        : "Names appear after you allow the microphone once (Start listening)."}{" "}
-                      On iPhone, connected AirPods are used automatically.
-                    </span>
-                  </label>
-                </div>
-
-                <div>
-                  <h3 className="font-display text-title-m font-medium tracking-[-0.01em] sm:text-title">Privacy</h3>
-                  <p className="mt-2 max-w-prose text-muted">
-                    While you listen, audio streams to Deepgram to be transcribed. If you add your own Deepgram key, it
-                    stays in this browser and goes straight to Deepgram. Cue keeps nothing on its own. A session is only
-                    saved if you choose Download session, and that file has words and timing, never audio. Cue never
-                    builds a voiceprint: on the device, a bone-conduction sensor hears only your own voice. In this web
-                    prototype the microphone hears everyone, so other people’s fillers can tap too.
-                  </p>
-                </div>
-              </div>
-            </Disclosure>
-          </div>
-        </div>
+            <figcaption className="mt-3 max-w-prose text-body-sm text-muted">
+              From top: the outer shell, the circuit board (Bluetooth, microphone, motion and bone-conduction sensor,
+              haptic driver), the coin battery, and the vibration motor in the inner shell. The motor presses against
+              the skin behind your ear, which is where each tap starts on the 3D model.
+            </figcaption>
+          </figure>
+        </section>
       </div>
     </main>
   );
@@ -1874,10 +1882,84 @@ function describeTap(d: CueDecision): string {
 }
 
 const capitalize = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
+
+/** How long a cue stays on screen, ms: long enough to glance down and read it. */
+const FEEDBACK_MS = 6000;
+
+/** The three cues in the report's area colors: pause with pauses (red), slow down with pace (orange), speak up with volume (green). */
+const CUE_COLOR: Record<CuePattern, string> = {
+  tap: "var(--area-pauses)",
+  steps: "var(--area-pace)",
+  push: "var(--area-volume)",
+};
+
+const sessionClock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+
+/**
+ * The cue on screen: a large card in the cue's color with what to do and why, for a few seconds
+ * after each tap, then every cue so far, newest first. Before the first cue the slot says where
+ * they'll appear, so nothing jumps when one does.
+ */
+function CueFeedback({
+  current,
+  feed,
+  waiting,
+}: {
+  current: { n: number; label: string; action: string; pattern: CuePattern } | null;
+  feed: { n: number; at: number; label: string; action: string; pattern: CuePattern }[];
+  waiting: boolean;
+}) {
+  return (
+    <div className="mt-8 w-full text-left">
+      {current ? (
+        <div
+          key={current.n}
+          className="cue-card cue-playing flex min-h-28 items-center gap-5 rounded-2xl p-5 sm:p-6"
+          style={{ background: CUE_COLOR[current.pattern], color: "var(--on-area)" }}
+        >
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-heading-2-m font-semibold tracking-[-0.02em] sm:text-heading-2">
+              {current.action}
+            </p>
+            <p className="mt-1 text-body">{capitalize(current.label)}</p>
+          </div>
+          <RhythmGlyph pattern={current.pattern} tone="bg-current" />
+        </div>
+      ) : (
+        waiting && (
+          <div className="flex min-h-28 items-center justify-center rounded-2xl border border-dashed border-line p-5 text-center text-body-sm text-muted">
+            When Cue taps, it shows up here too: pause, slow down or speak up.
+          </div>
+        )
+      )}
+      {feed.length > 0 && (
+        <div className="mt-4">
+          <p className="text-caption text-muted">
+            {feed.length} {feed.length === 1 ? "cue" : "cues"} this session
+          </p>
+          <ul className="mt-2 divide-y divide-line">
+            {feed.slice(0, 5).map((f) => (
+              <li key={f.n} className="flex items-center gap-3 py-2 text-body-sm">
+                <span
+                  aria-hidden
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ background: CUE_COLOR[f.pattern] }}
+                />
+                <span className="font-medium">{f.action}</span>
+                <span className="min-w-0 flex-1 truncate text-muted">{f.label}</span>
+                <span className="tabular-nums text-muted">{sessionClock(f.at)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 const formatDb = (x: number) => `${x >= 0 ? "+" : "−"}${Math.abs(Math.round(x))} dB`;
 
 /** A cue's rhythm drawn as beats: each pulse's length and gap to scale, lit in time when played. */
-function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
+function RhythmGlyph({ pattern, tone = "bg-cue" }: { pattern: CuePattern; tone?: string }) {
   const v = PATTERNS[pattern].vibrate;
   const beats = v.flatMap((ms, k) =>
     k % 2 === 0 ? [{ start: v.slice(0, k).reduce((a, b) => a + b, 0), ms, gap: v[k + 1] ?? 0 }] : [],
@@ -1887,7 +1969,7 @@ function RhythmGlyph({ pattern }: { pattern: CuePattern }) {
       {beats.map((b, k) => (
         <span
           key={k}
-          className="beat h-3 rounded-sm bg-cue opacity-35"
+          className={`beat h-3 rounded-sm opacity-35 ${tone}`}
           style={
             {
               width: Math.max(3, Math.round(b.ms / 12)),
