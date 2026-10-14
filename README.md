@@ -147,6 +147,8 @@ Without `SIGNUPS_SHEET_URL`, `npm run dev` saves sign-ups to `./signups/signups.
 
 **Counting visits.** The landing pages load [Vercel Web Analytics](https://vercel.com/docs/analytics) (`<Analytics />` in `src/app/for/[market]/page.tsx`), so the project's **Analytics** tab in Vercel shows visitors and page views per page. Turn it on once under Project → Analytics → Enable. It uses no cookies, counts nothing under `npm run dev`, and is not loaded on the coaching app at `/`. Compare each page's visitors with the rows on its tab in the sheet to get a sign-up rate.
 
+**Counting form use.** The sign-up form sends four custom events to Web Analytics, each with only the market: `signup_start` (the email box was focused, once per visit), `signup_submit` (the button was pressed), `signup_done` (the sign-up was saved) and `signup_failed`. Together with visits they show where people drop off: never starting, starting and not sending, or sending and failing. They appear under **Events** in the project's Analytics tab.
+
 ## Scripts
 
 | Command                           | What it does                                                                                                                                                                                                                                       |

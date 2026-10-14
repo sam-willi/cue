@@ -44,7 +44,7 @@ export const MARKETS: Market[] = [
     eyebrow: "For speakers, presenters and coaches",
     headline: "Speak with confidence. Own the room.",
     lead: "When the stakes rise, it’s easy to rush, ramble and say “um”. Cue is a discreet behind-the-ear wearable that taps you privately, mid-sentence, so you slow down, pause and hold the room.",
-    cta: "Join early access",
+    cta: "Join for 20% off",
     wearer: "you",
     problemTitle: "Why you rush and say “um” when it matters most",
     problems: [
@@ -88,7 +88,7 @@ export const MARKETS: Market[] = [
     eyebrow: "For salespeople",
     headline: "Stop rambling. Keep the buyer listening.",
     lead: "On a call, on the showroom floor or at a showing, it’s easy to rush, run long and fill every silence. Cue is a discreet behind-the-ear wearable that taps you privately in the moment: pause, slow down, speak up.",
-    cta: "Join early access",
+    cta: "Join for 20% off",
     wearer: "you",
     problemTitle: "Why salespeople rush and ramble with buyers",
     problems: [
@@ -188,7 +188,7 @@ export const MARKETS: Market[] = [
     eyebrow: "For English learners",
     headline: "Speak clearer English and fix your grammar.",
     lead: "When you speak English, your attention goes to finding the words. It’s hard to notice that you’re rushing, getting quieter or repeating the same grammar slips. Cue is a discreet behind-the-ear wearable that taps you privately in the moment, then shows you the grammar to work on afterwards.",
-    cta: "Join early access",
+    cta: "Join for 20% off",
     wearer: "you",
     problemTitle: "Why speaking habits are hard to fix on your own",
     problems: [
@@ -241,7 +241,7 @@ export const MARKETS: Market[] = [
     eyebrow: "For interviews",
     headline: "Sound more professional in every interview.",
     lead: "In an interview, pressure makes people rush, ramble and reach for “um”. Cue is a discreet behind-the-ear wearable that taps you privately so you pause, breathe and answer at your own pace.",
-    cta: "Join early access",
+    cta: "Join for 20% off",
     wearer: "you",
     problemTitle: "Why nerves ruin good answers",
     problems: [
@@ -309,6 +309,11 @@ const LOOKS = {
   a: "One small device that follows the curve behind one ear. Nothing goes in the ear, and it isn’t an earbud.",
 };
 const PRICE = { q: "What will it cost?", a: "We haven’t set a price." };
+/** The expected price, for the pages people sign up to buy from (owner's figures, 2026-10-14). */
+const PRICE_YOU = {
+  q: "What will it cost?",
+  a: "We expect Cue to cost $99 to $149. Everyone on the early list gets 20% off at launch.",
+};
 const PATTERNS_FACT = {
   title: "It doesn’t tap for every “um”",
   body: "The occasional “um” is normal. Cue taps when a habit builds, and stays quiet otherwise.",
@@ -318,7 +323,7 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
   you: {
     cuesTitle: "Cue taps you the moment you rush, ramble or go quiet",
     deviceTitle: "A small device that sits behind your ear",
-    joinTitle: "Get early access to Cue",
+    joinTitle: "Join the early list: 20% off Cue at launch",
     cuesIntro:
       "Cue listens for a habit as it builds, then taps behind your ear. Each cue has its own rhythm, so you know what it’s asking for without looking at anything.",
     detects: {
@@ -348,7 +353,7 @@ export const SHARED: Record<Market["wearer"], SharedCopy> = {
         q: "Will it stop me saying “um” altogether?",
         a: "No, and it isn’t meant to. The occasional filler is normal. Cue taps for patterns, not for every word.",
       },
-      PRICE,
+      PRICE_YOU,
     ],
   },
   students: {

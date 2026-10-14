@@ -79,7 +79,8 @@ export default function PrivacyPage() {
       <p className={P}>
         This website doesn’t set advertising or analytics cookies. On our sign-up pages we count visits with Vercel Web
         Analytics, which doesn’t use cookies and doesn’t identify you: it records the page visited, the site and
-        campaign tags that brought you there, and your general device type and country.
+        campaign tags that brought you there, your general device type and country, and whether you started or sent the
+        sign-up form (not what you typed).
       </p>
 
       <h2 className={H2}>The Cue prototype app</h2>

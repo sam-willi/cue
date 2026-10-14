@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { track } from "@vercel/analytics";
+import { useId, useRef, useState, type FormEvent } from "react";
 import type { MarketKind } from "@/lib/landing/markets";
 import { UTM_KEYS } from "@/lib/landing/signups";
 
@@ -12,8 +13,8 @@ const CARD = "scroll-mt-24 rounded-card border border-line bg-surface p-4 sm:p-7
 /** What the visitor is signing up for, and what follows, in the order it happens. */
 const COPY: Record<MarketKind, { intro: string; steps: string[]; note: string }> = {
   "early-access": {
-    intro: "Cue isn’t on sale yet. Join the list and be among the first to try it.",
-    steps: ["Leave your email", "We email you when early access opens", "You decide if you want one"],
+    intro: "Cue isn’t on sale yet. Expected price: $99 to $149. Join the early list and get 20% off at launch.",
+    steps: ["Leave your email", "We email you when early access opens", "You decide if you want one, at 20% off"],
     note: "Free to join. No payment details. We only email you about early access.",
   },
   pilot: {
@@ -48,6 +49,15 @@ export default function SignupForm({
   const [email, setEmail] = useState("");
   const pilot = kind === "pilot";
   const copy = COPY[kind];
+  // Counted in Vercel Web Analytics as custom events, with the market and nothing about the person: whether
+  // visitors start the form, press the button, and get through. Visits alone can't tell "never tried" from
+  // "tried and gave up".
+  const started = useRef(false);
+  const onStart = () => {
+    if (started.current) return;
+    started.current = true;
+    track("signup_start", { market });
+  };
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,6 +68,7 @@ export default function SignupForm({
     const utm = Object.fromEntries(UTM_KEYS.flatMap((key) => (query.get(key) ? [[key, query.get(key)]] : [])));
     setState("sending");
     setError(null);
+    track("signup_submit", { market });
     try {
       const response = await fetch("/api/early-access", {
         method: "POST",
@@ -76,6 +87,7 @@ export default function SignupForm({
       }
       setEmail(String(form.get("email") ?? "").trim());
       setState("done");
+      track("signup_done", { market });
     } catch (caught) {
       setError(
         caught instanceof Error && caught.message !== "Failed to fetch"
@@ -83,6 +95,7 @@ export default function SignupForm({
           : "We couldn’t reach Cue. Check your connection and try again.",
       );
       setState("idle");
+      track("signup_failed", { market });
     }
   }
 
@@ -100,7 +113,8 @@ export default function SignupForm({
         </p>
         <p className="mt-3 text-body text-muted">
           We’ll email <span className="font-medium break-all text-text">{email}</span>
-          {pilot ? " to plan a pilot with you." : " when early access opens."} There’s nothing else to do for now.
+          {pilot ? " to plan a pilot with you." : " when early access opens, and your 20% off is saved."} There’s
+          nothing else to do for now.
         </p>
       </div>
     );
@@ -126,6 +140,7 @@ export default function SignupForm({
             placeholder="name@example.com"
             aria-describedby={error ? `${id}-error` : `${id}-note`}
             aria-invalid={error ? true : undefined}
+            onFocus={onStart}
             className={`${FIELD} sm:flex-1`}
           />
           <button
