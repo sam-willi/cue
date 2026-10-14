@@ -54,7 +54,7 @@ Live, Cue only ever asks for three things (decision 18). Every cue starts with a
 | Slow down | Slow steps (three 100 ms pulses, 250 ms apart) | Rushing                                                     |
 | Speak up  | Long push (450 ms)                             | Too quiet                                                   |
 
-On screen, each cue is drawn as rings leaving the motor on the 3D device. A faint gray ring means "noticed, not a pattern yet", a testing aid.
+On screen, each cue appears as a large card right under the controls, in its color (pause red, slow down orange, speak up green, matching the report), with what to do and why. It stays six seconds, long enough to glance down and read, and every cue so far is listed under it with the time it came. The 3D device at the bottom of the page still draws each cue as rings leaving the motor; a faint gray ring there means "noticed, not a pattern yet", a testing aid.
 
 **Your own filler words.** In Settings you can add up to 20 words or short phrases you lean on ("so", "basically", "you know"). Cue counts one every time it's said (there's no check of how it was used, unlike "like"), and they feed the same pattern rules as the built-in fillers. The list is saved on this device. The list is also sent to Deepgram as "keyterms", words to listen for specially, so they are transcribed more reliably.
 
