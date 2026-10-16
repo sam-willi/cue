@@ -10,7 +10,6 @@ import Cursor from "./Cursor";
 import Hero from "./Hero";
 import { Colorways, Reveal, StickyBar } from "./Pieces";
 import { ReserveButton, ReserveProvider } from "./Reserve";
-import ScriptedDemo from "./ScriptedDemo";
 import VoiceDemo from "./VoiceDemo";
 import s from "./preorder.module.css";
 
@@ -148,7 +147,7 @@ export default async function PreorderPage() {
           </div>
         </header>
 
-        {/* Seven beats, like lilguy: the claim, the tap, the proof, the voice, the deal, the pick, the fine print. */}
+        {/* Seven beats, like lilguy: the claim, the tap, your own voice, what it's like, the deal, the pick, the fine print. */}
         <main>
           <Hero placesLeft={places} />
 
@@ -156,11 +155,8 @@ export default async function PreorderPage() {
             <CueShowcase />
           </section>
 
-          <section aria-label="A sprint review, with Cue">
-            <ScriptedDemo />
-            <div className={s.wrap} style={{ paddingBottom: 40 }}>
-              <VoiceDemo />
-            </div>
+          <section id="hear-it" className={`${s.wrap} ${s.section}`} style={{ paddingTop: 0 }}>
+            <VoiceDemo />
           </section>
 
           <section className={`${s.wrap} ${s.section}`}>

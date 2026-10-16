@@ -94,7 +94,7 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
               reserve yours <span className={s.buttonPrice}>${OFFER.deposit}</span>
             </ReserveButton>
             <a className={s.ghost} href="#hear-it">
-              hear it work <span aria-hidden="true">↓</span>
+              try it with your voice <span aria-hidden="true">↓</span>
             </a>
           </div>
         </div>

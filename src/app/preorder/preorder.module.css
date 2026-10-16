@@ -629,91 +629,9 @@
   }
 }
 
-/* ---------- Section 3: the scripted demo (sticky, driven by scroll) ---------- */
+/* ---------- Voice demo ---------- */
 
-.demo {
-  position: relative;
-  height: 420vh;
-}
-.demoSticky {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  display: flex;
-  align-items: center;
-}
-.demoGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: 48px;
-  align-items: center;
-  width: 100%;
-}
-/* The transcript scrolls inside this window like a teleprompter, fading at both edges. */
-.tBox {
-  height: min(52svh, 520px);
-  overflow: hidden;
-  mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 80%, transparent);
-}
-.transcript {
-  margin: 0;
-  font-size: clamp(22px, 2.6vw, 34px);
-  line-height: 1.32;
-  letter-spacing: -0.02em;
-  font-weight: 500;
-}
-.tLine {
-  display: block;
-  margin-bottom: 0.55em;
-}
-.tLine.fast {
-  letter-spacing: -0.045em;
-  word-spacing: -0.12em;
-}
-.tLine.quiet {
-  font-size: 0.7em;
-  font-weight: 400;
-}
-.tLine.better {
-  color: var(--text);
-}
-.word {
-  opacity: 0.14;
-  transition: opacity 260ms var(--ease-arrive);
-}
-.word.said {
-  opacity: 1;
-}
-.tLine.redo.past .word.said {
-  opacity: 0.38;
-}
-.flag {
-  position: relative;
-}
-.flag::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -0.08em;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--cue);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 300ms var(--ease-arrive);
-}
-.flag.said::after {
-  transform: scaleX(1);
-}
-.pauseMark {
-  display: inline-block;
-  color: var(--muted);
-  letter-spacing: 0.3em;
-}
-.demoSide {
-  position: relative;
-}
+/* The worn photo the voice demo's taps are drawn on. */
 .demoPhoto {
   position: relative;
   margin: 0;
@@ -728,112 +646,6 @@
   height: 100%;
   object-fit: cover;
 }
-.readouts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 8px;
-}
-.readout {
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: var(--surface-2);
-}
-.readoutLabel {
-  display: block;
-  font-size: 13px;
-  color: var(--muted);
-}
-.readoutValue {
-  display: block;
-  margin-top: 4px;
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.cueToast {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 56px;
-  margin-top: 8px;
-  padding: 0 16px;
-  border-radius: 12px;
-  background: var(--text);
-  color: var(--bg);
-  font-size: 16px;
-  font-weight: 500;
-  opacity: 0;
-  transform: translateY(6px);
-  transition:
-    opacity 220ms var(--ease-arrive),
-    transform 220ms var(--ease-arrive);
-}
-.cueToast.show {
-  opacity: 1;
-  transform: none;
-}
-.cueToast small {
-  font-size: 14px;
-  font-weight: 400;
-  opacity: 0.65;
-}
-.progress {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 28px;
-  height: 2px;
-  background: var(--line);
-}
-.progressBar {
-  height: 100%;
-  background: var(--text);
-  transform-origin: left;
-}
-@media (max-width: 860px) {
-  .demo {
-    height: 460vh;
-  }
-  /* Room for the phone's reserve bar, and the photo always in view at the top. */
-  .demoSticky {
-    align-items: flex-start;
-    padding-top: 16px;
-    padding-bottom: 96px;
-  }
-  .tBox {
-    height: 34svh;
-  }
-  .readout {
-    padding: 10px 14px;
-  }
-  .cueToast {
-    min-height: 48px;
-  }
-  .demoGrid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  .demoSide {
-    order: -1;
-  }
-  .readouts {
-    grid-template-columns: 1fr 1fr;
-  }
-  .readoutValue {
-    font-size: 22px;
-  }
-  .transcript {
-    font-size: 21px;
-  }
-  .demoPhoto {
-    aspect-ratio: 16 / 7;
-  }
-}
-
-/* ---------- Voice demo ---------- */
 
 .voice {
   display: grid;
@@ -1898,20 +1710,6 @@
   }
   .ring {
     display: none;
-  }
-  .demo {
-    height: auto;
-  }
-  .demoSticky {
-    position: static;
-    height: auto;
-    padding-block: 80px;
-  }
-  .word {
-    opacity: 1;
-  }
-  .flag::after {
-    transform: scaleX(1);
   }
   .cardFoot::before,
   .stickyBar,
