@@ -2,7 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BALANCE, CONCEPT_NOTE, OFFER, panel } from "@/lib/preorder/offer";
+import { BALANCE, COLORWAYS, CONCEPT_NOTE, OFFER, panel } from "@/lib/preorder/offer";
 import { placesLeft } from "@/lib/preorder/stripe";
 import CueShowcase from "./CueShowcase";
 import Hero from "./Hero";
@@ -190,6 +190,20 @@ export default async function PreorderPage() {
             <h2 id="details-title" className={s.h3}>
               satin metal. one touch area. nothing in your ear.
             </h2>
+            <div className={s.triptych}>
+              {COLORWAYS.map((c, n) => (
+                <figure key={c.id} className={s.photo} style={{ "--i": n } as React.CSSProperties}>
+                  <Image
+                    src={panel(c.id, "on-ear")}
+                    alt={`Cue in ${c.name}, worn behind the ear`}
+                    width={509}
+                    height={298}
+                    sizes="(max-width: 760px) 100vw, 33vw"
+                  />
+                  <figcaption className={s.photoLabel}>{c.name.toLowerCase()}</figcaption>
+                </figure>
+              ))}
+            </div>
             <div className={s.details}>
               <figure>
                 <Image

@@ -1,10 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { PATTERNS, type CuePattern } from "@/lib/cue/patterns";
-import { panel } from "@/lib/preorder/offer";
-import Rings, { pulses, type CuePlay } from "./Rings";
+import Cutout from "./Cutout";
+import { pulses, type CuePlay } from "./Rings";
 import s from "./preorder.module.css";
 
 /** The three cues (DESIGN.md §11), in the words a wearer would use. */
@@ -14,8 +13,6 @@ const CUES: { pattern: CuePattern; name: string; when: string }[] = [
   { pattern: "push", name: "speak up", when: "One long push. Well below the volume you set." },
 ];
 
-/** Where the motor sits on the studio shot of the device, as percentages. */
-const DEVICE_MOTOR = { x: 63, y: 58 };
 /** Time between cues while the section plays on its own. */
 const CYCLE_MS = 2600;
 
@@ -122,16 +119,16 @@ export default function CueShowcase() {
           {canVibrate ? "Tap one to feel it on your phone." : "Choose one to play it. On a phone, you’ll feel it."}
         </p>
       </div>
-      <figure className={s.deviceCard}>
-        <Image
-          src={panel("silver", "device")}
+      <div className={s.deviceStage}>
+        <Cutout
+          color="silver"
           alt="Cue in Silver, a slim crescent with a touch area near one end"
-          width={507}
-          height={209}
-          sizes="(max-width: 860px) 100vw, 55vw"
+          play={play}
+          speed={-0.05}
+          sizes="(max-width: 860px) 90vw, 50vw"
+          className={s.showcaseDevice}
         />
-        <Rings {...DEVICE_MOTOR} play={play} />
-      </figure>
+      </div>
     </div>
   );
 }

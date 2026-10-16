@@ -1,13 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState, type MouseEvent } from "react";
-import { COLORWAYS, CONCEPT_NOTE, OFFER, panel } from "@/lib/preorder/offer";
+import { OFFER } from "@/lib/preorder/offer";
+import Cutout from "./Cutout";
 import { ReserveButton } from "./Reserve";
-import Rings, { type CuePlay } from "./Rings";
+import type { CuePlay } from "./Rings";
 import s from "./preorder.module.css";
-
-const LINES = ["say less,", "um."];
 
 /** Where the device's motor sits on each on-ear photo, as percentages of the photo. */
 export const ON_EAR_MOTOR = {
@@ -23,47 +21,69 @@ function press(e: MouseEvent<HTMLSpanElement>) {
   window.setTimeout(() => el.classList.remove(s.pressed), 110);
 }
 
+/** Letters that arrive one after another, numbered on from `start` for the stagger. */
+function Letters({ text, start }: { text: string; start: number }) {
+  return (
+    <>
+      {[...text].map((ch, c) => (
+        <span key={c} className={s.char} style={{ "--i": start + c } as React.CSSProperties} onMouseEnter={press}>
+          {ch === " " ? "\u00a0" : ch}
+        </span>
+      ))}
+    </>
+  );
+}
+
 /**
- * The opening: the headline arrives letter by letter, then Cue taps the wearer in the first
- * photo, once, and "um." steps back, the way a filler fades once you've caught it.
+ * The opening, set like a poster: the headline arrives letter by letter, right-aligned, with the
+ * product cut-outs tilted around it and running off the page. Once the words land, the graphite
+ * Cue taps, once, and the answer appears under the headline.
  */
 export default function Hero({ placesLeft }: { placesLeft: number | null }) {
-  const [caught, setCaught] = useState(false);
+  const [tapped, setTapped] = useState(false);
   const [play, setPlay] = useState<CuePlay | null>(null);
-  const chars = LINES.join("").length;
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const revealed = reduce ? 300 : 120 + chars * 32 + 700;
+    const revealed = reduce ? 300 : 120 + 20 * 32 + 600;
     const tap = window.setTimeout(() => setPlay({ pattern: "tap", n: 1 }), revealed);
-    const dim = window.setTimeout(() => setCaught(true), revealed + 180);
+    const note = window.setTimeout(() => setTapped(true), revealed + 180);
     return () => {
       window.clearTimeout(tap);
-      window.clearTimeout(dim);
+      window.clearTimeout(note);
     };
-  }, [chars]);
+  }, []);
 
-  let i = 0;
   return (
-    <section id="hero" className={`${s.wrap} ${s.hero} ${caught ? s.caught : ""}`}>
-      <h1 className={s.display} aria-label="say less, um.">
-        {LINES.map((line, l) => (
-          <span key={line} className={s.displayLine} aria-hidden="true">
-            <span className={l === 1 ? s.um : undefined}>
-              {[...line].map((ch, c) => (
-                <span key={c} className={s.char} style={{ "--i": i++ } as React.CSSProperties} onMouseEnter={press}>
-                  {ch === " " ? " " : ch}
-                </span>
-              ))}
+    <section id="hero" className={`${s.hero} ${tapped ? s.caught : ""}`}>
+      <div className={s.stage}>
+        <Cutout
+          color="graphite"
+          alt="Cue in Graphite"
+          priority
+          speed={-0.14}
+          delay={250}
+          play={play}
+          sizes="(max-width: 760px) 70vw, 46vw"
+          className={s.heroGraphite}
+        />
+        <div className={`${s.wrap} ${s.stageText}`}>
+          <h1 className={s.display} aria-label="you suck at speaking.">
+            <span className={s.displayLine} aria-hidden="true">
+              <Letters text="you suck" start={0} />
             </span>
-          </span>
-        ))}
-      </h1>
-      <p className={s.caughtNote} aria-hidden="true">
-        <span className={s.dot} /> one tap. you caught it.
-      </p>
+            <span className={s.displayLine} aria-hidden="true">
+              <Letters text="at" start={8} /> <br className={s.mobileBreak} />
+              <Letters text="speaking." start={10} />
+            </span>
+          </h1>
+          <p className={s.caughtNote} aria-hidden="true">
+            <span className={s.dot} /> one tap. you’ll suck less.
+          </p>
+        </div>
+      </div>
 
-      <div className={s.heroIntro}>
+      <div className={`${s.wrap} ${s.heroIntro}`}>
         <div>
           <p className={s.lede}>
             <strong>Cue sits behind your ear and taps you, privately,</strong> when a speaking habit shows up. For
@@ -90,23 +110,11 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
         </p>
       </div>
 
-      <div className={s.triptych}>
-        {COLORWAYS.map((c, n) => (
-          <figure key={c.id} className={s.photo} style={{ "--i": n } as React.CSSProperties}>
-            <Image
-              src={panel(c.id, "on-ear")}
-              alt={`Cue in ${c.name}, worn behind the ear`}
-              width={509}
-              height={298}
-              priority={n === 0}
-              sizes="(max-width: 760px) 100vw, 33vw"
-            />
-            {n === 0 && <Rings {...ON_EAR_MOTOR[c.id]} play={play} />}
-            <figcaption className={s.photoLabel}>{c.name.toLowerCase()}</figcaption>
-          </figure>
-        ))}
+      {/* Two more finishes tumble in below, one off each edge. */}
+      <div className={s.tumble} aria-hidden="true">
+        <Cutout color="silver" alt="" speed={-0.06} delay={500} sizes="40vw" className={s.heroSilver} />
+        <Cutout color="champagne" alt="" speed={0.04} delay={650} sizes="40vw" className={s.heroChampagne} />
       </div>
-      <p className={s.conceptNote}>{CONCEPT_NOTE}</p>
     </section>
   );
 }

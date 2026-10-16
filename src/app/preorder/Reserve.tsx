@@ -4,7 +4,8 @@ import { track } from "@vercel/analytics";
 import Image from "next/image";
 import { createContext, useCallback, useContext, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { UTM_KEYS } from "@/lib/landing/signups";
-import { BALANCE, COLORWAYS, OFFER, panel, type ColorwayId } from "@/lib/preorder/offer";
+import { BALANCE, COLORWAYS, OFFER, type ColorwayId } from "@/lib/preorder/offer";
+import { CUTOUTS, cutout } from "./Cutout";
 import s from "./preorder.module.css";
 
 const ReserveContext = createContext<{ open: (color?: ColorwayId) => void; full: boolean }>({
@@ -127,7 +128,15 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
           </div>
 
           <figure className={s.dialogPhoto}>
-            <Image src={panel(color, "device")} alt={`Cue in ${chosen.name}`} width={507} height={209} />
+            <Image
+              key={color}
+              className={s.cutout}
+              src={cutout(color, "device")}
+              alt={`Cue in ${chosen.name}`}
+              width={CUTOUTS.device.w}
+              height={CUTOUTS.device.h}
+              unoptimized
+            />
           </figure>
 
           {mode === "saved" ? (
