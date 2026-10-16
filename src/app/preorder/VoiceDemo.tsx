@@ -1,16 +1,14 @@
 "use client";
 
 import { track } from "@vercel/analytics";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_CONFIG } from "@/lib/cue/config";
 import { PATTERNS, patternFor, type CuePattern } from "@/lib/cue/patterns";
 import type { CueSession } from "@/lib/cue/session";
 import type { Word } from "@/lib/cue/types";
 import type { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
-import { panel } from "@/lib/preorder/offer";
-import { ON_EAR_MOTOR } from "./Hero";
-import Rings, { type CuePlay } from "./Rings";
+import Cutout from "./Cutout";
+import type { CuePlay } from "./Rings";
 import s from "./preorder.module.css";
 
 /** How long one try runs: enough for a few sentences, short enough to keep the cost small. */
@@ -21,7 +19,7 @@ type Status = "idle" | "starting" | "listening" | "done" | "error";
 
 /**
  * "Try it with your voice": the coaching engine the app uses (CueSession), on the visitor's own
- * speech, through the same Deepgram stream. Each tap shows on the photo and, on a phone that can,
+ * speech, through the same Deepgram stream. Each tap shows on the device and, on a phone that can,
  * vibrates in the cue's rhythm. Nothing is kept: the words live in this component until it unmounts.
  */
 export default function VoiceDemo() {
@@ -155,16 +153,9 @@ export default function VoiceDemo() {
       </div>
 
       <div>
-        <figure className={s.demoPhoto} style={{ marginBottom: 8 }}>
-          <Image
-            src={panel("champagne", "on-ear")}
-            alt="Cue in Champagne, worn behind the ear"
-            width={509}
-            height={298}
-            sizes="(max-width: 860px) 100vw, 50vw"
-          />
-          <Rings {...ON_EAR_MOTOR.champagne} play={play} />
-        </figure>
+        <div className={s.voiceDevice}>
+          <Cutout color="champagne" alt="Cue in Champagne" play={play} sizes="30vw" className={s.voiceCutout} />
+        </div>
         <div className={s.voiceStage}>
           <p className={s.liveWords} aria-live="polite">
             {words.length ? (

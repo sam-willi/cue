@@ -334,49 +334,6 @@
   text-decoration-thickness: 1.5px;
 }
 
-.triptych {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 40px;
-}
-.photo {
-  position: relative;
-  margin: 0;
-  border-radius: 16px;
-  overflow: hidden;
-  background: var(--studio);
-  aspect-ratio: 509 / 298;
-  opacity: 0;
-  animation: photoIn 1000ms var(--ease-arrive) forwards;
-  animation-delay: calc(500ms + var(--i) * 110ms);
-}
-.photo img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.photoLabel {
-  position: absolute;
-  left: 14px;
-  bottom: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: #fff;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
-}
-@keyframes photoIn {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
 .conceptNote {
   margin: 12px 0 0;
   font-size: 12px;
@@ -425,13 +382,6 @@
     left: 2vw;
     top: 22%;
     width: 30vw;
-  }
-  .triptych {
-    grid-template-columns: 1fr 1fr;
-    margin-top: 40px;
-  }
-  .triptych .photo:first-child {
-    grid-column: 1 / -1;
   }
 }
 
@@ -634,20 +584,18 @@
 
 /* ---------- Voice demo ---------- */
 
-/* The worn photo the voice demo's taps are drawn on. */
-.demoPhoto {
+/* The device the voice demo's taps are drawn on, floating like the hero's. */
+.voiceDevice {
   position: relative;
-  margin: 0;
-  border-radius: 20px;
-  overflow: hidden;
-  background: var(--studio);
-  aspect-ratio: 509 / 298;
+  height: 280px;
+  margin-bottom: 8px;
 }
-.demoPhoto img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.voiceCutout {
+  --r: -14deg;
+  left: 50%;
+  top: 0;
+  width: 200px;
+  margin-left: -100px;
 }
 
 .voice {
@@ -1062,7 +1010,6 @@
 
 /* ---------- Details and box ---------- */
 
-.triptych,
 .details,
 .boxRow,
 .caption {
@@ -1312,11 +1259,6 @@
   max-width: 100%;
   object-fit: contain;
   will-change: transform;
-}
-/* The case is wide rather than tall; size it by width instead. */
-.detailImage.wideView {
-  width: 88%;
-  height: auto;
 }
 .views {
   display: flex;
@@ -1847,7 +1789,6 @@
 @media (prefers-reduced-motion: reduce) {
   .char,
   .floatIn,
-  .photo,
   .reveal .rw,
   .reveal.in .rw {
     opacity: 1;

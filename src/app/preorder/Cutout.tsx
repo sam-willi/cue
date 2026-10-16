@@ -8,14 +8,10 @@ import s from "./preorder.module.css";
 
 /** The product cut-outs made by scripts/colorway-cutouts.mjs, with their pixel sizes. */
 export const CUTOUTS = {
-  device: { w: 458, h: 408 },
-  "three-quarter": { w: 313, h: 254 },
-  side: { w: 95, h: 250 },
-  front: { w: 101, h: 250 },
-  back: { w: 95, h: 250 },
-  case: { w: 592, h: 309 },
-  /** The larger studio render, for the hero and the cue section (the cards keep `device`). */
+  /** Three-quarter view, from assets/product/cue-colorways-renders.webp. */
   render: { w: 507, h: 580 },
+  /** Side view with the touch area, from assets/product/cue-colorways-side.webp. */
+  side: { w: 241, h: 612 },
 } as const;
 export type CutoutView = keyof typeof CUTOUTS;
 
@@ -23,7 +19,6 @@ export const cutout = (color: ColorwayId, view: CutoutView) => `/preorder/cutout
 
 /** Where the motor sits on each cut-out that can play a cue, as percentages of it. */
 const MOTOR: Partial<Record<CutoutView, { x: number; y: number }>> = {
-  device: { x: 84, y: 60 },
   render: { x: 80, y: 57 },
 };
 
@@ -34,7 +29,7 @@ const MOTOR: Partial<Record<CutoutView, { x: number; y: number }>> = {
  */
 export default function Cutout({
   color,
-  view = "device",
+  view = "render",
   alt,
   speed = 0,
   delay = 0,
