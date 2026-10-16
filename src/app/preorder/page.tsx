@@ -2,9 +2,11 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BALANCE, COLORWAYS, CONCEPT_NOTE, OFFER, panel } from "@/lib/preorder/offer";
-import { placesLeft } from "@/lib/preorder/stripe";
+import { BALANCE, CONCEPT_NOTE, OFFER } from "@/lib/preorder/offer";
+import { batchState } from "@/lib/preorder/stripe";
+import BatchWall from "./BatchWall";
 import CueShowcase from "./CueShowcase";
+import Cursor from "./Cursor";
 import Hero from "./Hero";
 import { Colorways, Reveal, StickyBar } from "./Pieces";
 import { ReserveButton, ReserveProvider } from "./Reserve";
@@ -15,23 +17,35 @@ import s from "./preorder.module.css";
 // The places-left count comes from Stripe; refresh it about once a minute.
 export const revalidate = 60;
 
-const TITLE = "Cue — say less, um.";
+const TITLE = "you suck at speaking. — Cue";
 const DESCRIPTION = `A small coach behind your ear that taps you, privately, when a speaking habit shows up. Preorder for $${OFFER.price} with Premium free for life. $${OFFER.deposit} refundable deposit.`;
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
-  openGraph: { title: TITLE, description: DESCRIPTION, type: "website", images: [panel("graphite", "on-ear")] },
-  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
+  // Made by scripts/preorder-social.mjs: a still for every preview, and a short loop of the tap
+  // for the apps that play one.
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    type: "website",
+    images: [{ url: "/preorder/social.png", width: 1200, height: 630, alt: "you suck at speaking. Cue, in Graphite." }],
+    videos: [{ url: "/preorder/social.mp4", width: 1200, height: 630, type: "video/mp4" }],
+  },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/preorder/social.png"] },
 };
 
-/** What the page says about Cue, as lines that arrive on scroll. Plain claims only (DESIGN.md §17). */
+/**
+ * Cue described by what it does to you, not what's inside it (the lilguy move: every sensor
+ * explained as a feeling). Each line still states something true about the product.
+ */
 const INFO = [
-  "Cue listens for a habit as it builds: filler words piling up, rushing, going too long without a pause, a turn that runs on, your voice trailing off.",
-  "Then it taps behind your ear, in one of three rhythms. You adjust. The room never knows.",
-  "It doesn’t tap for every “um”. The occasional one is normal. It waits for a pattern, and stays quiet otherwise.",
-  "Afterwards, the app shows how it went: your pauses, pace, volume, fillers, and pitch, and one thing to try differently next time.",
-  "You’ve debugged worse than a quarterly update. This is just a feedback loop with a very short delay.",
+  "Cue notices you rushing before your audience does.",
+  "It doesn’t care how smart you are. It cares that you’ve said “basically” four times in a minute.",
+  "It’s too polite to interrupt. One tap behind the ear, and you take it from there.",
+  "It lets the odd “um” slide. Everyone gets a few. It taps when they start piling up.",
+  "No screen. No voice. No opinion about your slides.",
+  "Afterwards, the app shows how it went, and one thing to try next time.",
 ];
 
 const FAQ = [
@@ -50,6 +64,14 @@ const FAQ = [
   {
     q: "Does it go in my ear?",
     a: "No. One small device follows the curve behind one ear. Your ear stays open, and it isn’t an earbud.",
+  },
+  {
+    q: "What’s in the box?",
+    a: "Cue, its charging case, and a cable.",
+  },
+  {
+    q: "What’s my number?",
+    a: `Every batch ${OFFER.batch.number} deposit gets a number, #001 to #${OFFER.batch.size}, in the order deposits come in. It’s on your thank-you page once you’ve reserved.`,
   },
   {
     q: "Does it record me?",
@@ -85,8 +107,10 @@ function Logo() {
 }
 
 export default async function PreorderPage() {
-  const places = await placesLeft();
+  const batch = await batchState();
+  const places = batch?.left ?? null;
   const full = places === 0;
+  const next = batch && !full ? batch.taken.length + 1 : null;
   const batchLine =
     places === null ? (
       <>
@@ -104,7 +128,7 @@ export default async function PreorderPage() {
 
   return (
     <div className={s.page}>
-      <ReserveProvider full={full}>
+      <ReserveProvider full={full} next={next}>
         <header className={s.header}>
           <div className={`${s.wrap} ${s.headerRow}`}>
             <Logo />
@@ -115,6 +139,7 @@ export default async function PreorderPage() {
           </div>
         </header>
 
+        {/* Seven beats, like lilguy: the claim, the tap, the proof, the voice, the deal, the pick, the fine print. */}
         <main>
           <Hero placesLeft={places} />
 
@@ -124,10 +149,9 @@ export default async function PreorderPage() {
 
           <section aria-label="A sprint review, with Cue">
             <ScriptedDemo />
-          </section>
-
-          <section className={`${s.wrap} ${s.section}`} style={{ paddingTop: 40 }}>
-            <VoiceDemo />
+            <div className={s.wrap} style={{ paddingBottom: 40 }}>
+              <VoiceDemo />
+            </div>
           </section>
 
           <section className={`${s.wrap} ${s.section}`}>
@@ -141,34 +165,45 @@ export default async function PreorderPage() {
           <section className={`${s.wrap} ${s.section}`} aria-labelledby="offer-title">
             <span className={s.eyebrow}>The batch 1 offer</span>
             <h2 id="offer-title" className={s.h2} style={{ marginBottom: 48 }}>
-              early is cheaper.
+              early is cheaper. and numbered.
             </h2>
-            <div className={s.offer}>
-              <div className={`${s.offerCol} ${s.then}`}>
-                <span className={s.offerLabel}>At launch</span>
-                <span className={s.offerBig}>${OFFER.launchPrice}+</span>
-                <span className={s.offerSmall}>plus a Premium subscription</span>
+            <div className={s.dealGrid}>
+              <div>
+                <div className={s.offer}>
+                  <div className={`${s.offerCol} ${s.then}`}>
+                    <span className={s.offerLabel}>At launch</span>
+                    <span className={s.offerBig}>${OFFER.launchPrice}+</span>
+                    <span className={s.offerSmall}>plus a Premium subscription</span>
+                  </div>
+                  <div className={s.offerCol}>
+                    <span className={s.offerLabel}>Preorder now</span>
+                    <span className={s.offerBig}>${OFFER.price}</span>
+                    <span className={s.offerSmall}>with Premium free, for life</span>
+                  </div>
+                </div>
+                <ol className={s.steps}>
+                  <li>
+                    <strong>${OFFER.deposit} today</strong>
+                    Holds your place, your price and your number. Refundable until it ships.
+                  </li>
+                  <li>
+                    <strong>${BALANCE} when it ships</strong>
+                    Batch {OFFER.batch.number} ships {OFFER.batch.ships}. We email you before we charge.
+                  </li>
+                  <li>
+                    <strong>Premium, forever</strong>
+                    Included for as long as you use Cue.
+                  </li>
+                </ol>
               </div>
-              <div className={s.offerCol}>
-                <span className={s.offerLabel}>Preorder now</span>
-                <span className={s.offerBig}>${OFFER.price}</span>
-                <span className={s.offerSmall}>with Premium free, for life</span>
+              <div>
+                <BatchWall taken={batch?.taken ?? null} />
+                <p className={s.wallNote}>
+                  {OFFER.batch.size} reservations, numbered #001 to #{OFFER.batch.size} in the order they come in. Each
+                  dot takes the color its owner picked.
+                </p>
               </div>
             </div>
-            <ol className={s.steps}>
-              <li>
-                <strong>${OFFER.deposit} today</strong>
-                Holds your place and your price. Refundable any time before it ships.
-              </li>
-              <li>
-                <strong>${BALANCE} when it ships</strong>
-                Batch {OFFER.batch.number} ships {OFFER.batch.ships}. We email you before we charge.
-              </li>
-              <li>
-                <strong>Premium, forever</strong>
-                Included for as long as you use Cue. No subscription to remember.
-              </li>
-            </ol>
           </section>
 
           <section id="colors" className={`${s.wrap} ${s.section}`} aria-labelledby="colors-title">
@@ -185,90 +220,6 @@ export default async function PreorderPage() {
             <p className={s.conceptNote}>{CONCEPT_NOTE}</p>
           </section>
 
-          <section className={`${s.wrap} ${s.section}`} aria-labelledby="details-title">
-            <span className={s.eyebrow}>Up close</span>
-            <h2 id="details-title" className={s.h3}>
-              satin metal. one touch area. nothing in your ear.
-            </h2>
-            <div className={s.triptych}>
-              {COLORWAYS.map((c, n) => (
-                <figure key={c.id} className={s.photo} style={{ "--i": n } as React.CSSProperties}>
-                  <Image
-                    src={panel(c.id, "on-ear")}
-                    alt={`Cue in ${c.name}, worn behind the ear`}
-                    width={509}
-                    height={298}
-                    sizes="(max-width: 760px) 100vw, 33vw"
-                  />
-                  <figcaption className={s.photoLabel}>{c.name.toLowerCase()}</figcaption>
-                </figure>
-              ))}
-            </div>
-            <div className={s.details}>
-              <figure>
-                <Image
-                  src={panel("silver", "button")}
-                  alt="The touch area on the outer edge"
-                  width={186}
-                  height={128}
-                  sizes="40vw"
-                />
-              </figure>
-              <figure>
-                <Image
-                  src={panel("silver", "curve")}
-                  alt="The inner curve that rests behind the ear"
-                  width={130}
-                  height={128}
-                  sizes="30vw"
-                />
-              </figure>
-              <figure>
-                <Image
-                  src={panel("silver", "port")}
-                  alt="The small opening on the outer edge"
-                  width={184}
-                  height={128}
-                  sizes="40vw"
-                />
-              </figure>
-            </div>
-            <div className={s.boxRow}>
-              <figure>
-                <Image
-                  src={panel("graphite", "case")}
-                  alt="The charging case, closed and open with Cue inside"
-                  width={304}
-                  height={193}
-                  sizes="60vw"
-                />
-              </figure>
-              <figure>
-                <Image
-                  src={panel("champagne", "box")}
-                  alt="The box, with Cue, its case and a cable"
-                  width={199}
-                  height={193}
-                  sizes="40vw"
-                />
-              </figure>
-            </div>
-            <div className={s.caption}>
-              <p>
-                <b>Touch, don’t tap your phone.</b> Hold to turn Cue on or off. Double-tap to switch between
-                conversation and presentation.
-              </p>
-              <p>
-                <b>Behind the ear.</b> It follows the curve behind one ear and sits close to your head. Your ear stays
-                open.
-              </p>
-              <p>
-                <b>In the box.</b> Cue, its charging case, and a cable.
-              </p>
-            </div>
-            <p className={s.conceptNote}>{CONCEPT_NOTE}</p>
-          </section>
-
           <section className={`${s.wrap} ${s.section}`} aria-labelledby="faq-title">
             <span className={s.eyebrow}>Questions</span>
             <h2 id="faq-title" className={s.h3}>
@@ -282,13 +233,12 @@ export default async function PreorderPage() {
                 </details>
               ))}
             </div>
-          </section>
-
-          <section className={`${s.wrap} ${s.closer}`}>
-            <h2 className={s.h2}>say less, um.</h2>
-            <ReserveButton>
-              {full ? "batch 1 is full" : "reserve yours"} <span className={s.buttonPrice}>${OFFER.deposit}</span>
-            </ReserveButton>
+            <div className={s.closer}>
+              <h2 className={s.h2}>say less, um.</h2>
+              <ReserveButton>
+                {full ? "batch 1 is full" : "reserve yours"} <span className={s.buttonPrice}>${OFFER.deposit}</span>
+              </ReserveButton>
+            </div>
           </section>
         </main>
 
@@ -311,6 +261,7 @@ export default async function PreorderPage() {
           </ReserveButton>
         </StickyBar>
       </ReserveProvider>
+      <Cursor />
       <Analytics />
     </div>
   );

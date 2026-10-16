@@ -1071,11 +1071,11 @@
   font-weight: 500;
 }
 .cards {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  overflow: hidden;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 .card {
   position: relative;
@@ -1083,14 +1083,54 @@
   flex-direction: column;
   padding: 0;
   border: 0;
-  background: var(--bg);
+  background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  /* lilguy's breath: the card stretches a touch on hover while the product inside doesn't. */
+  transition: transform 320ms ease-in-out;
+}
+.card:hover {
+  z-index: 1;
+  transform: scaleY(1.02);
+}
+.card .cardImage {
+  transition: transform 320ms ease-in-out;
+}
+.card:hover .cardImage {
+  transform: scaleY(calc(1 / 1.02));
+}
+/* One ring that slides from card to card under the pointer. */
+.hoverRing {
+  position: absolute;
+  z-index: 2;
+  border: 1px solid var(--text);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 260ms ease-out,
+    left 220ms var(--ease-arrive),
+    top 220ms var(--ease-arrive),
+    width 220ms var(--ease-arrive),
+    height 220ms var(--ease-arrive),
+    transform 320ms ease-in-out;
+}
+.hoverRing.visible {
+  opacity: 1;
+  transform: scaleY(1.02);
 }
 .card + .card {
   border-left: 1px solid var(--line);
+}
+@media (hover: none), (max-width: 760px) {
+  .card:hover,
+  .card:hover .cardImage {
+    transform: none;
+  }
+  .hoverRing {
+    display: none;
+  }
 }
 .cardHead {
   display: flex;
@@ -1306,7 +1346,7 @@
 /* ---------- Footer ---------- */
 
 .closer {
-  padding-block: 120px 64px;
+  padding-block: 120px 24px;
   text-align: center;
 }
 .closer .h2 {
@@ -1362,71 +1402,224 @@
   }
 }
 
-/* ---------- Reserve dialog ---------- */
+/* ---------- Product detail view (opens from a card; the product flies in) ---------- */
 
-.dialog {
-  /* Tailwind's reset drops the native centering of a modal dialog; put it back. */
-  margin: auto;
-  width: min(520px, calc(100vw - 32px));
-  max-height: calc(100svh - 32px);
+.detail {
+  width: 100vw;
+  max-width: none;
+  height: 100svh;
+  max-height: none;
+  margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 24px;
   background: var(--bg);
   color: var(--text);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
-.dialog::backdrop {
-  background: rgba(17, 17, 17, 0.4);
-  backdrop-filter: blur(6px);
+.detail::backdrop {
+  background: transparent;
 }
-.dialog[open] {
-  animation: dialogIn 360ms var(--ease-arrive);
+.detail[open] {
+  animation: detailFade 320ms ease-out;
 }
-@keyframes dialogIn {
+@keyframes detailFade {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.98);
   }
 }
-.dialogBody {
-  padding: 28px;
-}
-.dialogTop {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-}
-.close {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  margin: -8px -8px 0 0;
+.detailBack {
+  position: fixed;
+  top: 20px;
+  left: var(--gutter);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 0;
   border-radius: 8px;
   background: none;
   color: var(--muted);
-  font-size: 24px;
+  font: inherit;
+  font-size: 15px;
   cursor: pointer;
+  opacity: 0;
+  animation: detailShow 300ms ease-out 350ms forwards;
 }
-.close:hover {
+@keyframes detailShow {
+  to {
+    opacity: 1;
+  }
+}
+.detailBack:hover {
   color: var(--text);
 }
-.dialogPhoto {
+.detailBack:focus-visible,
+.viewButton:focus-visible,
+.emailGo:focus-visible {
+  outline: 2px solid var(--cue);
+  outline-offset: 2px;
+}
+.detailGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  min-height: 100svh;
+  max-width: var(--wide);
+  margin-inline: auto;
+  padding: 80px var(--gutter) 48px;
+  gap: 48px;
+  align-items: center;
+}
+.detailMedia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+.detailStage {
   display: grid;
   place-items: center;
-  margin: 12px 0 0;
-  height: 190px;
+  width: 100%;
+  height: min(62svh, 560px);
 }
-.dialogPhoto img {
-  display: block;
+.detailImage {
   width: auto;
-  height: 170px;
-  rotate: -10deg;
-  animation: floatIn 520ms var(--ease-arrive);
+  height: 86%;
+  max-width: 100%;
+  object-fit: contain;
+  will-change: transform;
 }
+/* The case is wide rather than tall; size it by width instead. */
+.detailImage.wideView {
+  width: 88%;
+  height: auto;
+}
+.views {
+  display: flex;
+  gap: 8px;
+}
+.viewButton {
+  /* A block box, so the thumbnail's height: 100% has a definite height to resolve against. */
+  display: block;
+  width: 56px;
+  height: 56px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 160ms ease-out;
+}
+.viewButton img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.viewButton[aria-pressed="true"] {
+  border-color: var(--text);
+}
+.detailInfo {
+  max-width: 400px;
+}
+/* Each line arrives a beat after the last, out of a soft blur. */
+.detailInfo > * {
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateY(8px);
+  animation: detailLine 560ms var(--ease-arrive) forwards;
+  animation-delay: calc(140ms + var(--k, 0) * 55ms);
+}
+@keyframes detailLine {
+  to {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+}
+.detailText {
+  margin: 16px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.spec {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.spec li::before {
+  content: "· ";
+}
+/* Batch history, as lilguy shows it: the current batch in bold, the next one waiting. */
+.batches {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.batches b {
+  color: var(--text);
+  font-weight: 500;
+}
+.detailAction .button {
+  width: 100%;
+  margin-top: 20px;
+  justify-content: space-between;
+}
+.emailRow {
+  position: relative;
+  margin-top: 16px;
+}
+.emailRow .field {
+  margin-top: 0;
+  padding-right: 56px;
+}
+/* The send arrow only appears once the address looks complete. */
+.emailGo {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  bottom: 4px;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 6px;
+  background: var(--text);
+  color: var(--bg);
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease-out;
+}
+.emailGo.ready {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (max-width: 860px) {
+  .detailGrid {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 24px;
+    padding-top: 72px;
+    padding-bottom: 120px;
+  }
+  .detailStage {
+    height: 38svh;
+  }
+  .detailInfo {
+    max-width: none;
+  }
+}
+
 .swatches {
   display: flex;
   gap: 8px;
@@ -1484,11 +1677,6 @@
   color: var(--text);
   font-weight: 500;
 }
-.dialog .button {
-  width: 100%;
-  margin-top: 20px;
-  justify-content: space-between;
-}
 .field {
   width: 100%;
   min-height: 48px;
@@ -1510,6 +1698,180 @@
   font-size: 13px;
   line-height: 1.5;
   color: var(--muted);
+}
+
+/* ---------- The deal and the batch wall ---------- */
+
+.dealGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: 64px;
+  align-items: center;
+}
+.dealGrid .offerBig {
+  font-size: clamp(56px, 6.4vw, 96px);
+}
+.wall {
+  margin: 0;
+}
+.wall svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.wallDot {
+  fill: transparent;
+  stroke: var(--line);
+  stroke-width: 2;
+  transition:
+    transform 180ms var(--ease-arrive),
+    stroke 160ms ease-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.wallDot.taken {
+  stroke: rgba(17, 17, 17, 0.16);
+}
+.wallDot.hovered {
+  stroke: var(--text);
+  transform: scale(1.7);
+}
+/* The next number to go breathes in cobalt, the one accent on this section. */
+.wallDot.next {
+  stroke: var(--cue);
+  stroke-width: 4;
+  animation: nextBreath 2.4s ease-in-out infinite;
+}
+@keyframes nextBreath {
+  50% {
+    transform: scale(1.45);
+  }
+}
+.wallCaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 15px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.wallNumber {
+  color: var(--text);
+  font-weight: 500;
+}
+.wallNote {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+@media (max-width: 860px) {
+  .dealGrid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}
+
+/* ---------- Cursor and scrollbar (fine pointers only; Cursor.tsx turns them on) ---------- */
+
+:global(html.cue-cursor) .page,
+:global(html.cue-cursor) .page * {
+  cursor: none;
+}
+:global(html.cue-cursor) .page input,
+:global(html.cue-cursor) .page textarea {
+  cursor: text;
+}
+/* The detail view brings the system cursor back. */
+:global(html.cue-cursor) .page:has(dialog[open]) *,
+:global(html.cue-cursor) .page dialog[open] * {
+  cursor: auto;
+}
+:global(html.cue-cursor) .page:has(dialog[open]) button,
+:global(html.cue-cursor) .page dialog[open] label {
+  cursor: pointer;
+}
+:global(html.cue-cursor) {
+  scrollbar-width: none;
+}
+:global(html.cue-cursor)::-webkit-scrollbar {
+  display: none;
+}
+.lens {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: rgba(17, 17, 17, 0.12);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition:
+    opacity 160ms ease-out,
+    background-color 220ms ease-out,
+    border-color 220ms ease-out;
+  border: 1px solid transparent;
+  will-change: transform, width, height;
+}
+/* Around a control it turns into a clear outline, so the label stays readable. */
+.lens[data-mode="wrap"] {
+  background: rgba(17, 17, 17, 0.04);
+  border-color: rgba(17, 17, 17, 0.28);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.lens[data-mode="ring"] {
+  background: transparent;
+  border-color: rgba(17, 17, 17, 0.3);
+  backdrop-filter: none;
+}
+.lens[data-mode="hidden"] {
+  opacity: 0;
+}
+@media (prefers-color-scheme: dark) {
+  .lens {
+    background: rgba(247, 244, 238, 0.14);
+  }
+  .lens[data-mode="wrap"],
+  .lens[data-mode="ring"] {
+    background: rgba(247, 244, 238, 0.05);
+    border-color: rgba(247, 244, 238, 0.35);
+  }
+}
+/* A click leaves one tap ring behind, like the device's own. */
+.clickTap {
+  position: fixed;
+  z-index: 59;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 2px solid var(--cue);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ringOut 800ms cubic-bezier(0.25, 0.6, 0.3, 1) forwards;
+}
+.scrollbar {
+  position: fixed;
+  top: 0;
+  right: 3px;
+  z-index: 40;
+  width: 6px;
+  height: 100vh;
+  pointer-events: none;
+}
+.thumb {
+  width: 100%;
+  border-radius: 3px;
+  background: var(--text);
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 500ms ease-out;
+}
+.thumb.thumbOn,
+.thumb:hover {
+  opacity: 0.55;
 }
 
 /* ---------- Thank-you page ---------- */
@@ -1553,8 +1915,24 @@
   }
   .cardFoot::before,
   .stickyBar,
-  .dialog[open] {
+  .detail[open],
+  .detailBack {
     transition: none;
     animation: none;
+    opacity: 1;
+  }
+  .detailInfo > * {
+    opacity: 1;
+    filter: none;
+    transform: none;
+    animation: none;
+  }
+  .wallDot.next {
+    animation: none;
+  }
+  .card:hover,
+  .card:hover .cardImage,
+  .hoverRing.visible {
+    transform: none;
   }
 }
