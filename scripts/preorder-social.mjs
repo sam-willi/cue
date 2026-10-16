@@ -12,7 +12,8 @@ const W = 1200;
 const H = 630;
 const BONE = "#f7f4ee";
 const INK = "#111111";
-const COBALT = "#2437d8";
+// The page's accent: deep satin gold (preorder.module.css, --cue on .page).
+const GOLD = "#a47a47";
 const FPS = 30;
 const SECONDS = 3;
 
@@ -66,10 +67,10 @@ function rings(t, motor) {
     const ease = 1 - Math.pow(1 - k, 3);
     const r = 6 + ease * 58;
     const opacity = 0.9 * (1 - k);
-    out += `<circle cx="${motor.x}" cy="${motor.y}" r="${r}" fill="none" stroke="${COBALT}" stroke-width="3" opacity="${opacity}"/>`;
+    out += `<circle cx="${motor.x}" cy="${motor.y}" r="${r}" fill="none" stroke="${GOLD}" stroke-width="3" opacity="${opacity}"/>`;
   }
   const driving = PULSES.some((p) => t >= p.at && t < p.at + 110);
-  if (driving) out += `<circle cx="${motor.x}" cy="${motor.y}" r="6" fill="${COBALT}"/>`;
+  if (driving) out += `<circle cx="${motor.x}" cy="${motor.y}" r="6" fill="${GOLD}"/>`;
   return out;
 }
 
