@@ -104,7 +104,7 @@ export default function VoiceDemo() {
           setStatus("error");
           setError(
             code
-              ? "The voice demo is resting right now. The sprint review above shows the same cues."
+              ? "The voice demo is resting right now. The three cues above show what it does."
               : (detail ?? "Listening couldn’t start. Check that the page may use your microphone."),
           );
           window.clearInterval(timer.current);
