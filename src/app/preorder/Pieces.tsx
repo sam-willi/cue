@@ -93,7 +93,9 @@ function ColorCard({ c }: { c: Colorway }) {
       <span className={s.cardNote}>{c.note}</span>
       <span className={s.cardFoot}>
         <span>{full ? "batch 1 is full" : "reserve"}</span>
-        <span className={s.footPrice}>${OFFER.deposit} today</span>
+        <span className={s.footPrice}>
+          ${OFFER.deposit} down · ${OFFER.price} total
+        </span>
       </span>
     </button>
   );

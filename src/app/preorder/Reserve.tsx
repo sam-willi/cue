@@ -267,11 +267,11 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
                     </b>
                   </li>
                   <li>
-                    <span>{mode === "email" ? "Deposit, once it opens" : "Today, refundable"}</span>
+                    <span>{mode === "email" ? "Pay when deposits open" : "Pay today, refundable"}</span>
                     <b>${OFFER.deposit}</b>
                   </li>
                   <li>
-                    <span>When batch {OFFER.batch.number} ships</span>
+                    <span>Pay when batch {OFFER.batch.number} ships</span>
                     <b>${BALANCE}</b>
                   </li>
                   <li>
@@ -317,7 +317,7 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
                   ) : (
                     <button type="button" className={s.button} onClick={toCheckout} disabled={busy || full}>
                       <span>{busy ? "opening checkout…" : full ? "batch 1 is full" : "reserve"}</span>
-                      <span className={s.buttonPrice}>${OFFER.deposit} today</span>
+                      <span className={s.buttonPrice}>${OFFER.deposit} down today</span>
                     </button>
                   )}
                   {error && (

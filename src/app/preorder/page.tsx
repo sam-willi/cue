@@ -2,13 +2,14 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BALANCE, CONCEPT_NOTE, OFFER, SAVING } from "@/lib/preorder/offer";
+import { BALANCE, CONCEPT_NOTE, OFFER } from "@/lib/preorder/offer";
 import { batchState } from "@/lib/preorder/stripe";
 import CueShowcase from "./CueShowcase";
 import Cursor from "./Cursor";
 import Hero from "./Hero";
 import { Colorways, Reveal, StickyBar } from "./Pieces";
 import { ReserveButton, ReserveProvider } from "./Reserve";
+import Deal from "./Deal";
 import Save from "./Save";
 import VoiceDemo from "./VoiceDemo";
 import s from "./preorder.module.css";
@@ -138,7 +139,7 @@ export default async function PreorderPage() {
             <div className={s.headerRight}>
               <span className={s.headerBatch}>{batchLine}</span>
               <Save className={s.headerSave} />
-              <ReserveButton>reserve · ${OFFER.deposit}</ReserveButton>
+              <ReserveButton>reserve · ${OFFER.deposit} down</ReserveButton>
             </div>
           </div>
         </header>
@@ -182,40 +183,51 @@ export default async function PreorderPage() {
             <h2 id="offer-title" className={s.h2} style={{ marginBottom: 48 }}>
               early is cheaper.
             </h2>
-            <div className={s.offer}>
-              <div className={`${s.offerCol} ${s.then}`}>
-                <span className={s.offerLabel}>At launch</span>
-                <span className={s.offerBig}>
-                  <s>${OFFER.launchPrice}+</s>
-                </span>
-                <span className={s.offerSmall}>
-                  <s>plus a Premium subscription, every month</s>
-                </span>
-              </div>
-              <div className={s.offerCol}>
-                <span className={s.offerLabel}>
-                  Preorder now <Save />
-                </span>
-                <span className={s.offerBig}>${OFFER.price}</span>
-                <span className={s.offerSmall}>
-                  with Premium <b>free, for life</b>
-                </span>
-              </div>
-            </div>
-            <ol className={s.steps}>
-              <li>
-                <strong>${OFFER.deposit} today</strong>
-                Holds your place and your price. Refundable until it ships.
-              </li>
-              <li>
-                <strong>${BALANCE} when it ships</strong>
-                Batch {OFFER.batch.number} ships {OFFER.batch.ships}. We email you before we charge.
-              </li>
-              <li>
-                <strong>Premium, forever</strong>
-                Included for as long as you use Cue.
-              </li>
-            </ol>
+            <table className={s.compare}>
+              <caption className={s.srOnly}>Cue at launch compared with a batch 1 preorder</caption>
+              <thead>
+                <tr>
+                  <td />
+                  <th scope="col">At launch</th>
+                  <th scope="col" className={s.now}>
+                    Preorder now <Save />
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Cue</th>
+                  <td>
+                    <s>${OFFER.launchPrice}+</s>
+                  </td>
+                  <td className={s.now}>${OFFER.price}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Premium</th>
+                  <td>
+                    <s>a monthly subscription</s>
+                  </td>
+                  <td className={s.now}>free for life</td>
+                </tr>
+                <tr>
+                  <th scope="row">Pay today</th>
+                  <td className={s.na}>not on sale yet</td>
+                  <td className={s.now}>
+                    ${OFFER.deposit} <span>refundable until it ships</span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Pay later</th>
+                  <td>—</td>
+                  <td className={s.now}>
+                    ${BALANCE}{" "}
+                    <span>
+                      when batch {OFFER.batch.number} ships, {OFFER.batch.ships}. We email first.
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </section>
 
           <section className={`${s.wrap} ${s.section}`} aria-labelledby="faq-title">
@@ -233,11 +245,10 @@ export default async function PreorderPage() {
             </div>
             <div className={s.closer}>
               <h2 className={s.h2}>say less, um.</h2>
-              <p className={s.closerSave}>
-                <Save long />
-              </p>
+              <Deal className={s.closerDeal} />
               <ReserveButton>
-                {full ? "batch 1 is full" : "reserve yours"} <span className={s.buttonPrice}>${OFFER.deposit}</span>
+                {full ? "batch 1 is full" : "reserve yours"}{" "}
+                <span className={s.buttonPrice}>${OFFER.deposit} down</span>
               </ReserveButton>
             </div>
           </section>
@@ -257,7 +268,7 @@ export default async function PreorderPage() {
           <ReserveButton>
             <span>{full ? "batch 1 is full" : "reserve yours"}</span>
             <span className={s.buttonPrice}>
-              ${OFFER.price}, save ${SAVING}+
+              ${OFFER.deposit} down · ${OFFER.price} total
             </span>
           </ReserveButton>
         </StickyBar>
