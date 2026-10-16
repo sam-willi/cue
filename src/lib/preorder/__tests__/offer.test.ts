@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BALANCE, COLORWAYS, OFFER, colorwayFor } from "../offer";
 import { parseReservation } from "../reserve";
-import { checkoutForm, placesAfter } from "../stripe";
+import { batchNumber, checkoutForm, numbered, placesAfter } from "../stripe";
 
 describe("preorder offer", () => {
   it("charges the deposit now and the rest at shipping", () => {
@@ -14,6 +14,18 @@ describe("preorder offer", () => {
     expect(colorwayFor("silver")?.name).toBe("Silver");
     expect(colorwayFor("space-grey")).toBeUndefined();
     expect(colorwayFor(7)).toBeUndefined();
+  });
+
+  it("numbers deposits in the order they were paid", () => {
+    const order = numbered([
+      { id: "pi_b", created: 20, colorway: "silver" },
+      { id: "pi_a", created: 10, colorway: "graphite" },
+      { id: "pi_c", created: 20, colorway: "champagne" },
+    ]).map((d) => d.id);
+    expect(order).toEqual(["pi_a", "pi_b", "pi_c"]);
+    expect(batchNumber(1)).toBe("#001");
+    expect(batchNumber(89)).toBe("#089");
+    expect(batchNumber(500)).toBe("#500");
   });
 
   it("never shows fewer than zero places", () => {

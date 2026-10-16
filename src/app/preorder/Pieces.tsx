@@ -65,7 +65,7 @@ function ColorCard({ c }: { c: Colorway }) {
     <button
       type="button"
       className={s.card}
-      onClick={() => open(c.id)}
+      onClick={(e) => open(c.id, e.currentTarget.querySelector(`.${s.on}`)?.getBoundingClientRect())}
       onPointerMove={turn}
       onPointerLeave={() => setFrame(0)}
       aria-label={`Reserve Cue in ${c.name}, $${OFFER.deposit} deposit`}
@@ -97,12 +97,31 @@ function ColorCard({ c }: { c: Colorway }) {
   );
 }
 
+/**
+ * The colorway grid. One border slides from card to card as the pointer moves between them,
+ * like a focus ring following the hand, rather than each card lighting its own.
+ */
 export function Colorways() {
+  const grid = useRef<HTMLDivElement>(null);
+  const [ring, setRing] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const follow = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse" || !grid.current) return;
+    const card = (e.target as HTMLElement).closest("button");
+    if (!card) return;
+    const g = grid.current.getBoundingClientRect();
+    const r = card.getBoundingClientRect();
+    setRing({ x: r.left - g.left, y: r.top - g.top, w: r.width, h: r.height });
+  };
   return (
-    <div className={s.cards}>
+    <div ref={grid} className={s.cards} onPointerOver={follow} onPointerLeave={() => setRing(null)}>
       {COLORWAYS.map((c) => (
         <ColorCard key={c.id} c={c} />
       ))}
+      <span
+        aria-hidden="true"
+        className={`${s.hoverRing} ${ring ? s.visible : ""}`}
+        style={ring ? { left: ring.x, top: ring.y, width: ring.w, height: ring.h } : undefined}
+      />
     </div>
   );
 }

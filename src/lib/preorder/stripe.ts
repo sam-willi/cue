@@ -57,54 +57,77 @@ export async function createCheckout(key: string, colorway: Colorway, origin: st
   return session.url;
 }
 
+/** One paid deposit in the batch: its payment, when it was paid, and the colorway chosen. */
+export interface Deposit {
+  id: string;
+  created: number;
+  colorway: string | null;
+}
+
 /**
- * How many deposits for this batch have been paid, from Stripe's search (which can lag about a
+ * Every paid deposit for this batch, oldest first, from Stripe's search (which can lag about a
  * minute). Refunded deposits still count, so the places-left number errs on the low side.
  */
-export async function paidDeposits(key: string): Promise<number> {
+export async function batchDeposits(key: string, fresh = false): Promise<Deposit[]> {
   const query = `metadata['cue_preorder']:'${BATCH_TAG}' AND status:'succeeded'`;
-  let count = 0;
+  const out: Deposit[] = [];
   let page: string | null = null;
   // 500 places at 100 per page: a handful of pages at most.
   for (let i = 0; i < 10; i++) {
     const q = new URLSearchParams({ query, limit: "100" });
     if (page) q.set("page", page);
-    const result: { data: unknown[]; has_more: boolean; next_page: string | null } = await stripe(
-      key,
-      `/payment_intents/search?${q}`,
-      { next: { revalidate: 60 } },
-    );
-    count += result.data.length;
+    const result: {
+      data: { id: string; created: number; metadata?: Record<string, string> }[];
+      has_more: boolean;
+      next_page: string | null;
+    } = await stripe(key, `/payment_intents/search?${q}`, fresh ? { cache: "no-store" } : { next: { revalidate: 60 } });
+    for (const pi of result.data) out.push({ id: pi.id, created: pi.created, colorway: pi.metadata?.colorway ?? null });
     if (!result.has_more || !result.next_page) break;
     page = result.next_page;
   }
-  return count;
+  return numbered(out);
 }
 
-/** Places left in the batch, or null when Stripe isn't set up or can't be reached. */
-export async function placesLeft(): Promise<number | null> {
+/** Deposits in the order they were paid, which is the order numbers are given out (#001 first). */
+export const numbered = (deposits: Deposit[]) =>
+  [...deposits].sort((a, b) => a.created - b.created || a.id.localeCompare(b.id));
+
+export interface BatchState {
+  /** Colorway of each number taken so far: index 0 is #001. */
+  taken: (string | null)[];
+  left: number;
+}
+
+/** Who holds which number, or null when Stripe isn't set up or can't be reached. */
+export async function batchState(): Promise<BatchState | null> {
   const key = stripeKey();
   if (!key) return null;
   try {
-    return placesAfter(await paidDeposits(key));
+    const deposits = await batchDeposits(key);
+    return { taken: deposits.slice(0, OFFER.batch.size).map((d) => d.colorway), left: placesAfter(deposits.length) };
   } catch (error) {
-    console.error("Counting preorder deposits failed", error);
+    console.error("Reading preorder deposits failed", error);
     return null;
   }
 }
 
 export const placesAfter = (paid: number) => Math.max(0, OFFER.batch.size - paid);
 
+/** A batch number as it's shown: #001 to #500. */
+export const batchNumber = (n: number) => `#${String(n).padStart(3, "0")}`;
+
 export interface PaidSession {
   colorway: string | null;
   email: string | null;
   paid: boolean;
+  paymentIntent: string | null;
 }
 
 /** The finished Checkout Session behind the thank-you page. */
 export async function checkoutSession(key: string, id: string): Promise<PaidSession> {
   const s = await stripe<{
     payment_status: string;
+    payment_intent?: string | null;
     metadata?: Record<string, string>;
     customer_details?: { email?: string | null } | null;
   }>(key, `/checkout/sessions/${encodeURIComponent(id)}`, { cache: "no-store" });
@@ -112,5 +135,6 @@ export async function checkoutSession(key: string, id: string): Promise<PaidSess
     colorway: s.metadata?.colorway ?? null,
     email: s.customer_details?.email ?? null,
     paid: s.payment_status === "paid",
+    paymentIntent: typeof s.payment_intent === "string" ? s.payment_intent : null,
   };
 }
