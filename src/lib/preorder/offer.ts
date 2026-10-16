@@ -42,7 +42,4 @@ export const COLORWAYS: Colorway[] = [
 export const colorwayFor = (id: unknown): Colorway | undefined =>
   typeof id === "string" ? COLORWAYS.find((c) => c.id === id) : undefined;
 
-/** A panel cut from the colorway concept sheet by scripts/colorway-images.mjs. */
-export const panel = (color: ColorwayId, name: string) => `/preorder/${color}-${name}.webp`;
-
 export const CONCEPT_NOTE = "Design concept. The finished device may look different.";

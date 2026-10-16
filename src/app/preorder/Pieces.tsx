@@ -44,12 +44,12 @@ export function Reveal({ text, className }: { text: string; className?: string }
   );
 }
 
-/** The angles a card turns through as the pointer crosses it, left to right. */
-const TURN: CutoutView[] = ["device", "three-quarter", "front", "side", "back"];
+/** The angles a card turns to as the pointer crosses it: three-quarter on the left half, side on the right. */
+const TURN: CutoutView[] = ["render", "side"];
 
 /**
  * One colorway: its cut-out, which turns through the concept sheet's angles as the pointer
- * moves across the card (lilguy's cursor spin, with the five views there are), and an action
+ * moves across the card (lilguy's cursor spin, with the two studio angles there are), and an action
  * bar that fills with ink on hover. Pressing it opens the reserve dialog on that color.
  */
 function ColorCard({ c }: { c: Colorway }) {

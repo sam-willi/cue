@@ -31,11 +31,8 @@ type Mode = "pay" | "email" | "saved";
 
 /** The views the detail image can turn to. */
 const VIEWS: { view: CutoutView; name: string }[] = [
-  { view: "device", name: "Three-quarter" },
-  { view: "front", name: "Front" },
+  { view: "render", name: "Three-quarter" },
   { view: "side", name: "Side" },
-  { view: "back", name: "Back" },
-  { view: "case", name: "In its case" },
 ];
 
 /** What the concept shows, in plain words. Nothing here that the design hasn't settled. */
@@ -74,7 +71,7 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
   const hero = useRef<HTMLImageElement>(null);
   const titleId = useId();
   const [color, setColor] = useState<ColorwayId>("graphite");
-  const [view, setView] = useState<CutoutView>("device");
+  const [view, setView] = useState<CutoutView>("render");
   const [mode, setMode] = useState<Mode>("pay");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +83,7 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
     // Commit the chosen color now, so the product can be measured in place before the first paint.
     flushSync(() => {
       if (c) setColor(c);
-      setView("device");
+      setView("render");
       setMode(depositsOff.current ? "email" : "pay");
       setError(null);
     });
@@ -178,7 +175,7 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
               <img
                 ref={hero}
                 key={`${color}-${view}`}
-                className={`${s.cutout} ${s.detailImage} ${view === "case" ? s.wideView : ""}`}
+                className={`${s.cutout} ${s.detailImage}`}
                 src={cutout(color, view)}
                 alt={`Cue in ${chosen.name}, ${VIEWS.find((v) => v.view === view)!.name.toLowerCase()} view`}
                 width={size.w}

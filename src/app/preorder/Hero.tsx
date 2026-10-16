@@ -9,13 +9,6 @@ import { ReserveButton } from "./Reserve";
 import type { CuePlay } from "./Rings";
 import s from "./preorder.module.css";
 
-/** Where the device's motor sits on each on-ear photo, as percentages of the photo. */
-export const ON_EAR_MOTOR = {
-  graphite: { x: 57, y: 34 },
-  silver: { x: 59, y: 40 },
-  champagne: { x: 57, y: 39 },
-} as const;
-
 /** Press a letter for a moment when the pointer reaches it; it springs back on its own. */
 function press(e: MouseEvent<HTMLSpanElement>) {
   const el = e.currentTarget;
