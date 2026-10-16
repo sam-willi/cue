@@ -20,7 +20,16 @@ export const revalidate = 60;
 const TITLE = "you suck at speaking. — Cue";
 const DESCRIPTION = `A small coach behind your ear that taps you, privately, when a speaking habit shows up. Preorder for $${OFFER.price} with Premium free for life. $${OFFER.deposit} refundable deposit.`;
 
+// Next makes image addresses absolute on its own but not video ones, and previews need them absolute.
+// This is the same base Next falls back to on Vercel.
+const SITE = new URL(
+  process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000",
+);
+
 export const metadata: Metadata = {
+  metadataBase: SITE,
   title: TITLE,
   description: DESCRIPTION,
   // Made by scripts/preorder-social.mjs: a still for every preview, and a short loop of the tap
@@ -30,7 +39,7 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     type: "website",
     images: [{ url: "/preorder/social.png", width: 1200, height: 630, alt: "you suck at speaking. Cue, in Graphite." }],
-    videos: [{ url: "/preorder/social.mp4", width: 1200, height: 630, type: "video/mp4" }],
+    videos: [{ url: new URL("/preorder/social.mp4", SITE), width: 1200, height: 630, type: "video/mp4" }],
   },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/preorder/social.png"] },
 };
