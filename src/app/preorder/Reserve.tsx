@@ -16,6 +16,7 @@ import { flushSync } from "react-dom";
 import { UTM_KEYS } from "@/lib/landing/signups";
 import { BALANCE, COLORWAYS, OFFER, type ColorwayId } from "@/lib/preorder/offer";
 import { CUTOUTS, cutout, type CutoutView } from "./Cutout";
+import Save from "./Save";
 import s from "./preorder.module.css";
 
 /** Opens the detail view on a color; `from` is where the product sat, so it can fly into place. */
@@ -257,6 +258,14 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
                 </fieldset>
 
                 <ul className={s.summary} style={beat(5)}>
+                  <li className={s.summaryPrice}>
+                    <span>
+                      Preorder price <Save />
+                    </span>
+                    <b>
+                      <s>${OFFER.launchPrice}+</s> ${OFFER.price}
+                    </b>
+                  </li>
                   <li>
                     <span>{mode === "email" ? "Deposit, once it opens" : "Today, refundable"}</span>
                     <b>${OFFER.deposit}</b>
@@ -266,7 +275,7 @@ export function ReserveProvider({ full, children }: { full: boolean; children: R
                     <b>${BALANCE}</b>
                   </li>
                   <li>
-                    <span>Premium</span>
+                    <span>Premium subscription</span>
                     <b>free for life</b>
                   </li>
                 </ul>

@@ -3,6 +3,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { OFFER } from "@/lib/preorder/offer";
 import Cutout from "./Cutout";
+import Save from "./Save";
 import { ReserveButton } from "./Reserve";
 import type { CuePlay } from "./Rings";
 import s from "./preorder.module.css";
@@ -99,10 +100,11 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
           </div>
         </div>
         <p className={s.stamp}>
+          <Save long className={s.stampSave} />
           <span className={s.stampPrice}>
-            <s>${OFFER.launchPrice}+</s>${OFFER.price}
+            <s aria-label={`was $${OFFER.launchPrice} or more`}>${OFFER.launchPrice}+</s>${OFFER.price}
           </span>
-          Premium free for life · batch {OFFER.batch.number}
+          preorder price, Premium free for life · batch {OFFER.batch.number}
           <br />
           {placesLeft === null
             ? `${OFFER.batch.size} units · ships ${OFFER.batch.ships}`

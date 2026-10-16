@@ -323,6 +323,9 @@
   line-height: 1;
   margin-bottom: 6px;
 }
+.stampSave {
+  margin-bottom: 12px;
+}
 .stampPrice s {
   font-size: 20px;
   font-weight: 500;
@@ -1217,6 +1220,7 @@
 /* ---------- Product detail view (opens from a card; the product flies in) ---------- */
 
 .detail {
+  overflow-x: hidden;
   width: 100vw;
   max-width: none;
   height: 100svh;
@@ -1263,6 +1267,12 @@
 @keyframes detailShow {
   to {
     opacity: 1;
+  }
+}
+@media (max-width: 860px) {
+  /* It floats over the details as they scroll, so it needs its own ground. */
+  .detailBack {
+    background: var(--bg);
   }
 }
 .detailBack:hover {
@@ -1429,10 +1439,18 @@
   }
   .detailInfo {
     max-width: none;
+    min-width: 0;
+  }
+  .swatch {
+    gap: 6px;
+    padding: 0 8px;
+    font-size: 14px;
   }
 }
 
 .swatches {
+  /* A fieldset won't shrink below its content unless told to. */
+  min-width: 0;
   display: flex;
   gap: 8px;
   margin: 20px 0 0;
@@ -1442,6 +1460,7 @@
 .swatch {
   position: relative;
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1610,6 +1629,72 @@
 .thumb.thumbOn,
 .thumb:hover {
   opacity: 0.55;
+}
+
+/* ---------- The saving, wherever a price shows ---------- */
+
+/* A cobalt tag: the one accent besides the cue rings, so the saving reads at a glance. */
+.save {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--cue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.stamp .save {
+  display: flex;
+  width: fit-content;
+  margin-left: auto;
+}
+.offerLabel .save {
+  margin-left: 8px;
+}
+.summaryPrice span .save {
+  margin-left: 8px;
+}
+.summaryPrice b s,
+.cardPrice s {
+  color: var(--muted);
+  font-weight: 400;
+  margin-right: 4px;
+  text-decoration-thickness: 1.5px;
+}
+.cardHead span.cardPrice {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.offerCol.then s {
+  text-decoration-thickness: 0.06em;
+  text-decoration-color: var(--text);
+}
+.offerSmall b {
+  font-weight: 600;
+}
+.closerSave {
+  margin: -8px 0 28px;
+}
+.headerSave {
+  height: 24px;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .headerSave {
+    display: none;
+  }
+  .stamp .save {
+    margin-left: 0;
+  }
 }
 
 /* ---------- Thank-you page ---------- */

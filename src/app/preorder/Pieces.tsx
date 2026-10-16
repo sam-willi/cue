@@ -72,7 +72,9 @@ function ColorCard({ c }: { c: Colorway }) {
     >
       <span className={s.cardHead}>
         <span>{c.name.toLowerCase()}</span>
-        <span>${OFFER.price}</span>
+        <span className={s.cardPrice}>
+          <s>${OFFER.launchPrice}</s> ${OFFER.price}
+        </span>
       </span>
       <span className={s.cardImage}>
         {TURN.map((view, i) => (

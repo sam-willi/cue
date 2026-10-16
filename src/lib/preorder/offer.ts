@@ -13,6 +13,9 @@ export const OFFER = {
   batch: { number: 1, size: 500, ships: "summer 2027" },
 } as const;
 
+/** Off the expected launch price, before counting the Premium subscription preorders skip. */
+export const SAVING = OFFER.launchPrice - OFFER.price;
+
 /** Charged when the batch ships: the price less the deposit. */
 export const BALANCE = OFFER.price - OFFER.deposit;
 
