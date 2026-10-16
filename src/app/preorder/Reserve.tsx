@@ -46,7 +46,6 @@ const SPEC = [
   "Charging case and cable in the box",
 ];
 
-const pad = (n: number) => `#${String(n).padStart(3, "0")}`;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Ad tags on the page address, kept with an email reservation like the landing-page sign-ups. */
@@ -69,16 +68,7 @@ const beat = (k: number) => ({ "--k": k }) as CSSProperties;
  * to Stripe for the $20 deposit. Until Stripe is set up (checkout answers "not_configured") it
  * holds the price by email instead and says plainly that no payment is taken yet.
  */
-export function ReserveProvider({
-  full,
-  next,
-  children,
-}: {
-  full: boolean;
-  /** The batch number the next deposit gets, when deposits are open. */
-  next: number | null;
-  children: ReactNode;
-}) {
+export function ReserveProvider({ full, children }: { full: boolean; children: ReactNode }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const hero = useRef<HTMLImageElement>(null);
   const titleId = useId();
@@ -245,7 +235,6 @@ export function ReserveProvider({
                     <b>
                       batch {OFFER.batch.number} · {OFFER.batch.size} units · ships {OFFER.batch.ships}
                     </b>
-                    {next && mode === "pay" ? <span> · you’d be {pad(next)}</span> : null}
                   </li>
                   <li>batch {OFFER.batch.number + 1} · opens when batch 1 is full</li>
                 </ul>

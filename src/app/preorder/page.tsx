@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { BALANCE, CONCEPT_NOTE, OFFER } from "@/lib/preorder/offer";
 import { batchState } from "@/lib/preorder/stripe";
-import BatchWall from "./BatchWall";
 import CueShowcase from "./CueShowcase";
 import Cursor from "./Cursor";
 import Hero from "./Hero";
@@ -78,10 +77,6 @@ const FAQ = [
     a: "Cue, its charging case, and a cable.",
   },
   {
-    q: "What’s my number?",
-    a: `Every batch ${OFFER.batch.number} deposit gets a number, #001 to #${OFFER.batch.size}, in the order deposits come in. It’s on your thank-you page once you’ve reserved.`,
-  },
-  {
     q: "Does it record me?",
     a: "Cue has to hear your speech to coach it. Today’s prototype sends audio to a speech-recognition service to do that. Our aim for the product is to process speech on your own devices and keep no recordings by default, and we’ll tell you exactly how audio is handled before you wear one.",
   },
@@ -118,7 +113,6 @@ export default async function PreorderPage() {
   const batch = await batchState();
   const places = batch?.left ?? null;
   const full = places === 0;
-  const next = batch && !full ? batch.taken.length + 1 : null;
   const batchLine =
     places === null ? (
       <>
@@ -136,7 +130,7 @@ export default async function PreorderPage() {
 
   return (
     <div className={s.page}>
-      <ReserveProvider full={full} next={next}>
+      <ReserveProvider full={full}>
         <header className={s.header}>
           <div className={`${s.wrap} ${s.headerRow}`}>
             <Logo />
@@ -147,12 +141,26 @@ export default async function PreorderPage() {
           </div>
         </header>
 
-        {/* Seven beats, like lilguy: the claim, the tap, your own voice, what it's like, the deal, the pick, the fine print. */}
+        {/* Seven beats, like lilguy: the claim, the tap, the pick, your own voice, what it's like, the deal, the fine print. */}
         <main>
           <Hero placesLeft={places} />
 
           <section className={`${s.wrap} ${s.section}`}>
             <CueShowcase />
+          </section>
+
+          <section id="colors" className={`${s.wrap} ${s.section}`} aria-labelledby="colors-title">
+            <div className={s.colorsHead}>
+              <div>
+                <span className={s.eyebrow}>Three finishes</span>
+                <h2 id="colors-title" className={s.h2}>
+                  pick yours.
+                </h2>
+              </div>
+              <p className={s.batchLine}>{batchLine}</p>
+            </div>
+            <Colorways />
+            <p className={s.conceptNote}>{CONCEPT_NOTE}</p>
           </section>
 
           <section id="hear-it" className={`${s.wrap} ${s.section}`} style={{ paddingTop: 0 }}>
@@ -170,59 +178,34 @@ export default async function PreorderPage() {
           <section className={`${s.wrap} ${s.section}`} aria-labelledby="offer-title">
             <span className={s.eyebrow}>The batch 1 offer</span>
             <h2 id="offer-title" className={s.h2} style={{ marginBottom: 48 }}>
-              early is cheaper. and numbered.
+              early is cheaper.
             </h2>
-            <div className={s.dealGrid}>
-              <div>
-                <div className={s.offer}>
-                  <div className={`${s.offerCol} ${s.then}`}>
-                    <span className={s.offerLabel}>At launch</span>
-                    <span className={s.offerBig}>${OFFER.launchPrice}+</span>
-                    <span className={s.offerSmall}>plus a Premium subscription</span>
-                  </div>
-                  <div className={s.offerCol}>
-                    <span className={s.offerLabel}>Preorder now</span>
-                    <span className={s.offerBig}>${OFFER.price}</span>
-                    <span className={s.offerSmall}>with Premium free, for life</span>
-                  </div>
-                </div>
-                <ol className={s.steps}>
-                  <li>
-                    <strong>${OFFER.deposit} today</strong>
-                    Holds your place, your price and your number. Refundable until it ships.
-                  </li>
-                  <li>
-                    <strong>${BALANCE} when it ships</strong>
-                    Batch {OFFER.batch.number} ships {OFFER.batch.ships}. We email you before we charge.
-                  </li>
-                  <li>
-                    <strong>Premium, forever</strong>
-                    Included for as long as you use Cue.
-                  </li>
-                </ol>
+            <div className={s.offer}>
+              <div className={`${s.offerCol} ${s.then}`}>
+                <span className={s.offerLabel}>At launch</span>
+                <span className={s.offerBig}>${OFFER.launchPrice}+</span>
+                <span className={s.offerSmall}>plus a Premium subscription</span>
               </div>
-              <div>
-                <BatchWall taken={batch?.taken ?? null} />
-                <p className={s.wallNote}>
-                  {OFFER.batch.size} reservations, numbered #001 to #{OFFER.batch.size} in the order they come in. Each
-                  dot takes the color its owner picked.
-                </p>
+              <div className={s.offerCol}>
+                <span className={s.offerLabel}>Preorder now</span>
+                <span className={s.offerBig}>${OFFER.price}</span>
+                <span className={s.offerSmall}>with Premium free, for life</span>
               </div>
             </div>
-          </section>
-
-          <section id="colors" className={`${s.wrap} ${s.section}`} aria-labelledby="colors-title">
-            <div className={s.colorsHead}>
-              <div>
-                <span className={s.eyebrow}>Three finishes</span>
-                <h2 id="colors-title" className={s.h2}>
-                  pick yours.
-                </h2>
-              </div>
-              <p className={s.batchLine}>{batchLine}</p>
-            </div>
-            <Colorways />
-            <p className={s.conceptNote}>{CONCEPT_NOTE}</p>
+            <ol className={s.steps}>
+              <li>
+                <strong>${OFFER.deposit} today</strong>
+                Holds your place and your price. Refundable until it ships.
+              </li>
+              <li>
+                <strong>${BALANCE} when it ships</strong>
+                Batch {OFFER.batch.number} ships {OFFER.batch.ships}. We email you before we charge.
+              </li>
+              <li>
+                <strong>Premium, forever</strong>
+                Included for as long as you use Cue.
+              </li>
+            </ol>
           </section>
 
           <section className={`${s.wrap} ${s.section}`} aria-labelledby="faq-title">
