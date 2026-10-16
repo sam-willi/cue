@@ -2,13 +2,14 @@ import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BALANCE, CONCEPT_NOTE, OFFER } from "@/lib/preorder/offer";
+import { BALANCE, CONCEPT_NOTE, OFFER, SAVING } from "@/lib/preorder/offer";
 import { batchState } from "@/lib/preorder/stripe";
 import CueShowcase from "./CueShowcase";
 import Cursor from "./Cursor";
 import Hero from "./Hero";
 import { Colorways, Reveal, StickyBar } from "./Pieces";
 import { ReserveButton, ReserveProvider } from "./Reserve";
+import Save from "./Save";
 import VoiceDemo from "./VoiceDemo";
 import s from "./preorder.module.css";
 
@@ -136,6 +137,7 @@ export default async function PreorderPage() {
             <Logo />
             <div className={s.headerRight}>
               <span className={s.headerBatch}>{batchLine}</span>
+              <Save className={s.headerSave} />
               <ReserveButton>reserve · ${OFFER.deposit}</ReserveButton>
             </div>
           </div>
@@ -183,13 +185,21 @@ export default async function PreorderPage() {
             <div className={s.offer}>
               <div className={`${s.offerCol} ${s.then}`}>
                 <span className={s.offerLabel}>At launch</span>
-                <span className={s.offerBig}>${OFFER.launchPrice}+</span>
-                <span className={s.offerSmall}>plus a Premium subscription</span>
+                <span className={s.offerBig}>
+                  <s>${OFFER.launchPrice}+</s>
+                </span>
+                <span className={s.offerSmall}>
+                  <s>plus a Premium subscription, every month</s>
+                </span>
               </div>
               <div className={s.offerCol}>
-                <span className={s.offerLabel}>Preorder now</span>
+                <span className={s.offerLabel}>
+                  Preorder now <Save />
+                </span>
                 <span className={s.offerBig}>${OFFER.price}</span>
-                <span className={s.offerSmall}>with Premium free, for life</span>
+                <span className={s.offerSmall}>
+                  with Premium <b>free, for life</b>
+                </span>
               </div>
             </div>
             <ol className={s.steps}>
@@ -223,6 +233,9 @@ export default async function PreorderPage() {
             </div>
             <div className={s.closer}>
               <h2 className={s.h2}>say less, um.</h2>
+              <p className={s.closerSave}>
+                <Save long />
+              </p>
               <ReserveButton>
                 {full ? "batch 1 is full" : "reserve yours"} <span className={s.buttonPrice}>${OFFER.deposit}</span>
               </ReserveButton>
@@ -244,7 +257,7 @@ export default async function PreorderPage() {
           <ReserveButton>
             <span>{full ? "batch 1 is full" : "reserve yours"}</span>
             <span className={s.buttonPrice}>
-              ${OFFER.deposit} today · ${OFFER.price} total
+              ${OFFER.price}, save ${SAVING}+
             </span>
           </ReserveButton>
         </StickyBar>
