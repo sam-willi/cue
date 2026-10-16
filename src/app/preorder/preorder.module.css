@@ -8,8 +8,15 @@
   --ease-press: cubic-bezier(0.3, 0, 0.2, 1);
   --gutter: 24px;
   --wide: 1240px;
-  /* Panels of the concept sheet sit on a warm studio grey; cards match it so crops don't show edges. */
-  --studio: #dedbd6;
+  /*
+   * The page's accent is satin champagne gold (owner, 2026-10-16), not the app's cobalt: it
+   * echoes the champagne finish. The deep gold is what rings, dots and focus outlines use (3.6:1
+   * on bone, past the 3:1 non-text minimum); the satin gradient is for the saving tag.
+   */
+  --cue: #a47a47;
+  --cue-soft: rgba(201, 165, 116, 0.16);
+  --satin: linear-gradient(135deg, #f1e1c5 0%, #d6b588 36%, #c49d6b 60%, #ecd8b4 100%);
+  --on-satin: #2b2114;
   position: relative;
   overflow-x: clip;
   background: var(--bg);
@@ -21,6 +28,13 @@
 @media (max-width: 640px) {
   .page {
     --gutter: 16px;
+  }
+}
+/* On ink, the gold is lifted so rings and outlines stay visible. */
+@media (prefers-color-scheme: dark) {
+  .page {
+    --cue: #d9b98a;
+    --cue-soft: rgba(217, 185, 138, 0.16);
   }
 }
 
@@ -894,61 +908,6 @@
   }
 }
 
-/* ---------- Details and box ---------- */
-
-.details,
-.boxRow,
-.caption {
-  /* The concept panels are small; past this width they'd be visibly upscaled. */
-  max-width: 920px;
-}
-.details {
-  display: grid;
-  grid-template-columns: 186fr 130fr 186fr;
-  gap: 12px;
-  margin-top: 12px;
-}
-.details figure,
-.boxRow figure {
-  margin: 0;
-  border-radius: 16px;
-  overflow: hidden;
-  background: var(--studio);
-}
-.details img,
-.boxRow img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.boxRow {
-  display: grid;
-  grid-template-columns: 304fr 199fr;
-  gap: 12px;
-  margin-top: 12px;
-}
-.caption {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-  margin-top: 28px;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-.caption b {
-  display: block;
-  color: var(--text);
-  font-weight: 500;
-}
-@media (max-width: 760px) {
-  .caption {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
 /* ---------- FAQ ---------- */
 
 .faq {
@@ -1466,15 +1425,18 @@
 
 /* ---------- The saving, wherever a price shows ---------- */
 
-/* A cobalt tag: the one accent besides the cue rings, so the saving reads at a glance. */
+/* A satin gold tag, like the champagne finish, so the saving reads at a glance. */
 .save {
   display: inline-flex;
   align-items: center;
   height: 26px;
   padding: 0 10px;
   border-radius: 999px;
-  background: var(--cue);
-  color: #fff;
+  background: var(--satin);
+  color: var(--on-satin);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 1px 2px rgba(120, 88, 48, 0.25);
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;

@@ -11,7 +11,7 @@ const LENS = 34;
 
 /**
  * lilguy's cursor, in Cue's terms: a small frosted lens that follows the pointer, wraps around
- * buttons and links, and leaves a cobalt tap ring wherever you click. Mouse only, and off for
+ * buttons and links, and leaves a gold tap ring wherever you click. Mouse only, and off for
  * reduced motion, text fields and the open detail view, where the system cursor comes back.
  * Also draws the thin scrollbar that replaces the system one on the same devices.
  */
