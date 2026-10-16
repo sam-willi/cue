@@ -1697,6 +1697,141 @@
   }
 }
 
+/* ---------- The deal, as one sum and as a comparison ---------- */
+
+.sum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 10px;
+  margin: 0;
+}
+.stamp .sum {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.term {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+.term b {
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.term small {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--muted);
+}
+.term small s {
+  text-decoration-thickness: 1.5px;
+}
+.term.total b {
+  font-size: 40px;
+}
+.op {
+  align-self: flex-start;
+  padding-top: 2px;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--muted);
+}
+.stampBatch {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.closerDeal {
+  justify-content: center;
+  margin: 0 auto 32px;
+}
+
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.compare th,
+.compare td {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: baseline;
+}
+.compare thead th {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.compare thead th.now {
+  color: var(--text);
+}
+.compare thead .save {
+  margin-left: 8px;
+}
+.compare tbody th {
+  width: 18%;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.compare tbody td {
+  font-size: clamp(20px, 2.4vw, 30px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+.compare tbody td.na {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.compare tbody td s {
+  text-decoration-thickness: 2px;
+}
+.compare tbody td.now {
+  color: var(--text);
+  background: var(--surface);
+}
+.compare td.now span {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+/* The first row is the headline: the price itself, set big. */
+.compare tbody tr:first-child td {
+  font-size: clamp(40px, 6vw, 88px);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+@media (max-width: 640px) {
+  .compare th,
+  .compare td {
+    padding: 14px 8px;
+  }
+  .compare tbody th {
+    width: 24%;
+  }
+  .term b {
+    font-size: 24px;
+  }
+  .term.total b {
+    font-size: 30px;
+  }
+  .stamp .sum {
+    justify-content: flex-start;
+  }
+}
+
 /* ---------- Thank-you page ---------- */
 
 .thanks {

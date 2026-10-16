@@ -3,6 +3,7 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { OFFER } from "@/lib/preorder/offer";
 import Cutout from "./Cutout";
+import Deal from "./Deal";
 import Save from "./Save";
 import { ReserveButton } from "./Reserve";
 import type { CuePlay } from "./Rings";
@@ -92,24 +93,23 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
           </p>
           <div className={s.actions}>
             <ReserveButton>
-              reserve yours <span className={s.buttonPrice}>${OFFER.deposit}</span>
+              reserve yours <span className={s.buttonPrice}>${OFFER.deposit} down</span>
             </ReserveButton>
             <a className={s.ghost} href="#hear-it">
               try it with your voice <span aria-hidden="true">↓</span>
             </a>
           </div>
         </div>
-        <p className={s.stamp}>
+        <div className={s.stamp}>
           <Save long className={s.stampSave} />
-          <span className={s.stampPrice}>
-            <s aria-label={`was $${OFFER.launchPrice} or more`}>${OFFER.launchPrice}+</s>${OFFER.price}
-          </span>
-          preorder price, Premium free for life · batch {OFFER.batch.number}
-          <br />
-          {placesLeft === null
-            ? `${OFFER.batch.size} units · ships ${OFFER.batch.ships}`
-            : `${placesLeft} of ${OFFER.batch.size} left · ships ${OFFER.batch.ships}`}
-        </p>
+          <Deal />
+          <p className={s.stampBatch}>
+            batch {OFFER.batch.number} ·{" "}
+            {placesLeft === null
+              ? `${OFFER.batch.size} units · ships ${OFFER.batch.ships}`
+              : `${placesLeft} of ${OFFER.batch.size} left · ships ${OFFER.batch.ships}`}
+          </p>
+        </div>
       </div>
 
       {/* Two more finishes tumble in below, one off each edge. */}
