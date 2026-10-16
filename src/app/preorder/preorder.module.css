@@ -1512,80 +1512,6 @@
   color: var(--muted);
 }
 
-/* ---------- The deal and the batch wall ---------- */
-
-.dealGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
-  gap: 64px;
-  align-items: center;
-}
-.dealGrid .offerBig {
-  font-size: clamp(56px, 6.4vw, 96px);
-}
-.wall {
-  margin: 0;
-}
-.wall svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  overflow: visible;
-}
-.wallDot {
-  fill: transparent;
-  stroke: var(--line);
-  stroke-width: 2;
-  transition:
-    transform 180ms var(--ease-arrive),
-    stroke 160ms ease-out;
-  transform-box: fill-box;
-  transform-origin: center;
-}
-.wallDot.taken {
-  stroke: rgba(17, 17, 17, 0.16);
-}
-.wallDot.hovered {
-  stroke: var(--text);
-  transform: scale(1.7);
-}
-/* The next number to go breathes in cobalt, the one accent on this section. */
-.wallDot.next {
-  stroke: var(--cue);
-  stroke-width: 4;
-  animation: nextBreath 2.4s ease-in-out infinite;
-}
-@keyframes nextBreath {
-  50% {
-    transform: scale(1.45);
-  }
-}
-.wallCaption {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 16px;
-  font-size: 15px;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-.wallNumber {
-  color: var(--text);
-  font-weight: 500;
-}
-.wallNote {
-  margin: 8px 0 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-@media (max-width: 860px) {
-  .dealGrid {
-    grid-template-columns: 1fr;
-    gap: 48px;
-  }
-}
-
 /* ---------- Cursor and scrollbar (fine pointers only; Cursor.tsx turns them on) ---------- */
 
 :global(html.cue-cursor) .page,
@@ -1723,9 +1649,6 @@
     opacity: 1;
     filter: none;
     transform: none;
-    animation: none;
-  }
-  .wallDot.next {
     animation: none;
   }
   .card:hover,

@@ -65,7 +65,7 @@ export interface Deposit {
 }
 
 /**
- * Every paid deposit for this batch, oldest first, from Stripe's search (which can lag about a
+ * Every paid deposit for this batch, from Stripe's search (which can lag about a
  * minute). Refunded deposits still count, so the places-left number errs on the low side.
  */
 export async function batchDeposits(key: string, fresh = false): Promise<Deposit[]> {
@@ -85,26 +85,19 @@ export async function batchDeposits(key: string, fresh = false): Promise<Deposit
     if (!result.has_more || !result.next_page) break;
     page = result.next_page;
   }
-  return numbered(out);
+  return out;
 }
 
-/** Deposits in the order they were paid, which is the order numbers are given out (#001 first). */
-export const numbered = (deposits: Deposit[]) =>
-  [...deposits].sort((a, b) => a.created - b.created || a.id.localeCompare(b.id));
-
 export interface BatchState {
-  /** Colorway of each number taken so far: index 0 is #001. */
-  taken: (string | null)[];
   left: number;
 }
 
-/** Who holds which number, or null when Stripe isn't set up or can't be reached. */
+/** Places left in the batch, or null when Stripe isn't set up or can't be reached. */
 export async function batchState(): Promise<BatchState | null> {
   const key = stripeKey();
   if (!key) return null;
   try {
-    const deposits = await batchDeposits(key);
-    return { taken: deposits.slice(0, OFFER.batch.size).map((d) => d.colorway), left: placesAfter(deposits.length) };
+    return { left: placesAfter((await batchDeposits(key)).length) };
   } catch (error) {
     console.error("Reading preorder deposits failed", error);
     return null;
@@ -112,9 +105,6 @@ export async function batchState(): Promise<BatchState | null> {
 }
 
 export const placesAfter = (paid: number) => Math.max(0, OFFER.batch.size - paid);
-
-/** A batch number as it's shown: #001 to #500. */
-export const batchNumber = (n: number) => `#${String(n).padStart(3, "0")}`;
 
 export interface PaidSession {
   colorway: string | null;

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BALANCE, OFFER, colorwayFor } from "@/lib/preorder/offer";
-import { batchDeposits, batchNumber, checkoutSession, stripeKey, type PaidSession } from "@/lib/preorder/stripe";
+import { checkoutSession, stripeKey, type PaidSession } from "@/lib/preorder/stripe";
 import s from "../preorder.module.css";
 
 export const metadata: Metadata = {
@@ -18,14 +18,6 @@ export default async function ReservedPage({ searchParams }: PageProps<"/preorde
     session = await checkoutSession(key, id).catch(() => null);
   }
   const color = colorwayFor(session?.colorway);
-  // Your number is your place in the order deposits were paid. Stripe's search can take a minute
-  // to include a payment this new, so the page says so rather than guessing.
-  let number: number | null = null;
-  if (key && session?.paid && session.paymentIntent) {
-    const deposits = await batchDeposits(key, true).catch(() => []);
-    const at = deposits.findIndex((d) => d.id === session.paymentIntent);
-    if (at >= 0) number = at + 1;
-  }
 
   return (
     <div className={s.page}>
@@ -33,18 +25,12 @@ export default async function ReservedPage({ searchParams }: PageProps<"/preorde
         <span className={s.eyebrow}>
           Batch {OFFER.batch.number} · ships {OFFER.batch.ships}
         </span>
-        <h1 className={s.h2}>
-          {session?.paid ? (number ? `you’re ${batchNumber(number)}.` : "you’re in.") : "almost there."}
-        </h1>
+        <h1 className={s.h2}>{session?.paid ? "you’re in." : "almost there."}</h1>
         {session?.paid ? (
           <p className={s.body}>
             Your {color ? <strong>{color.name}</strong> : "Cue"} is reserved at ${OFFER.price}, with Premium free for
-            life.{" "}
-            {number
-              ? `Your number in batch ${OFFER.batch.number} is ${batchNumber(number)} of ${OFFER.batch.size}.`
-              : "Your number shows here within a minute or so; refresh to see it."}{" "}
-            We’ve sent a receipt{session.email ? ` to ${session.email}` : ""}. We’ll email you before we charge the $
-            {BALANCE} balance, and your ${OFFER.deposit} is refundable until it ships.
+            life. We’ve sent a receipt{session.email ? ` to ${session.email}` : ""}. We’ll email you before we charge
+            the ${BALANCE} balance, and your ${OFFER.deposit} is refundable until it ships.
           </p>
         ) : (
           <p className={s.body}>
