@@ -8,6 +8,8 @@ export interface Signup {
   email: string;
   organization?: string;
   role?: string;
+  /** For a preorder reservation (/preorder): the colorway chosen. */
+  colorway?: string;
   /** utm_source, utm_medium, utm_campaign, utm_content, utm_term from the page URL, when present. */
   utm?: Record<string, string>;
 }
