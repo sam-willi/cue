@@ -14,13 +14,18 @@ export const CUTOUTS = {
   front: { w: 101, h: 250 },
   back: { w: 95, h: 250 },
   case: { w: 592, h: 309 },
+  /** The larger studio render, for the hero and the cue section (the cards keep `device`). */
+  render: { w: 507, h: 580 },
 } as const;
 export type CutoutView = keyof typeof CUTOUTS;
 
 export const cutout = (color: ColorwayId, view: CutoutView) => `/preorder/cutout/${color}-${view}.webp`;
 
-/** Where the motor sits on the device cut-out, as percentages of it. */
-export const CUTOUT_MOTOR = { x: 84, y: 60 };
+/** Where the motor sits on each cut-out that can play a cue, as percentages of it. */
+const MOTOR: Partial<Record<CutoutView, { x: number; y: number }>> = {
+  device: { x: 84, y: 60 },
+  render: { x: 80, y: 57 },
+};
 
 /**
  * A product cut-out placed like a collage piece: tilted, often running off the page's edge, and
@@ -86,7 +91,7 @@ export default function Cutout({
           // Served as made: they're small already, and the optimizer shrinks transparent WebPs.
           unoptimized
         />
-        {view === "device" && <Rings {...CUTOUT_MOTOR} play={play} />}
+        {MOTOR[view] && <Rings {...MOTOR[view]} play={play} />}
       </div>
     </div>
   );

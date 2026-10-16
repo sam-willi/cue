@@ -61,6 +61,7 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
       <div className={s.stage}>
         <Cutout
           color="graphite"
+          view="render"
           alt="Cue in Graphite"
           priority
           speed={-0.14}
@@ -114,8 +115,16 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
 
       {/* Two more finishes tumble in below, one off each edge. */}
       <div className={s.tumble} aria-hidden="true">
-        <Cutout color="silver" alt="" speed={-0.06} delay={500} sizes="40vw" className={s.heroSilver} />
-        <Cutout color="champagne" alt="" speed={0.04} delay={650} sizes="40vw" className={s.heroChampagne} />
+        <Cutout color="silver" view="render" alt="" speed={-0.06} delay={500} sizes="40vw" className={s.heroSilver} />
+        <Cutout
+          color="champagne"
+          view="render"
+          alt=""
+          speed={0.04}
+          delay={650}
+          sizes="40vw"
+          className={s.heroChampagne}
+        />
       </div>
     </section>
   );
