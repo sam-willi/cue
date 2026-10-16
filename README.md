@@ -157,7 +157,6 @@ Without `SIGNUPS_SHEET_URL`, `npm run dev` saves sign-ups to `./signups/signups.
 - **Deposits.** With `STRIPE_SECRET_KEY` set in Vercel, "continue to payment" opens Stripe Checkout for the deposit and saves the card for the balance. Each payment is tagged `cue_preorder=batch-1` and its colorway, and the page counts tagged payments (refreshed about once a minute) to show places left. Stripe sends buyers back to `/preorder/reserved`. Refunds and charging the balance are done in the Stripe dashboard for now.
 - **Link preview.** `node scripts/preorder-social.mjs` renders `public/preorder/social.png` and a 3-second loop of the tap, `public/preorder/social.mp4` (needs ffmpeg). Run it again after changing the headline or the cut-outs.
 - **Without Stripe.** The dialog says deposits open soon and holds the price by email. Reservations go to the sign-up sheet (see Landing pages) on a **Preorder** tab with the colorway; paste the updated [`scripts/signups-sheet.gs`](scripts/signups-sheet.gs) and publish a new version to get that tab and column.
-- **Voice demo.** "Try it with your voice" runs the coaching engine on the visitor's microphone for 45 seconds through `/api/deepgram-token`, so it needs `DEEPGRAM_API_KEY`. Without it, the page says the demo is resting and the scripted demo still plays.
 
 ## Scripts
 

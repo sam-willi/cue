@@ -89,8 +89,8 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
             <ReserveButton>
               reserve yours <span className={s.buttonPrice}>${OFFER.deposit} down</span>
             </ReserveButton>
-            <a className={s.ghost} href="#hear-it">
-              try it with your voice <span aria-hidden="true">↓</span>
+            <a className={s.ghost} href="#how-it-coaches">
+              see how it taps <span aria-hidden="true">↓</span>
             </a>
           </div>
         </div>

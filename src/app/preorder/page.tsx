@@ -11,7 +11,6 @@ import { Colorways, Reveal, StickyBar } from "./Pieces";
 import { ReserveButton, ReserveProvider } from "./Reserve";
 import Deal from "./Deal";
 import Save from "./Save";
-import VoiceDemo from "./VoiceDemo";
 import s from "./preorder.module.css";
 
 // The places-left count comes from Stripe; refresh it about once a minute.
@@ -144,11 +143,11 @@ export default async function PreorderPage() {
           </div>
         </header>
 
-        {/* Seven beats, like lilguy: the claim, the tap, the pick, your own voice, what it's like, the deal, the fine print. */}
+        {/* Six beats, like lilguy: the claim, the tap, the pick, what it's like, the deal, the fine print. */}
         <main>
           <Hero placesLeft={places} />
 
-          <section className={`${s.wrap} ${s.section}`}>
+          <section id="how-it-coaches" className={`${s.wrap} ${s.section}`}>
             <CueShowcase />
           </section>
 
@@ -164,10 +163,6 @@ export default async function PreorderPage() {
             </div>
             <Colorways />
             <p className={s.conceptNote}>{CONCEPT_NOTE}</p>
-          </section>
-
-          <section id="hear-it" className={`${s.wrap} ${s.section}`} style={{ paddingTop: 0 }}>
-            <VoiceDemo />
           </section>
 
           <section className={`${s.wrap} ${s.section}`}>
