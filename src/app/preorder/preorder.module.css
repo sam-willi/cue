@@ -258,10 +258,10 @@
 }
 
 .heroGraphite {
-  --r: 30deg;
-  left: max(-9vw, -140px);
-  top: 84px;
-  width: min(30vw, 440px);
+  --r: 22deg;
+  left: max(-7vw, -110px);
+  top: 70px;
+  width: min(23vw, 340px);
 }
 .tumble {
   position: relative;
@@ -269,16 +269,16 @@
   margin-top: 8px;
 }
 .heroSilver {
-  --r: -26deg;
-  right: -6vw;
-  top: 18%;
-  width: min(30vw, 440px);
+  --r: -24deg;
+  right: -4vw;
+  top: 30%;
+  width: min(22vw, 320px);
 }
 .heroChampagne {
-  --r: 41deg;
+  --r: 34deg;
   left: 14vw;
-  top: 26%;
-  width: min(22vw, 320px);
+  top: 18%;
+  width: min(17vw, 250px);
 }
 
 .heroIntro {
@@ -397,10 +397,10 @@
     display: inline;
   }
   .heroGraphite {
-    --r: 34deg;
-    left: -12vw;
-    top: 64px;
-    width: 50vw;
+    --r: 24deg;
+    left: -8vw;
+    top: 60px;
+    width: 38vw;
   }
   .heroIntro {
     grid-template-columns: 1fr;
@@ -417,14 +417,14 @@
     height: 220px;
   }
   .heroSilver {
-    right: -14vw;
-    top: 0;
-    width: 52vw;
+    right: -8vw;
+    top: 4%;
+    width: 40vw;
   }
   .heroChampagne {
-    left: -4vw;
-    top: 30%;
-    width: 38vw;
+    left: 2vw;
+    top: 22%;
+    width: 30vw;
   }
   .triptych {
     grid-template-columns: 1fr 1fr;
@@ -551,13 +551,13 @@
 }
 .deviceStage {
   position: relative;
-  aspect-ratio: 1 / 0.9;
+  aspect-ratio: 1 / 1;
 }
 .showcaseDevice {
-  --r: -12deg;
-  left: 6%;
-  top: 2%;
-  width: 82%;
+  --r: -10deg;
+  left: 20%;
+  top: 4%;
+  width: 60%;
 }
 .cueList {
   display: grid;

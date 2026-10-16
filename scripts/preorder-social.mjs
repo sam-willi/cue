@@ -1,6 +1,6 @@
 // The link preview for /preorder: a 1200 × 630 still (public/preorder/social.png) and a 3-second
 // loop of the tap (public/preorder/social.mp4) for the apps that play one, after lilguy's video
-// preview. Uses the graphite cut-out from scripts/colorway-cutouts.mjs, and ffmpeg for the loop:
+// preview. Uses the graphite render cut-out from scripts/colorway-cutouts.mjs, and ffmpeg for the loop:
 //   node scripts/preorder-social.mjs
 import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -17,9 +17,9 @@ const FPS = 30;
 const SECONDS = 3;
 
 // The device, tilted into the top-left corner as on the page.
-const DEVICE = { file: "public/preorder/cutout/graphite-device.webp", width: 340, angle: 36, left: -60, top: -10 };
-// Where the motor is on the cut-out, as fractions of it (Cutout.tsx, CUTOUT_MOTOR).
-const MOTOR = { x: 0.84, y: 0.6 };
+const DEVICE = { file: "public/preorder/cutout/graphite-render.webp", width: 300, angle: 22, left: -20, top: -30 };
+// Where the motor is on the cut-out, as fractions of it (Cutout.tsx, MOTOR.render).
+const MOTOR = { x: 0.8, y: 0.57 };
 // The loop: one tap, then the slow steps, in the page's rhythm (ms from the start, pulse length).
 const PULSES = [
   { at: 300, long: false },

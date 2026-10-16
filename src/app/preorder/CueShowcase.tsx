@@ -122,6 +122,7 @@ export default function CueShowcase() {
       <div className={s.deviceStage}>
         <Cutout
           color="silver"
+          view="render"
           alt="Cue in Silver, a slim crescent with a touch area near one end"
           play={play}
           speed={-0.05}
