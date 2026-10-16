@@ -149,6 +149,15 @@ Without `SIGNUPS_SHEET_URL`, `npm run dev` saves sign-ups to `./signups/signups.
 
 **Counting form use.** The sign-up form sends four custom events to Web Analytics, each with only the market: `signup_start` (the email box was focused, once per visit), `signup_submit` (the button was pressed), `signup_done` (the sign-up was saved) and `signup_failed`. Together with visits they show where people drop off: never starting, starting and not sending, or sending and failing. They appear under **Events** in the project's Analytics tab.
 
+## Preorder page
+
+`/preorder` sells batch 1: a $20 refundable deposit today on a $110 preorder with Premium free for life, the $90 balance charged when the batch ships (500 units, summer 2027). The offer lives in [`src/lib/preorder/offer.ts`](src/lib/preorder/offer.ts), so the page, checkout and tests agree; change it there.
+
+- **Images.** Panels cut from the colorway concept sheet, [`assets/product/cue-colorways-sheet.webp`](assets/product/cue-colorways-sheet.webp), by `node scripts/colorway-images.mjs`, which writes them to `public/preorder/`. Replace the sheet (same layout) and run it again.
+- **Deposits.** With `STRIPE_SECRET_KEY` set in Vercel, "continue to payment" opens Stripe Checkout for the deposit and saves the card for the balance. Each payment is tagged `cue_preorder=batch-1` and its colorway, and the page counts tagged payments (refreshed about once a minute) to show places left. Stripe sends buyers back to `/preorder/reserved`. Refunds and charging the balance are done in the Stripe dashboard for now.
+- **Without Stripe.** The dialog says deposits open soon and holds the price by email. Reservations go to the sign-up sheet (see Landing pages) on a **Preorder** tab with the colorway; paste the updated [`scripts/signups-sheet.gs`](scripts/signups-sheet.gs) and publish a new version to get that tab and column.
+- **Voice demo.** "Try it with your voice" runs the coaching engine on the visitor's microphone for 45 seconds through `/api/deepgram-token`, so it needs `DEEPGRAM_API_KEY`. Without it, the page says the demo is resting and the scripted demo still plays.
+
 ## Scripts
 
 | Command                           | What it does                                                                                                                                                                                                                                       |

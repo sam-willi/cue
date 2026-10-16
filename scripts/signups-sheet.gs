@@ -1,5 +1,5 @@
 /**
- * Google Apps Script for the sign-up sheet behind the landing pages (/for/<market>).
+ * Google Apps Script for the sign-up sheet behind the landing pages (/for/<market>) and /preorder.
  * It lives in the Google Sheet, not in the app: paste it into the sheet's Apps Script editor
  * (Extensions → Apps Script) and deploy it as a web app. README.md, "Landing pages", has the steps.
  * The app posts each sign-up to the web app's address (SIGNUPS_SHEET_URL), and this adds it as a
@@ -13,6 +13,8 @@ const TABS = {
   schools: "Schools",
   english: "English learners",
   interviews: "Interviews",
+  // Not a /for page: reservations left by email on /preorder while deposits can't be taken yet.
+  preorder: "Preorder",
 };
 // A sign-up from a page this script doesn't know yet lands here, so nothing is lost.
 const OTHER_TAB = "Other";
@@ -28,6 +30,7 @@ const COLUMNS = [
   "utm_content",
   "utm_term",
   "market",
+  "colorway",
 ];
 
 // Text that starts like a formula is stored as plain text, so a sign-up can't run one in the sheet.
