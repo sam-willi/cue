@@ -143,22 +143,30 @@
 /* ---------- Hero ---------- */
 
 .hero {
-  padding-top: 112px;
-  padding-bottom: 64px;
+  padding-bottom: 32px;
+}
+/* The poster: the headline and the product around it. Cut-outs may run off the page's edges. */
+.stage {
+  position: relative;
+  padding-top: 132px;
+}
+.stageText {
+  position: relative;
+  z-index: 1;
+  text-align: right;
   container-type: inline-size;
 }
 
 /*
- * The headline is set like a poster: Geist Semibold at campaign size, tracked in and stacked
- * tight. Its size follows the hero's width (cqw), so the lockup scales as one picture.
+ * The headline is set like a poster: Geist Semibold at campaign size, tracked in, stacked tight
+ * and right-aligned. Its size follows the text column's width (cqw), so it scales as one picture.
  */
 .display {
   margin: 0;
   font-weight: 600;
-  font-size: 18cqw;
+  font-size: 14.6cqw;
   line-height: 0.84;
   letter-spacing: -0.052em;
-  /* Geist's apostrophes and commas sit wide at this size; pull them in a touch. */
   font-kerning: normal;
   white-space: nowrap;
 }
@@ -167,7 +175,10 @@
 }
 /* Optical leading: the descender-free first line sits closer to the second. */
 .displayLine:first-child {
-  margin-bottom: 0.02em;
+  margin-bottom: 0.03em;
+}
+.mobileBreak {
+  display: none;
 }
 .char {
   display: inline-block;
@@ -188,23 +199,12 @@
     transform: translateY(0);
   }
 }
-/* After the tap, "um." steps back: the wearer heard it and moved on. */
-.um {
-  display: inline-block;
-  transition:
-    opacity 900ms var(--ease-arrive),
-    filter 900ms var(--ease-arrive);
-}
-.caught .um {
-  opacity: 0.16;
-  filter: blur(1px);
-}
 .caughtNote {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  margin-top: 18px;
-  font-size: 15px;
+  margin-top: 20px;
+  font-size: 16px;
   color: var(--muted);
   opacity: 0;
   transform: translateY(4px);
@@ -223,12 +223,72 @@
   background: var(--cue);
 }
 
+/* ---------- Product cut-outs, placed like collage pieces ---------- */
+
+.float {
+  position: absolute;
+  z-index: 2;
+  rotate: var(--r, 0deg);
+  pointer-events: none;
+}
+.floatIn {
+  position: relative;
+  opacity: 0;
+  transform: translateY(32px) scale(0.96);
+  animation: floatIn 1200ms var(--ease-arrive) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+@keyframes floatIn {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* A soft contact shadow, so the satin metal sits on the page rather than pasted onto it. */
+.cutout {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 30px 34px rgba(17, 17, 17, 0.16)) drop-shadow(0 6px 10px rgba(17, 17, 17, 0.1));
+}
+@media (prefers-color-scheme: dark) {
+  .cutout {
+    filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.55));
+  }
+}
+
+.heroGraphite {
+  --r: 30deg;
+  left: max(-9vw, -140px);
+  top: 84px;
+  width: min(30vw, 440px);
+}
+.tumble {
+  position: relative;
+  height: clamp(200px, 26vw, 380px);
+  margin-top: 8px;
+}
+.heroSilver {
+  --r: -26deg;
+  right: -6vw;
+  top: 18%;
+  width: min(30vw, 440px);
+}
+.heroChampagne {
+  --r: 41deg;
+  left: 14vw;
+  top: 26%;
+  width: min(22vw, 320px);
+}
+
 .heroIntro {
+  position: relative;
+  z-index: 3;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 32px;
-  margin-top: 40px;
+  margin-top: 48px;
 }
 .lede {
   max-width: 34ch;
@@ -275,7 +335,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 56px;
+  margin-top: 40px;
 }
 .photo {
   position: relative;
@@ -322,22 +382,46 @@
 }
 
 @media (max-width: 760px) {
-  .hero {
-    padding-top: 96px;
+  .stage {
+    padding-top: 236px;
   }
+  /* Three lines on a phone: "you suck / at / speaking." */
   .display {
-    font-size: 26cqw;
+    font-size: 23cqw;
     line-height: 0.86;
+  }
+  .mobileBreak {
+    display: inline;
+  }
+  .heroGraphite {
+    --r: 34deg;
+    left: -12vw;
+    top: 64px;
+    width: 50vw;
   }
   .heroIntro {
     grid-template-columns: 1fr;
     gap: 24px;
+    margin-top: 32px;
   }
   .lede {
     font-size: 18px;
   }
   .stamp {
     text-align: left;
+  }
+  .tumble {
+    height: 220px;
+  }
+  .heroSilver {
+    right: -14vw;
+    top: 0;
+    width: 52vw;
+  }
+  .heroChampagne {
+    left: -4vw;
+    top: 30%;
+    width: 38vw;
   }
   .triptych {
     grid-template-columns: 1fr 1fr;
@@ -462,19 +546,15 @@
   gap: 56px;
   align-items: center;
 }
-.deviceCard {
+.deviceStage {
   position: relative;
-  margin: 0;
-  border-radius: 24px;
-  overflow: hidden;
-  background: var(--studio);
-  aspect-ratio: 507 / 209;
+  aspect-ratio: 1 / 0.9;
 }
-.deviceCard img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.showcaseDevice {
+  --r: -12deg;
+  left: 6%;
+  top: 2%;
+  width: 82%;
 }
 .cueList {
   display: grid;
@@ -1028,35 +1108,25 @@
 }
 .cardImage {
   position: relative;
-  aspect-ratio: 509 / 298;
+  display: block;
+  aspect-ratio: 4 / 3;
   margin: 0 12px;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--studio);
 }
+/* Every angle is fitted to the same height, so the device keeps its size as it turns. */
 .cardImage img {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition:
-    opacity 420ms var(--ease-arrive),
-    transform 900ms var(--ease-arrive);
-}
-/* Hover swaps the studio shot for the colorway worn, and eases in a little closer. */
-.cardImage .worn {
+  left: 50%;
+  top: 50%;
+  width: auto;
+  height: 74%;
+  max-width: 92%;
+  object-fit: contain;
+  translate: -50% -50%;
   opacity: 0;
-  transform: scale(1.04);
+  transition: opacity 140ms linear;
 }
-.card:hover .worn,
-.card:focus-visible .worn {
+.cardImage img.on {
   opacity: 1;
-  transform: scale(1);
-}
-.card:hover .studioShot,
-.card:focus-visible .studioShot {
-  opacity: 0;
 }
 .cardNote {
   padding: 16px 20px 0;
@@ -1137,6 +1207,7 @@
 
 /* ---------- Details and box ---------- */
 
+.triptych,
 .details,
 .boxRow,
 .caption {
@@ -1147,7 +1218,7 @@
   display: grid;
   grid-template-columns: 186fr 130fr 186fr;
   gap: 12px;
-  margin-top: 40px;
+  margin-top: 12px;
 }
 .details figure,
 .boxRow figure {
@@ -1344,17 +1415,17 @@
   color: var(--text);
 }
 .dialogPhoto {
-  margin: 20px 0 0;
-  border-radius: 16px;
-  overflow: hidden;
-  background: var(--studio);
-  aspect-ratio: 507 / 209;
+  display: grid;
+  place-items: center;
+  margin: 12px 0 0;
+  height: 190px;
 }
 .dialogPhoto img {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: auto;
+  height: 170px;
+  rotate: -10deg;
+  animation: floatIn 520ms var(--ease-arrive);
 }
 .swatches {
   display: flex;
@@ -1455,6 +1526,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .char,
+  .floatIn,
   .photo,
   .reveal .rw,
   .reveal.in .rw {
@@ -1479,7 +1551,6 @@
   .flag::after {
     transform: scaleX(1);
   }
-  .cardImage img,
   .cardFoot::before,
   .stickyBar,
   .dialog[open] {
