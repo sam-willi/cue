@@ -18,7 +18,8 @@
   --satin: linear-gradient(135deg, #f1e1c5 0%, #d6b588 36%, #c49d6b 60%, #ecd8b4 100%);
   --on-satin: #2b2114;
   position: relative;
-  overflow-x: clip;
+  /* Both ways: a drifting device must never make the page wider, or longer than its footer. */
+  overflow: clip;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -219,20 +220,43 @@
 .float {
   position: absolute;
   z-index: 2;
-  rotate: var(--r, 0deg);
+  /* Set by Cutout.tsx from the scroll: drift against the page, and turn a little. */
+  translate: 0 var(--py, 0px);
+  rotate: calc(var(--r, 0deg) + var(--spin, 0deg));
   pointer-events: none;
+  will-change: translate, rotate;
 }
+/* Hidden until it first scrolls into view, then it rises, turns and settles into place. */
 .floatIn {
   position: relative;
   opacity: 0;
-  transform: translateY(32px) scale(0.96);
-  animation: floatIn 1200ms var(--ease-arrive) forwards;
+  transform: translateY(48px) rotate(-10deg) scale(0.9);
+  filter: blur(6px);
+}
+.floatIn.arrived {
+  animation: floatIn 1100ms var(--ease-arrive) forwards;
   animation-delay: var(--delay, 0ms);
 }
 @keyframes floatIn {
   to {
     opacity: 1;
     transform: none;
+    filter: none;
+  }
+}
+/* Once landed it never quite stops: a slow bob, out of step with its neighbours. */
+.bob {
+  position: relative;
+  animation: bob 7s ease-in-out infinite;
+  animation-delay: var(--bob, 0s);
+}
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1.5deg);
   }
 }
 /* A soft contact shadow, so the satin metal sits on the page rather than pasted onto it. */
@@ -1615,6 +1639,160 @@
   }
 }
 
+/* ---------- Devices drifting through the lower sections ---------- */
+
+.drifting {
+  position: relative;
+}
+.drifting > :not(.float) {
+  position: relative;
+  z-index: 1;
+}
+.offerDrifter {
+  --r: 18deg;
+  z-index: 0;
+  right: 2%;
+  top: 40px;
+  width: 104px;
+}
+.infoDrifterLeft {
+  --r: -16deg;
+  z-index: 0;
+  left: 3%;
+  top: 18%;
+  width: 84px;
+}
+.infoDrifterRight {
+  --r: 22deg;
+  z-index: 0;
+  right: 2%;
+  top: 46%;
+  width: 190px;
+}
+.closerGraphite {
+  --r: -20deg;
+  z-index: 0;
+  left: 4%;
+  top: 6%;
+  width: 200px;
+}
+.closerSilver {
+  --r: 26deg;
+  z-index: 0;
+  right: 18%;
+  top: -6%;
+  width: 72px;
+}
+.closerChampagne {
+  --r: 30deg;
+  z-index: 0;
+  right: 3%;
+  top: 34%;
+  width: 180px;
+}
+@media (max-width: 760px) {
+  .infoDrifterLeft,
+  .closerSilver {
+    display: none;
+  }
+  .offerDrifter {
+    right: -6%;
+    top: 0;
+    width: 64px;
+  }
+  .infoDrifterRight {
+    right: -10%;
+    top: 70%;
+    width: 120px;
+  }
+  .closerGraphite {
+    left: -10%;
+    top: 4%;
+    width: 110px;
+  }
+  .closerChampagne {
+    right: -6%;
+    top: 66%;
+    width: 100px;
+  }
+}
+
+/* ---------- Scroll-linked reveals (where the browser can tie animation to scroll) ---------- */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Section headings rise and unblur as they come up the screen. */
+    main section .h2,
+    main section .h3 {
+      animation: sectionRise linear both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 32%;
+    }
+    /* The colorway cards lift in one after another. */
+    .cards .card {
+      animation: cardRise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+    .cards .card:nth-child(2) {
+      animation-range: entry 10% cover 38%;
+    }
+    .cards .card:nth-child(3) {
+      animation-range: entry 20% cover 46%;
+    }
+    /* The comparison rows slide in from the right, one by one. */
+    .compare tbody tr {
+      animation: rowIn linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 25%;
+    }
+    /* The headline drifts up and dims as the hero scrolls away, giving the page depth. */
+    .stageText {
+      animation: heroAway linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 90vh;
+    }
+    /* The closing line grows into place. */
+    .closer .h2 {
+      animation: closerGrow linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 45%;
+    }
+  }
+}
+@keyframes sectionRise {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+    filter: blur(8px);
+  }
+}
+@keyframes cardRise {
+  from {
+    opacity: 0;
+    transform: translateY(70px) scale(0.96);
+  }
+}
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+}
+@keyframes heroAway {
+  to {
+    opacity: 0.25;
+    transform: translateY(-80px) scale(0.96);
+  }
+}
+@keyframes closerGrow {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+    letter-spacing: 0.02em;
+  }
+}
+
 /* ---------- Thank-you page ---------- */
 
 .thanks {
@@ -1628,6 +1806,12 @@
 /* ---------- Reduced motion: everything arrives at once, nothing moves on its own ---------- */
 
 @media (prefers-reduced-motion: reduce) {
+  .bob {
+    animation: none;
+  }
+  .floatIn {
+    filter: none;
+  }
   .char,
   .floatIn,
   .reveal .rw,
