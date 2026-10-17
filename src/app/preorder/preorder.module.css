@@ -282,15 +282,23 @@
   margin-top: 48px;
 }
 .lede {
-  max-width: 34ch;
+  max-width: 30ch;
   margin: 0;
-  font-size: 20px;
-  line-height: 1.45;
-  letter-spacing: -0.01em;
+  font-size: 22px;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
   text-wrap: pretty;
+  color: var(--muted);
 }
+/* The claim leads: set larger and heavier than the rest of the sentence. */
 .lede strong {
-  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 .actions {
   display: flex;
@@ -356,7 +364,10 @@
     margin-top: 32px;
   }
   .lede {
-    font-size: 18px;
+    font-size: 19px;
+  }
+  .lede strong {
+    font-size: 26px;
   }
   .stamp {
     text-align: left;
