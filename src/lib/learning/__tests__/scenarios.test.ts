@@ -39,7 +39,10 @@ describe("two sessions with the same speech, coached differently because of the 
     expect(rated.update?.text).toMatch(/^Got it\./);
     const pref = rated.profile.preferences.find((x) => x.kind === "less_often")!;
     expect(pref).toMatchObject({ behavior: "rushing", mode: "conversation", source: "you" });
-    expect(rated.profile.plan.modes.conversation.behaviors.rushing).toMatchObject({ strategy: "sustained", gapScale: 1.6 });
+    expect(rated.profile.plan.modes.conversation.behaviors.rushing).toMatchObject({
+      strategy: "sustained",
+      gapScale: 1.6,
+    });
 
     // The same speech again, coached with the updated plan.
     const second = simulateSessions(SPEAKERS.burstyRusher, { count: 1, seconds: 240, seed: 5, profile: rated.profile });
@@ -53,7 +56,11 @@ describe("two sessions with the same speech, coached differently because of the 
     const filler = { ...SPEAKERS.burstyRusher, fillerPerMin: 8, bursts: [0], burstEvery: 1e9 };
     const a = simulateSessions(filler, { count: 1, seconds: 180, seed: 9 });
     expect(a.sessions[0].taps.fillers ?? 0).toBeGreaterThan(0);
-    const p = setPreference(a.profile, { kind: "dont_coach", behavior: "fillers", mode: "conversation" }, "2026-10-02T00:00:00Z").profile;
+    const p = setPreference(
+      a.profile,
+      { kind: "dont_coach", behavior: "fillers", mode: "conversation" },
+      "2026-10-02T00:00:00Z",
+    ).profile;
     const sim = speak(filler, { seconds: 180, seed: 9, plan: p.plan });
     const fillerDecisions = sim.decisions.filter((d) => d.event.type.startsWith("filler_"));
     expect(fillerDecisions.length).toBeGreaterThan(0);
@@ -109,7 +116,9 @@ describe("the feedback learning loop across many sessions", () => {
     const tpm = (xs: typeof cand) => xs.reduce((n, a) => n + a.tapsPerMin, 0) / xs.length;
     expect(tpm(cand)).toBeLessThan(tpm(ctrl));
     expect(sessions.some((s) => s.update && /adjusted your coaching/.test(s.update.text))).toBe(true);
-    expect(profile.adaptations.some((a) => a.field === "conversation.rushing.strategy" && /from now on/.test(a.changed))).toBe(true);
+    expect(
+      profile.adaptations.some((a) => a.field === "conversation.rushing.strategy" && /from now on/.test(a.changed)),
+    ).toBe(true);
   });
 
   it("with the sparser strategy, its taps now beat holding back", () => {

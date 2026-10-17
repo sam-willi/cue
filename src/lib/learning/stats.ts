@@ -54,7 +54,7 @@ export function confidenceLevel(p: number): "emerging" | "likely" | "strong" {
 
 /** Standard normal CDF (Abramowitz & Stegun 7.1.26). */
 export function normalCdf(z: number): number {
-  const t = 1 / (1 + 0.3275911 * Math.abs(z) / Math.SQRT2);
+  const t = 1 / (1 + (0.3275911 * Math.abs(z)) / Math.SQRT2);
   const y =
     1 -
     ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *

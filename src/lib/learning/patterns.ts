@@ -46,7 +46,10 @@ function compare(
 ) {
   const pairs = sessions
     .map(pick)
-    .filter((x): x is [number, number] => !!x && x[0] !== null && x[1] !== null && Number.isFinite(x[0]) && Number.isFinite(x[1]));
+    .filter(
+      (x): x is [number, number] =>
+        !!x && x[0] !== null && x[1] !== null && Number.isFinite(x[0]) && Number.isFinite(x[1]),
+    );
   const agree = pairs.filter(([a, b]) => a > b * ratio || (b === 0 && a > 0.5)).length;
   return {
     n: pairs.length,
@@ -272,7 +275,8 @@ export function discoverPatterns(all: SessionDigest[]): Candidate[] {
   // The most common filler, once there are enough of them to say.
   {
     const totals = new Map<string, number>();
-    for (const d of sessions) for (const [w, n] of Object.entries(d.fillers.byWord)) totals.set(w, (totals.get(w) ?? 0) + n);
+    for (const d of sessions)
+      for (const [w, n] of Object.entries(d.fillers.byWord)) totals.set(w, (totals.get(w) ?? 0) + n);
     const sum = [...totals.values()].reduce((a, b) => a + b, 0);
     const [top, count] = [...totals].sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
     const withFillers = sessions.filter((d) => d.fillers.total >= 2);

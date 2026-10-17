@@ -92,8 +92,16 @@ describe("memory persistence", () => {
     const s = new CueSession();
     for (const w of simulateWords("so um we went to the shop and then came back home again")) s.ingest([w], true);
     const { digest, interventions } = digestSession({
-      id: "x", at: AT, source: "live", mode: "conversation", words: s.words, history: s.history,
-      records: s.engineRecords(), paceLimit: s.paceLimit(), noPauseLimit: s.noPauseLimit(), plan: null,
+      id: "x",
+      at: AT,
+      source: "live",
+      mode: "conversation",
+      words: s.words,
+      history: s.history,
+      records: s.engineRecords(),
+      paceLimit: s.paceLimit(),
+      noPauseLimit: s.noPauseLimit(),
+      plan: null,
     });
     const r = learnFromSession(emptyProfile(AT), digest, interventions);
     expect(r.skipped).toMatch(/too short/);
@@ -111,7 +119,12 @@ describe("preferences and corrections", () => {
     const inferred = p.preferences.filter((x) => x.source === "cue");
     expect(said.map((x) => x.kind).sort()).toEqual(["less_often", "less_often"]);
     expect(inferred).toHaveLength(1);
-    expect(inferred[0]).toMatchObject({ kind: "intensity", value: "gentle", status: "active", statement: "You prefer gentle vibrations." });
+    expect(inferred[0]).toMatchObject({
+      kind: "intensity",
+      value: "gentle",
+      status: "active",
+      statement: "You prefer gentle vibrations.",
+    });
     expect(p.plan.intensity).toBe("gentle");
     // Rejecting the inference undoes it.
     const r = judgeItem(p, inferred[0].id, "reject", AT);
@@ -150,14 +163,25 @@ describe("live engine with a plan", () => {
   it("holds back taps at the planned rate, logs them apart, and judges their outcome too", () => {
     const plan = defaultPlan();
     plan.modes.conversation.behaviors.rushing.holdoutRate = 1;
-    const s = new CueSession({ categories: { ...new CueSession().config.categories, pauses: false } }, { plan, random: () => 0 });
-    const text = Array.from({ length: 40 }, () => "we talked about the plan for the launch and what to change next time").join(" ");
+    const s = new CueSession(
+      { categories: { ...new CueSession().config.categories, pauses: false } },
+      { plan, random: () => 0 },
+    );
+    const text = Array.from(
+      { length: 40 },
+      () => "we talked about the plan for the launch and what to change next time",
+    ).join(" ");
     for (const w of simulateWords(text, { wpm: 300 })) s.ingest([w], true);
     s.endUtterance();
     const held = s.history.filter((d) => d.withheldReason === "holdout");
     expect(held.length).toBeGreaterThan(0);
     expect(s.engineTaps().filter((t) => t.behavior === "rushing")).toHaveLength(0);
-    expect(s.engineRecords().filter((r) => r.holdout).every((r) => r.outcome && r.pre !== undefined)).toBe(true);
+    expect(
+      s
+        .engineRecords()
+        .filter((r) => r.holdout)
+        .every((r) => r.outcome && r.pre !== undefined),
+    ).toBe(true);
   });
 
   it("a focus decides first when two cues are due together", () => {
@@ -165,12 +189,20 @@ describe("live engine with a plan", () => {
       const plan = defaultPlan();
       plan.focus = focus;
       const s = new CueSession({}, { plan });
-      const talk = Array.from({ length: 8 }, () => "we talked about the plan for the launch and what to change").join(" ");
+      const talk = Array.from({ length: 8 }, () => "we talked about the plan for the launch and what to change").join(
+        " ",
+      );
       const words = simulateWords(talk, { wpm: 150 }).filter((w) => w.end < 29.6);
       for (const w of words) s.ingest([w], true);
       // Three fillers arrive in one result, just as "no pause" falls due: both want the same moment.
       const t = words.at(-1)!.end + 0.3;
-      const ums = ["um", "uh", "um"].map((x, k) => ({ text: x, norm: x, start: t + k * 0.6, end: t + k * 0.6 + 0.3, confidence: 0.95 }));
+      const ums = ["um", "uh", "um"].map((x, k) => ({
+        text: x,
+        norm: x,
+        start: t + k * 0.6,
+        end: t + k * 0.6 + 0.3,
+        confidence: 0.95,
+      }));
       s.ingest(ums, true);
       return s.history.filter((d) => d.delivered).map((d) => d.tapReason);
     };
@@ -198,20 +230,54 @@ describe("digest and statistics", () => {
 
 describe("experiments", () => {
   const d = (metric: number): SessionDigest =>
-    ({ mode: "conversation", talkSec: 200, pace: { rushShare: metric }, plan: { strategies: { rushing: "prompt" } } }) as unknown as SessionDigest;
+    ({
+      mode: "conversation",
+      talkSec: 200,
+      pace: { rushShare: metric },
+      plan: { strategies: { rushing: "prompt" } },
+    }) as unknown as SessionDigest;
   const arm = (a: "control" | "candidate", metric: number, tapsPerMin: number) => ({
-    sessionId: Math.random().toString(), arm: a, metric, tapsPerMin, worked: 2, judged: 3, negative: false,
+    sessionId: Math.random().toString(),
+    arm: a,
+    metric,
+    tapsPerMin,
+    worked: 2,
+    judged: 3,
+    negative: false,
   });
-  const exp = (arms: Experiment["arms"]): Experiment => ({ ...startExperiment("rushing", "conversation", "alternate", "t", AT, [d(0.2)])!, arms });
+  const exp = (arms: Experiment["arms"]): Experiment => ({
+    ...startExperiment("rushing", "conversation", "alternate", "t", AT, [d(0.2)])!,
+    arms,
+  });
 
   it("adopts a candidate that's as good with fewer taps", () => {
-    const e = concludeExperiment(exp([arm("candidate", 0.2, 0.5), arm("control", 0.21, 1), arm("candidate", 0.22, 0.6), arm("control", 0.2, 1.1), arm("candidate", 0.2, 0.5), arm("control", 0.2, 1)]), AT);
+    const e = concludeExperiment(
+      exp([
+        arm("candidate", 0.2, 0.5),
+        arm("control", 0.21, 1),
+        arm("candidate", 0.22, 0.6),
+        arm("control", 0.2, 1.1),
+        arm("candidate", 0.2, 0.5),
+        arm("control", 0.2, 1),
+      ]),
+      AT,
+    );
     expect(e.status).toBe("adopted");
     expect(e.better).toBe(false);
   });
 
   it("keeps the usual approach when the candidate does worse", () => {
-    const e = concludeExperiment(exp([arm("candidate", 0.35, 0.5), arm("control", 0.2, 1), arm("candidate", 0.32, 0.6), arm("control", 0.2, 1.1), arm("candidate", 0.3, 0.5), arm("control", 0.21, 1)]), AT);
+    const e = concludeExperiment(
+      exp([
+        arm("candidate", 0.35, 0.5),
+        arm("control", 0.2, 1),
+        arm("candidate", 0.32, 0.6),
+        arm("control", 0.2, 1.1),
+        arm("candidate", 0.3, 0.5),
+        arm("control", 0.21, 1),
+      ]),
+      AT,
+    );
     expect(e.status).toBe("kept_control");
   });
 
@@ -227,10 +293,21 @@ describe("focus", () => {
     expect(recommendFocus(one)).toBeNull();
     const p = simulateSessions(SPEAKERS.burstyRusher, { count: 2, seconds: 240 }).profile;
     expect(recommendFocus(p)?.key).toBe("pace");
-    const sessions = [0.3, 0.3, 0.1, 0.1, 0.1].map((x, k) => ({ ...p.sessions[0], id: `s${k}`, pace: { ...p.sessions[0].pace, rushShare: x } }));
-    const focused = { ...p, sessions, focus: { ...p.focus, current: "pace" as const, startMetric: 0.3, sessionsOnFocus: 4 } };
+    const sessions = [0.3, 0.3, 0.1, 0.1, 0.1].map((x, k) => ({
+      ...p.sessions[0],
+      id: `s${k}`,
+      pace: { ...p.sessions[0].pace, rushShare: x },
+    }));
+    const focused = {
+      ...p,
+      sessions,
+      focus: { ...p.focus, current: "pace" as const, startMetric: 0.3, sessionsOnFocus: 4 },
+    };
     expect(hasGraduated(focused)).toBe(true);
-    const blip = { ...focused, sessions: [...sessions.slice(0, 4), { ...sessions[0], pace: { ...sessions[0].pace, rushShare: 0.35 } }] };
+    const blip = {
+      ...focused,
+      sessions: [...sessions.slice(0, 4), { ...sessions[0], pace: { ...sessions[0].pace, rushShare: 0.35 } }],
+    };
     expect(hasGraduated(blip)).toBe(false);
   });
 });

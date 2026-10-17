@@ -275,7 +275,14 @@ export class DecisionEngine {
     const holdoutRate = this.behaviorPlan(behavior)?.holdoutRate ?? 0;
     if (holdoutRate > 0 && this.random() < holdoutRate) {
       record.holdout = true;
-      return { event, delivered: false, withheldReason: "holdout", trigger: why || undefined, tapReason: reason, strategy };
+      return {
+        event,
+        delivered: false,
+        withheldReason: "holdout",
+        trigger: why || undefined,
+        tapReason: reason,
+        strategy,
+      };
     }
     this.lastTapAt = now;
     this.lastTapByReason.set(reason, record);

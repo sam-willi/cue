@@ -27,6 +27,10 @@ import { LiveTranscriber } from "@/lib/deepgram/liveTranscriber";
 import { feedMessage, type DgMessage } from "@/lib/deepgram/parse";
 import { encodeWav } from "@/lib/audio/wav";
 import { confirmTones, cueTones, EarconPlayer, setAudioSession } from "@/lib/cue/earcon";
+import { scaleVibration, type CoachingPlan } from "@/lib/cue/plan";
+import { stageOf, STAGE_LABEL } from "@/lib/learning/coaching";
+import { CheckIn, CueUpdateCard, FocusCard, LearnedView, LearningTimeline, TunedToYou } from "./learning/LearningViews";
+import { useLearning } from "./learning/useLearning";
 
 const LABEL: Record<CueKind, string> = {
   filler_um: "“um”",
@@ -54,6 +58,8 @@ const WITHHELD: Record<NonNullable<CueDecision["withheldReason"]>, string> = {
   category_off: "category off",
   not_a_pattern: "not a pattern yet",
   mode_off: "not tapped in Presentation mode",
+  preference: "you asked Cue not to coach this",
+  holdout: "held back on purpose, to check whether taps help you",
 };
 
 /** Converts between the speech engine's clock (s) and the page clock (performance.now(), ms). */
@@ -124,7 +130,18 @@ export default function CueApp() {
   const [script, setScript] = useState("");
   const [fillerDraft, setFillerDraft] = useState("");
   const [fillerError, setFillerError] = useState<string | null>(null);
-  const [open, setOpen] = useState({ review: false, practice: false, training: false, settings: false });
+  const [open, setOpen] = useState({
+    review: false,
+    learned: false,
+    timeline: false,
+    practice: false,
+    training: false,
+    settings: false,
+  });
+  /** Continuous learning: what Cue remembers about the wearer, and the plan it coaches with. */
+  const learning = useLearning();
+  /** Whether the current session has already been learned from (a session is learned from once). */
+  const learnedRef = useRef(false);
   /** Training recording: audio is kept only when the user starts one explicitly. */
   const [recordingTraining, setRecordingTraining] = useState(false);
   const recordAudioRef = useRef(false);
@@ -273,8 +290,11 @@ export default function CueApp() {
     setFeedback((f) => ({ n: (f?.n ?? 0) + 1, label: label ?? LABEL[kind], action: actionFor(kind), pattern }));
     window.clearTimeout(feedbackTimer.current);
     feedbackTimer.current = window.setTimeout(() => setFeedback(null), FEEDBACK_MS);
-    navigator.vibrate?.(PATTERNS[pattern].vibrate);
-    if (soundRef.current.on) earconRef.current?.play(cueTones(pattern), soundRef.current.volume);
+    // The wearer's tap strength (a learned or chosen preference): shorter pulses and a softer sound when gentle.
+    const intensity = sessionRef.current.plan?.intensity ?? "standard";
+    navigator.vibrate?.(scaleVibration(PATTERNS[pattern].vibrate, intensity));
+    const loud = intensity === "gentle" ? 0.6 : intensity === "firm" ? 1.3 : 1;
+    if (soundRef.current.on) earconRef.current?.play(cueTones(pattern), Math.min(1, soundRef.current.volume * loud));
     window.clearTimeout(buzzTimer.current);
     buzzTimer.current = window.setTimeout(() => setBuzz(null), PATTERNS[pattern].durationMs + 600);
   }, []);
@@ -332,28 +352,33 @@ export default function CueApp() {
     [triggerBuzz],
   );
 
-  const reset = useCallback(() => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-    sessionRef.current = new CueSession(config);
-    setLog([]);
-    setChecks([]);
-    setWords([]);
-    setLatency({});
-    setOutcomes({});
-    setSignals(null);
-    setCorrections([]);
-    setSpeakingSec(0);
-    setPace(null);
-    setVolume(null);
-    setReport(null);
-    setFeed([]);
-    setFeedback(null);
-    levelsRef.current = [];
-    pitchRef.current = [];
-    voiceRef.current = [];
-    setError(null);
-  }, [config]);
+  const reset = useCallback(
+    (plan: CoachingPlan | null = null) => {
+      timersRef.current.forEach(clearTimeout);
+      timersRef.current = [];
+      // Each session coaches with the plan Cue has learned for this wearer (or the sandbox's, for practice).
+      sessionRef.current = new CueSession(config, { plan });
+      learnedRef.current = false;
+      setLog([]);
+      setChecks([]);
+      setWords([]);
+      setLatency({});
+      setOutcomes({});
+      setSignals(null);
+      setCorrections([]);
+      setSpeakingSec(0);
+      setPace(null);
+      setVolume(null);
+      setReport(null);
+      setFeed([]);
+      setFeedback(null);
+      levelsRef.current = [];
+      pitchRef.current = [];
+      voiceRef.current = [];
+      setError(null);
+    },
+    [config],
+  );
 
   const stopAll = useCallback(() => {
     transcriberRef.current?.stop();
@@ -446,7 +471,8 @@ export default function CueApp() {
 
   const startLive = async (opts: { record?: boolean; apiKey?: string } = {}) => {
     stopAll();
-    reset();
+    reset(learning.profiles.real.plan);
+    learning.dismissCheckIn();
     unlockSound();
     // iPhone: listen and play cue sounds at once, even with the ring switch on silent.
     setAudioSession("play-and-record");
@@ -520,9 +546,17 @@ export default function CueApp() {
     });
   };
 
+  /** Learn from the session that just ended, once: live sessions teach Cue; practice goes to the sandbox. */
+  const learnFromSession = (source: "live" | "practice") => {
+    if (learnedRef.current || !sessionRef.current.words.length) return;
+    learnedRef.current = true;
+    learning.finish(sessionRef.current, source);
+  };
+
   const runDemo = (text = demoText) => {
     stopAll();
-    reset();
+    reset(learning.profiles.sandbox.plan);
+    learning.dismissCheckIn();
     unlockSound();
     setStatus("demo");
     const demoStart = performance.now();
@@ -566,6 +600,7 @@ export default function CueApp() {
         apply(sessionRef.current.ingest(sim, true));
         apply(sessionRef.current.endUtterance());
         setStatus("idle");
+        learnFromSession("practice");
         setReport(makeReport(scriptRef.current));
         setOpen((o) => ({ ...o, review: true }));
       }, endAt),
@@ -662,7 +697,9 @@ export default function CueApp() {
       return { ...c, volumeCues };
     });
   const endSession = () => {
+    const wasPractice = status === "demo";
     stopAll();
+    if (!calibratingFor) learnFromSession(wasPractice ? "practice" : "live");
     if (recordAudioRef.current) {
       recordAudioRef.current = false;
       setRecordingTraining(false);
@@ -896,7 +933,15 @@ export default function CueApp() {
           </div>
 
           {/* Each cue on screen, big and in its color, as well as on the device. */}
+          {/* How the coaching is personal right now: a quiet line, so Cue's learning is felt, not shown off. */}
+          <TunedToYou profile={learning.profile} mode={config.mode} sandbox={learning.view === "sandbox"} />
+
           {(busy || feedback || feed.length > 0) && <CueFeedback current={feedback} feed={feed} waiting={busy} />}
+
+          {/* After a session: what Cue learned or changed (rarely), then a short check-in. */}
+          {!busy && <CueUpdateCard learning={learning} />}
+          {!busy && learning.justEnded && <CheckIn learning={learning} session={learning.justEnded} />}
+          {!busy && <FocusCard learning={learning} />}
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
             <Segmented
@@ -1256,6 +1301,28 @@ export default function CueApp() {
                 )}
               </div>
             )}
+          </Disclosure>
+
+          <Disclosure
+            title="What Cue has learned"
+            summary={
+              learning.profile.sessions.length
+                ? `${STAGE_LABEL[stageOf(learning.profile)]}: ${count(learning.profile.insights.filter((i) => i.status !== "rejected" && !i.kind.startsWith("coaching:")).length, "pattern")}, ${count(learning.profile.preferences.filter((x) => x.status !== "rejected").length, "preference")}${learning.view === "sandbox" ? " (practice sandbox)" : ""}`
+                : "Your speaking patterns, your preferences, and how Cue has changed the way it coaches you"
+            }
+            open={open.learned}
+            onToggle={() => toggle("learned")}
+          >
+            <LearnedView learning={learning} />
+          </Disclosure>
+
+          <Disclosure
+            title="Learning timeline"
+            summary="How you’ve improved, and how Cue has improved at coaching you"
+            open={open.timeline}
+            onToggle={() => toggle("timeline")}
+          >
+            <LearningTimeline profile={learning.profile} />
           </Disclosure>
 
           <Disclosure
@@ -1673,7 +1740,9 @@ export default function CueApp() {
                   stays in this browser and goes straight to Deepgram. Cue keeps nothing on its own. A session is only
                   saved if you choose Download session, and that file has words and timing, never audio. Cue never
                   builds a voiceprint: on the device, a bone-conduction sensor hears only your own voice. In this web
-                  prototype the microphone hears everyone, so other people’s fillers can tap too.
+                  prototype the microphone hears everyone, so other people’s fillers can tap too. What Cue learns about
+                  how you speak stays in this browser as numbers (pace, pauses, filler counts, the filler words and a
+                  few phrases you repeat); you can pause it, correct it, or reset it in What Cue has learned.
                 </p>
               </div>
             </div>
@@ -1882,6 +1951,7 @@ function describeTap(d: CueDecision): string {
 }
 
 const capitalize = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
+const count = (n: number, one: string) => `${n} ${n === 1 ? one : `${one}s`}`;
 
 /** How long a cue stays on screen, ms: long enough to glance down and read it. */
 const FEEDBACK_MS = 6000;

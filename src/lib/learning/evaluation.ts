@@ -205,10 +205,18 @@ export function concludeExperiment(e: Experiment, at: string): Experiment {
   if (e.status !== "running") return e;
   const cand = e.arms.filter((a) => a.arm === "candidate");
   const ctrlArms = e.arms.filter((a) => a.arm === "control");
-  const ctrlMetrics = e.design === "switch" ? [...e.before, ...ctrlArms.map((a) => a.metric)] : ctrlArms.map((a) => a.metric);
+  const ctrlMetrics =
+    e.design === "switch" ? [...e.before, ...ctrlArms.map((a) => a.metric)] : ctrlArms.map((a) => a.metric);
   const enough = cand.length >= ARM_SESSIONS && ctrlMetrics.length >= (e.design === "switch" ? 2 : ARM_SESSIONS);
   if (!enough && e.arms.length < MAX_SESSIONS) return e;
-  if (!cand.length || !ctrlMetrics.length) return { ...e, status: "kept_control", concludedAt: at, finding: "not enough comparable sessions" };
+  // Nothing to compare against: a switch the wearer asked for stays; a trial ends where it started.
+  if (!cand.length || !ctrlMetrics.length)
+    return {
+      ...e,
+      status: e.design === "switch" ? "kept_by_you" : "kept_control",
+      concludedAt: at,
+      finding: "there weren’t enough comparable sessions to tell.",
+    };
 
   const b = e.behavior;
   const mc = mean(cand.map((a) => a.metric));
@@ -222,7 +230,11 @@ export function concludeExperiment(e: Experiment, at: string): Experiment {
   };
   const ctrlTaps = ctrlArms.length ? mean(ctrlArms.map((a) => a.tapsPerMin)) : null;
   const fewerTaps = ctrlTaps !== null && mean(cand.map((a) => a.tapsPerMin)) < ctrlTaps * 0.85;
-  const ctrlNeg = ctrlArms.length ? ctrlArms.filter((a) => a.negative).length / ctrlArms.length : e.design === "switch" ? 1 : 0;
+  const ctrlNeg = ctrlArms.length
+    ? ctrlArms.filter((a) => a.negative).length / ctrlArms.length
+    : e.design === "switch"
+      ? 1
+      : 0;
   const fewerComplaints = cand.filter((a) => a.negative).length / cand.length < ctrlNeg;
   const rc = rate(cand);
   const ro = rate(ctrlArms);
@@ -230,7 +242,11 @@ export function concludeExperiment(e: Experiment, at: string): Experiment {
   const adopt = better || (asGood && (fewerTaps || fewerComplaints || workedMore));
   const name = METRIC_NAME[b];
   const facts = `${formatMetric(b, mc)} ${name} with it, against ${formatMetric(b, mo)} before`;
-  const why = [fewerTaps && "fewer taps", fewerComplaints && "fewer times you found it too much", workedMore && "taps that worked more often"]
+  const why = [
+    fewerTaps && "fewer taps",
+    fewerComplaints && "fewer times you found it too much",
+    workedMore && "taps that worked more often",
+  ]
     .filter(Boolean)
     .join(", ");
   if (adopt)

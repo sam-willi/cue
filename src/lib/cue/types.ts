@@ -74,14 +74,7 @@ export interface CueDecision {
    * "holdout": the tap was due and held back on purpose, to learn whether taps help (see plan.ts).
    */
   withheldReason?:
-    | "low_confidence"
-    | "cooldown"
-    | "muted"
-    | "category_off"
-    | "not_a_pattern"
-    | "mode_off"
-    | "preference"
-    | "holdout";
+    "low_confidence" | "cooldown" | "muted" | "category_off" | "not_a_pattern" | "mode_off" | "preference" | "holdout";
   /** What made the engine act, e.g. "3 in 9 s", or how close a held filler came. */
   trigger?: string;
   /** Which engine rule produced the tap. */

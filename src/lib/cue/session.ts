@@ -169,13 +169,14 @@ export class CueSession {
   readonly history: CueDecision[] = [];
   readonly likeChecks: LikeCheck[] = [];
 
-  constructor(
-    config: Partial<CueConfig> = {},
-    opts: { plan?: CoachingPlan | null; random?: () => number } = {},
-  ) {
+  constructor(config: Partial<CueConfig> = {}, opts: { plan?: CoachingPlan | null; random?: () => number } = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.plan = opts.plan ?? null;
-    this.engine = new DecisionEngine(() => this.config, () => this.modePlan(), opts.random);
+    this.engine = new DecisionEngine(
+      () => this.config,
+      () => this.modePlan(),
+      opts.random,
+    );
   }
 
   /** The plan for the current mode, if there is one. */
@@ -620,7 +621,8 @@ export class CueSession {
     if (pace.sps > limit) this.paceAboveSince ??= now;
     // A borderline pace has to hold for the full time; far over the limit, half of it is proof enough.
     // The "sustained" strategy waits for a longer stretch of rushing before it says anything.
-    const base = this.modePlan()?.behaviors.rushing.strategy === "sustained" ? SUSTAINED_RUSH_SEC : this.config.paceSustainSec;
+    const base =
+      this.modePlan()?.behaviors.rushing.strategy === "sustained" ? SUSTAINED_RUSH_SEC : this.config.paceSustainSec;
     const sustain = base * (pace.sps >= limit * PACE_CLEAR ? 0.5 : 1);
     return this.paceAboveSince !== null && now - this.paceAboveSince >= sustain;
   }

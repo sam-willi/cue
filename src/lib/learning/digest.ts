@@ -114,8 +114,7 @@ export function digestSession(input: DigestInput): { digest: SessionDigest; inte
 
   // --- Fillers ----------------------------------------------------------------
   const fillerEvents = input.history.filter(
-    (d) =>
-      isDisfluency(d.event.type) && d.withheldReason !== "low_confidence" && d.withheldReason !== "category_off",
+    (d) => isDisfluency(d.event.type) && d.withheldReason !== "low_confidence" && d.withheldReason !== "category_off",
   );
   const byWord: Record<string, number> = {};
   for (const d of fillerEvents) {

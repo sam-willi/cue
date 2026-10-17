@@ -1,5 +1,5 @@
 import { toApproxWpm, type CueMode } from "@/lib/cue/config";
-import { defaultPlan, FOCUS_BEHAVIOR, STRATEGIES, type CoachedBehavior, type FocusKey } from "@/lib/cue/plan";
+import { defaultPlan, STRATEGIES, type CoachedBehavior, type FocusKey } from "@/lib/cue/plan";
 import {
   BASELINE_SETTLED,
   BEHAVIOR_NAME,
@@ -21,14 +21,7 @@ import {
   startExperiment,
   tapEffect,
 } from "./evaluation";
-import {
-  currentFocusMetric,
-  FOCUS_LABEL,
-  focusMetric,
-  GRADUATION_TEXT,
-  hasGraduated,
-  recommendFocus,
-} from "./focus";
+import { currentFocusMetric, FOCUS_LABEL, focusMetric, GRADUATION_TEXT, hasGraduated, recommendFocus } from "./focus";
 import { discoverPatterns, mergeInsights } from "./patterns";
 import { pct } from "./stats";
 import {
@@ -97,7 +90,14 @@ const capitalize = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
 let seq = 0;
 const uid = (prefix: string, at: string) => `${prefix}-${at}-${(seq++).toString(36)}`;
 
-function event(p: Profile, at: string, track: LearningEvent["track"], kind: LearningEvent["kind"], title: string, why: string) {
+function event(
+  p: Profile,
+  at: string,
+  track: LearningEvent["track"],
+  kind: LearningEvent["kind"],
+  title: string,
+  why: string,
+) {
   p.events.push({ id: uid("ev", at), at, track, kind, title, why });
 }
 
@@ -113,7 +113,8 @@ function replan(p: Profile, at: string, cause?: string): Adaptation[] {
   p.plan = plan;
   for (const c of changes) {
     p.adaptations.push(c);
-    event(p, at, "cue", "adaptation", c.changed, c.learned);
+    // A new focus is already on the timeline as its own event.
+    if (c.field !== "focus") event(p, at, "cue", "adaptation", c.changed, c.learned);
   }
   return changes;
 }
@@ -141,8 +142,7 @@ function discover(p: Profile, at: string): Insight[] {
   );
   p.insights = [...keep, ...found.insights];
   const shown = [...found.fresh, ...found.strengthened].filter((i) => i.status !== "rejected");
-  for (const i of found.fresh)
-    event(p, at, "cue", "pattern", `Cue noticed: ${lowerFirst(i.statement)}`, i.detail);
+  for (const i of found.fresh) event(p, at, "cue", "pattern", `Cue noticed: ${lowerFirst(i.statement)}`, i.detail);
   return shown;
 }
 
@@ -199,7 +199,8 @@ export function learnFromSession(
   // REMEMBER --------------------------------------------------------------------
   p.sessions = [...p.sessions, digest].slice(-MAX_SESSIONS);
   p.interventions = [...p.interventions, ...interventions].slice(-MAX_INTERVENTIONS);
-  if (p.sessions.length === 1) event(p, at, "cue", "baseline", "Cue started learning how you speak", "Your first session.");
+  if (p.sessions.length === 1)
+    event(p, at, "cue", "baseline", "Cue started learning how you speak", "Your first session.");
 
   // The pace baseline for this mode: provisional after one session, settled after three.
   const base = paceBaseline(p, mode);
@@ -289,7 +290,8 @@ export function learnFromSession(
         statement: verdictText,
         detail: facts,
         confidence: Math.round(Math.max(eff.pBetter, 1 - eff.pBetter) * 100) / 100,
-        level: eff.verdict === "helps" && eff.pBetter > 0.97 ? "strong" : eff.verdict === "unclear" ? "emerging" : "likely",
+        level:
+          eff.verdict === "helps" && eff.pBetter > 0.97 ? "strong" : eff.verdict === "unclear" ? "emerging" : "likely",
         sessions: new Set(recordsFor(p.sessions, p.interventions, b, mode).map((r) => r.sessionId)).size,
         combination: false,
         updatedAt: at,
@@ -376,11 +378,25 @@ export function learnFromSession(
   if (f.current && hasGraduated(p)) {
     const done = f.current;
     f.graduated.push({ key: done, at });
-    event(p, at, "you", "improvement", GRADUATION_TEXT[done], `Your ${FOCUS_LABEL[done].toLowerCase()} improved by 30% or more since it became your focus.`);
+    event(
+      p,
+      at,
+      "you",
+      "improvement",
+      GRADUATION_TEXT[done],
+      `Your ${FOCUS_LABEL[done].toLowerCase()} improved by 30% or more since it became your focus.`,
+    );
     const next = recommendFocus(p, [done]);
     if (next && f.chosenBy === "cue") {
       setFocusState(p, next.key, "cue", next.why, at);
-      event(p, at, "cue", "focus", `Cue moved your focus to ${FOCUS_LABEL[next.key].toLowerCase()}`, `${GRADUATION_TEXT[done]} ${next.why}`);
+      event(
+        p,
+        at,
+        "cue",
+        "focus",
+        `Cue moved your focus to ${FOCUS_LABEL[next.key].toLowerCase()}`,
+        `${GRADUATION_TEXT[done]} ${next.why}`,
+      );
       candidates.push({
         priority: 5,
         update: {
@@ -408,7 +424,9 @@ export function learnFromSession(
       at,
       "cue",
       "baseline",
-      stage === "returning" ? "Cue now coaches you from your own baseline" : "Cue has enough history to fine-tune your coaching",
+      stage === "returning"
+        ? "Cue now coaches you from your own baseline"
+        : "Cue has enough history to fine-tune your coaching",
       stage === "returning"
         ? `${p.sessions.length} sessions in, Cue knows your usual pace, fillers and pauses.`
         : "Cue has judged enough taps to tell which ones help you.",
@@ -440,7 +458,13 @@ const RATING_TEXT: Record<Rating, string> = {
 };
 
 /** The wearer's verdict on one kind of tap in a session. */
-export function rateCues(prev: Profile, sessionId: string, b: CoachedBehavior, rating: Rating, at: string): LearnResult {
+export function rateCues(
+  prev: Profile,
+  sessionId: string,
+  b: CoachedBehavior,
+  rating: Rating,
+  at: string,
+): LearnResult {
   const p = clone(prev);
   const d = p.sessions.find((x) => x.id === sessionId);
   if (!d) return { profile: prev, update: null, adaptations: [] };
@@ -449,7 +473,14 @@ export function rateCues(prev: Profile, sessionId: string, b: CoachedBehavior, r
   const mode = d.mode;
   let cause: string | undefined;
   if (rating === "helpful") {
-    event(p, at, "cue", "preference", `You found ${REMINDER_NAME[b]} helpful`, `After your ${MODES_NAME[mode].slice(0, -1)} session.`);
+    event(
+      p,
+      at,
+      "cue",
+      "preference",
+      `You found ${REMINDER_NAME[b]} helpful`,
+      `After your ${MODES_NAME[mode].slice(0, -1)} session.`,
+    );
   } else {
     const why = `You said ${REMINDER_NAME[b]} were ${RATING_TEXT[rating]} ${MODE_IN[mode]}.`;
     upsertPref(p, {
@@ -481,7 +512,14 @@ export function rateCues(prev: Profile, sessionId: string, b: CoachedBehavior, r
         why: `You found taps distracting in ${distracting} sessions, so I guessed gentler taps would suit you. Confirm or correct me.`,
         at,
       });
-      event(p, at, "cue", "preference", "Cue inferred you prefer gentle vibrations", `Taps were distracting in ${distracting} sessions.`);
+      event(
+        p,
+        at,
+        "cue",
+        "preference",
+        "Cue inferred you prefer gentle vibrations",
+        `Taps were distracting in ${distracting} sessions.`,
+      );
     }
     cause = why;
   }
@@ -494,7 +532,10 @@ export function rateCues(prev: Profile, sessionId: string, b: CoachedBehavior, r
             update: {
               label: "Cue updated",
               text: `Got it. ${adaptations.map((a) => a.changed).join(" ")}`,
-              ref: { preference: p.preferences.find((x) => x.kind === "less_often" && x.behavior === b && x.mode === mode)?.id },
+              ref: {
+                preference: p.preferences.find((x) => x.kind === "less_often" && x.behavior === b && x.mode === mode)
+                  ?.id,
+              },
             },
           },
         ])
@@ -596,7 +637,12 @@ export function setPreference(prev: Profile, req: PreferenceRequest, at: string)
 }
 
 /** Confirm, reject or restore something Cue inferred (a pattern or a preference). */
-export function judgeItem(prev: Profile, id: string, verdict: "confirm" | "reject" | "restore", at: string): LearnResult {
+export function judgeItem(
+  prev: Profile,
+  id: string,
+  verdict: "confirm" | "reject" | "restore",
+  at: string,
+): LearnResult {
   const p = clone(prev);
   const status = verdict === "confirm" ? "confirmed" : verdict === "reject" ? "rejected" : "active";
   const ins = p.insights.find((i) => i.id === id);
@@ -648,9 +694,20 @@ export function chooseFocus(prev: Profile, key: FocusKey | null, at: string): Le
   } else {
     const rec = recommendFocus(p);
     setFocusState(p, rec?.key ?? null, "cue", rec?.why ?? "", at);
-    event(p, at, "cue", "focus", rec ? `Cue picked your focus: ${FOCUS_LABEL[rec.key].toLowerCase()}` : "Cue will pick a focus once it knows you", rec?.why ?? "It needs two sessions first.");
+    event(
+      p,
+      at,
+      "cue",
+      "focus",
+      rec ? `Cue picked your focus: ${FOCUS_LABEL[rec.key].toLowerCase()}` : "Cue will pick a focus once it knows you",
+      rec?.why ?? "It needs two sessions first.",
+    );
   }
-  return { profile: p, update: null, adaptations: replan(p, at, key ? `You chose ${FOCUS_LABEL[key].toLowerCase()} as your focus.` : undefined) };
+  return {
+    profile: p,
+    update: null,
+    adaptations: replan(p, at, key ? `You chose ${FOCUS_LABEL[key].toLowerCase()} as your focus.` : undefined),
+  };
 }
 
 /** "That's not right" on a Cue updated card: undo what it describes. */
@@ -666,15 +723,29 @@ export function correctUpdate(prev: Profile, updateId: string, at: string): Lear
     p.experimentsLog = p.experimentsLog.map((x): Experiment =>
       x.id === e.id ? { ...x, status: "kept_control", concludedAt: at, finding: "you said it didn’t suit you" } : x,
     );
-    event(p, at, "cue", "correction", `You corrected Cue about ${REMINDER_NAME[e.behavior]}`, "Cue went back to its usual approach.");
-    r = { profile: p, update: null, adaptations: replan(p, at, `You told me the change to ${REMINDER_NAME[e.behavior]} didn’t suit you.`) };
+    event(
+      p,
+      at,
+      "cue",
+      "correction",
+      `You corrected Cue about ${REMINDER_NAME[e.behavior]}`,
+      "Cue went back to its usual approach.",
+    );
+    r = {
+      profile: p,
+      update: null,
+      adaptations: replan(p, at, `You told me the change to ${REMINDER_NAME[e.behavior]} didn’t suit you.`),
+    };
   } else if (u.ref.focus) {
     const p = clone(prev);
     setFocusState(p, null, "you", "", at);
     event(p, at, "cue", "correction", "You turned down Cue’s focus", "Choose one yourself whenever you like.");
     r = { profile: p, update: null, adaptations: replan(p, at, "You turned down the focus I picked.") };
   }
-  r.profile = { ...r.profile, updates: r.profile.updates.map((x) => (x.id === updateId ? { ...x, status: "corrected" } : x)) };
+  r.profile = {
+    ...r.profile,
+    updates: r.profile.updates.map((x) => (x.id === updateId ? { ...x, status: "corrected" } : x)),
+  };
   return r;
 }
 
@@ -698,7 +769,7 @@ export function forgetSession(prev: Profile, sessionId: string, at: string): Lea
   p.sessions = p.sessions.filter((d) => d.id !== sessionId);
   p.interventions = p.interventions.filter((r) => r.sessionId !== sessionId);
   p.experimentsLog = p.experimentsLog.map((e) => ({ ...e, arms: e.arms.filter((a) => a.sessionId !== sessionId) }));
-  p.insights = p.insights.filter((i) => i.kind !== "baseline_pace" && !i.kind.startsWith("coaching:") ? true : false);
+  p.insights = p.insights.filter((i) => (i.kind !== "baseline_pace" && !i.kind.startsWith("coaching:") ? true : false));
   for (const mode of ["conversation", "presentation"] as const) {
     const base = paceBaseline(p, mode);
     if (base)
@@ -726,7 +797,11 @@ export function setLearning(p: Profile, on: boolean): Profile {
 export function setExperiments(prev: Profile, on: boolean, at: string): LearnResult {
   const p = clone(prev);
   p.experiments = on;
-  return { profile: p, update: null, adaptations: replan(p, at, on ? undefined : "You asked me not to hold back taps.") };
+  return {
+    profile: p,
+    update: null,
+    adaptations: replan(p, at, on ? undefined : "You asked me not to hold back taps."),
+  };
 }
 
 /** Forget everything. Settings (learning on, experiments on) are kept. */

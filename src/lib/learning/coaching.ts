@@ -85,7 +85,10 @@ export interface Reason {
 const rejected = (p: Profile, id: string) => p.insights.some((i) => i.id === id && i.status === "rejected");
 const activePrefs = (p: Profile) => p.preferences.filter((x) => x.status !== "rejected");
 
-export function derivePlan(p: Profile, prev: CoachingPlan = p.plan): { plan: CoachingPlan; reasons: Map<string, Reason> } {
+export function derivePlan(
+  p: Profile,
+  prev: CoachingPlan = p.plan,
+): { plan: CoachingPlan; reasons: Map<string, Reason> } {
   const plan = defaultPlan();
   const reasons = new Map<string, Reason>();
   const stage = stageOf(p);
@@ -318,4 +321,16 @@ function revertText(field: string): string {
   if (field.endsWith(".strategy")) return "I went back to my standard approach.";
   if (field.endsWith(".holdoutRate")) return "I no longer hold back taps on purpose.";
   return "I went back to the default.";
+}
+
+/**
+ * How Cue coaches this wearer differently from a new wearer, right now: every personalized value
+ * in the current plan, with what Cue learned and what it changed, and when it last changed.
+ */
+export function activeAdaptations(p: Profile): (Adaptation & { since: string | null })[] {
+  const { plan, reasons } = derivePlan(p, p.plan);
+  return diffPlans(defaultPlan(), plan, reasons, "now").map((a) => ({
+    ...a,
+    since: p.adaptations.findLast((x) => x.changed === a.changed)?.at ?? null,
+  }));
 }

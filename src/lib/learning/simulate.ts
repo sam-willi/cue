@@ -212,10 +212,21 @@ export function simulateSessions(
     profile?: Profile;
     mode?: CueMode;
     start?: Date;
-    rate?: (s: { index: number; taps: Record<string, number> }) => Partial<Record<"rushing" | "fillers" | "no_pause", Rating>>;
+    /** Time between simulated sessions (ms); a day and a half by default. */
+    spacing?: number;
+    rate?: (s: {
+      index: number;
+      taps: Record<string, number>;
+    }) => Partial<Record<"rushing" | "fillers" | "no_pause", Rating>>;
     sameSpeech?: boolean;
   },
-  rateCues?: (p: Profile, sessionId: string, b: "rushing" | "fillers" | "no_pause", r: Rating, at: string) => { profile: Profile; update: CueUpdate | null },
+  rateCues?: (
+    p: Profile,
+    sessionId: string,
+    b: "rushing" | "fillers" | "no_pause",
+    r: Rating,
+    at: string,
+  ) => { profile: Profile; update: CueUpdate | null },
 ): SimulatedRun {
   const start = opts.start ?? new Date("2026-10-01T18:00:00Z");
   let profile = opts.profile ?? emptyProfile(start.toISOString());
@@ -228,7 +239,7 @@ export function simulateSessions(
       plan,
       mode: opts.mode,
     });
-    const at = new Date(start.getTime() + k * 86400000 * 1.5).toISOString();
+    const at = new Date(start.getTime() + k * (opts.spacing ?? 86400000 * 1.5)).toISOString();
     const res = finishSession(profile, sim.session, { id: `sim-${at}`, at, source: "simulated" });
     profile = res.profile;
     let update = res.update;
