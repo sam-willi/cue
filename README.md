@@ -86,6 +86,17 @@ Pitch and volume need a microphone session. All of the report's thresholds are s
 
 A detection is withheld (not tapped) when confidence is too low, when it isn't a pattern yet, within the gap after the last tap, while muted, when its category is off, or when the behavior isn't live in the current mode. Withheld detections still show in the app's "Why Cue acted" log.
 
+### Continuous learning
+
+Cue learns each wearer across sessions and changes how it coaches them (decision 27, [`docs/continuous-learning.md`](docs/continuous-learning.md)): **observe** (a digest of numbers after each session) → **discover** (patterns that hold across sessions) → **remember** (a profile in this browser) → **adapt** (a personal coaching plan the live engine uses) → **evaluate** (taps against taps held back on purpose, strategies against each other) → **improve** (adopt what works, step back where you've improved, move your focus on).
+
+- **Your focus** under the controls: one skill at a time, picked from your sessions or by you.
+- **Cue updated** cards after a session, only when Cue learned or changed something, with "That's not right" to undo it.
+- **A check-in** after each session: were the taps helpful, too many, or distracting, and what kind of session it was.
+- **What Cue has learned**: your speaking patterns, your preferences, and how Cue has adapted (what it learned, what it changed), with controls to confirm, correct, pause, forget a session, or reset.
+- **Learning timeline**: how you've improved, and how Cue has improved at coaching you.
+- **Practice sandbox**: a separate memory for practice sentences and simulated speakers, so they never teach Cue about your real speech.
+
 ## Testing with AirPods
 
 Until the device exists, AirPods (or any headphones with a mic) can stand in for it in user tests. This is a testing
@@ -204,6 +215,9 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram Flux (v2/listen, flux-gene
 | `src/lib/cue/touch.ts`                | Touch gestures (hold = on/off, double-tap = mode)                                           |
 | `src/lib/cue/evaluate.ts`             | Scores saved sessions and training recordings for `npm run eval`                            |
 | `src/lib/cue/config.ts`               | Defaults and mode presets                                                                   |
+| `src/lib/cue/plan.ts`                 | The personal coaching plan the live engine reads (from continuous learning)                 |
+| `src/lib/learning/`                   | Continuous learning: digest, patterns, evaluation, plan, focus, the learning loop, storage  |
+| `src/app/learning/`                   | Your focus, Cue updated, the check-in, What Cue has learned, the learning timeline          |
 | `src/lib/deepgram/liveTranscriber.ts` | Mic capture and Deepgram WebSocket client                                                   |
 | `public/pcm-worklet.js`               | AudioWorklet that turns mic audio into 16 kHz PCM                                           |
 | `src/app/api/deepgram-token/route.ts` | Mints 30 s Deepgram tokens from the server's key; 503 when the server has none              |
@@ -226,7 +240,7 @@ mic ──AudioWorklet (16 kHz PCM)──▶ Deepgram Flux (v2/listen, flux-gene
 
 ## Privacy
 
-Live mode sends microphone audio to Deepgram for transcription. This is a disclosed exception for the MVP; the product is meant to move to on-device or phone-local recognition before launch ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 9). The coaching app stores nothing on a server: no audio, transcripts, or events leave the browser tab except as an explicit **Download session** file. The landing pages are separate: a sign-up sends the email address, market and ad tags to the sign-up sheet, and each visit is counted by Vercel Web Analytics without cookies (see Landing pages). What stays in your browser: your own Deepgram key if you entered one (see above) and one volume number per mode if you calibrated. **Training recordings** are opt-in, only possible under `npm run dev`, and are written to `./training/` on your machine (git-ignored). Don't commit session files or training recordings; they contain transcripts and audio.
+Live mode sends microphone audio to Deepgram for transcription. This is a disclosed exception for the MVP; the product is meant to move to on-device or phone-local recognition before launch ([`CUE_CONTEXT.md`](CUE_CONTEXT.md) §26, decision 9). The coaching app stores nothing on a server: no audio, transcripts, or events leave the browser tab except as an explicit **Download session** file. The landing pages are separate: a sign-up sends the email address, market and ad tags to the sign-up sheet, and each visit is counted by Vercel Web Analytics without cookies (see Landing pages). What stays in your browser: your own Deepgram key if you entered one (see above), one volume number per mode if you calibrated, and what Cue has learned about how you speak (numbers from each session, your filler words and a few phrases you repeat, your preferences; never audio or transcripts), which you can pause, correct, or reset in **What Cue has learned**. **Training recordings** are opt-in, only possible under `npm run dev`, and are written to `./training/` on your machine (git-ignored). Don't commit session files or training recordings; they contain transcripts and audio.
 
 ## Contributing
 

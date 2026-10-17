@@ -9,12 +9,9 @@
   --gutter: 24px;
   --wide: 1240px;
   /*
-   * The page's accent is satin champagne gold (owner, 2026-10-16), not the app's cobalt: it
-   * echoes the champagne finish. The deep gold is what rings, dots and focus outlines use (3.6:1
-   * on bone, past the 3:1 non-text minimum); the satin gradient is for the saving tag.
+   * The accent is the brand's champagne gold (globals.css, DESIGN.md §7), which first appeared
+   * here (owner, 2026-10-16). The satin gradient is this page's own, for the saving tag.
    */
-  --cue: #a47a47;
-  --cue-soft: rgba(201, 165, 116, 0.16);
   --satin: linear-gradient(135deg, #f1e1c5 0%, #d6b588 36%, #c49d6b 60%, #ecd8b4 100%);
   --on-satin: #2b2114;
   position: relative;
@@ -31,14 +28,6 @@
     --gutter: 16px;
   }
 }
-/* On ink, the gold is lifted so rings and outlines stay visible. */
-@media (prefers-color-scheme: dark) {
-  .page {
-    --cue: #d9b98a;
-    --cue-soft: rgba(217, 185, 138, 0.16);
-  }
-}
-
 .wrap {
   width: 100%;
   max-width: var(--wide);

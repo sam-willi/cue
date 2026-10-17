@@ -3,6 +3,14 @@ import { compileCustomFillers, matchCustomFiller } from "./customFillers";
 import { UH_FORMS, UM_FORMS } from "./lexicon";
 import { classifyLowkey, lowkeySpan } from "./lowkeyClassifier";
 import { DecisionEngine, type Moment, type Outcome } from "./engine";
+import {
+  FOCUS_BEHAVIOR,
+  PATIENT_EXTRA_SEC,
+  SUSTAINED_RUSH_SEC,
+  type CoachedBehavior,
+  type CoachingPlan,
+  type ModePlan,
+} from "./plan";
 import { PATTERNS, patternFor } from "./patterns";
 import { classifyLike, NEED_MORE } from "./likeClassifier";
 import { activeSpeechFrames, FRAME_SEC, median, noiseFloor, type LevelFrame } from "./loudness";
@@ -143,7 +151,9 @@ export class CueSession {
   private interimWords: Word[] = [];
   /** Every candidate already decided (cued, withheld, or judged not a filler). */
   private decided: { type: BehaviorType | "like_checked"; start: number; prev: string }[] = [];
-  private engine = new DecisionEngine(() => this.config);
+  /** The wearer's personal coaching plan from continuous learning, or null to coach with the defaults. */
+  plan: CoachingPlan | null;
+  private engine: DecisionEngine;
   private paceAboveSince: number | null = null;
   private paceSamples: number[] = [];
   private paceBaseline: number | null = null;
@@ -159,13 +169,40 @@ export class CueSession {
   readonly history: CueDecision[] = [];
   readonly likeChecks: LikeCheck[] = [];
 
-  constructor(config: Partial<CueConfig> = {}) {
+  constructor(config: Partial<CueConfig> = {}, opts: { plan?: CoachingPlan | null; random?: () => number } = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.plan = opts.plan ?? null;
+    this.engine = new DecisionEngine(
+      () => this.config,
+      () => this.modePlan(),
+      opts.random,
+    );
+  }
+
+  /** The plan for the current mode, if there is one. */
+  modePlan(): ModePlan | null {
+    return this.plan?.modes[this.config.mode] ?? null;
   }
 
   /** Taps the engine has made, with their outcomes once judged. */
   engineTaps() {
     return this.engine.taps;
+  }
+
+  /** Every tap that was due, including holdouts, with what was measured before and after. */
+  engineRecords() {
+    return this.engine.records;
+  }
+
+  /** Seconds without a pause before a "no pause" tap, after the plan's strategy. */
+  noPauseLimit(): number {
+    const extra = this.modePlan()?.behaviors.no_pause.strategy === "patient" ? PATIENT_EXTRA_SEC : 0;
+    return modeRules(this.config).noPauseSec + extra;
+  }
+
+  /** Seconds of one speaking turn before a "long turn" tap: personal when working on conciseness. */
+  longTurnLimit(): number {
+    return this.modePlan()?.longTurnSec ?? this.config.longTurnSec;
   }
 
   /**
@@ -418,18 +455,25 @@ export class CueSession {
     const paceLimit = this.paceLimit();
     const rushing = this.rushingActive(words, pace, paceLimit);
     const lastWord = words[words.length - 1];
-    const sustained = (type: BehaviorType, active: boolean, describe: () => SpeechEvent) => {
-      const d = this.engine.considerSustained(type, active, describe, moment);
-      if (d) decisions.push(d);
-    };
+    // Each behavior's decision, run below in priority order: the wearer's focus first, then the
+    // default order (rushing, no pause, fillers, long turn, too quiet; decision 11).
+    const steps: { behavior: CoachedBehavior; run: () => void }[] = [];
+    const sustained = (type: BehaviorType, active: boolean, describe: () => SpeechEvent) =>
+      steps.push({
+        behavior: type as CoachedBehavior,
+        run: () => {
+          const d = this.engine.considerSustained(type, active, describe, moment);
+          if (d) decisions.push(d);
+        },
+      });
     sustained("rushing", rushing, () => {
       const ev = this.event(
         "rushing",
         { ...lastWord, start: this.paceAboveSince ?? lastWord.start },
         0.9,
         `~${pace!.sps.toFixed(1)} syllables/s (≈${Math.round(pace!.wpm)} wpm) for ${Math.round(moment.now - (this.paceAboveSince ?? moment.now))} s; ${
-          this.paceBaseline !== null && this.config.paceMode !== "custom"
-            ? `your normal is ~${this.paceBaseline.toFixed(1)}`
+          this.knownBaseline() !== null && this.config.paceMode !== "custom"
+            ? `your normal is ~${this.knownBaseline()!.toFixed(1)}`
             : `limit ${paceLimit.toFixed(1)}`
         }`,
         words,
@@ -441,7 +485,7 @@ export class CueSession {
 
     const pausedAt = this.pauseEnd(words, moment.now);
     const sincePause = words.length ? moment.now - pausedAt : 0;
-    sustained("no_pause", sincePause >= modeRules(this.config).noPauseSec, () =>
+    sustained("no_pause", sincePause >= this.noPauseLimit(), () =>
       this.event(
         "no_pause",
         { ...lastWord, start: pausedAt },
@@ -452,10 +496,15 @@ export class CueSession {
       ),
     );
 
-    for (const ev of pendingDisfluencies) decisions.push(this.engine.considerDisfluency(ev, moment));
+    steps.push({
+      behavior: "fillers",
+      run: () => {
+        for (const ev of pendingDisfluencies) decisions.push(this.engine.considerDisfluency(ev, moment));
+      },
+    });
 
     const turn = words.length ? moment.now - turnStart(all, (w) => this.isWearerWord(w)) : 0;
-    sustained("long_turn", turn >= this.config.longTurnSec, () =>
+    sustained("long_turn", turn >= this.longTurnLimit(), () =>
       this.event(
         "long_turn",
         { ...lastWord, start: moment.now - turn },
@@ -469,20 +518,36 @@ export class CueSession {
     const { status: volume, quiet } = this.checkVolume(all, words);
     if (quiet) sustained("too_quiet", true, quiet);
     else sustained("too_quiet", false, () => null as never);
+    const first = this.plan?.focus ? FOCUS_BEHAVIOR[this.plan.focus] : null;
+    for (const step of steps) if (step.behavior === first) step.run();
+    for (const step of steps) if (step.behavior !== first) step.run();
 
     // --- Did earlier taps work? (SOFTWARE.md §13) -----------------------------
     const outcomes: { id: string; outcome: Outcome }[] = [];
+    // Holdouts are judged the same way, so taps can be compared with the moments Cue held back.
     for (const tap of this.engine.due(moment.now)) {
       const after = tap.at + this.config.outcomeWindowSec;
       let worked: boolean;
-      if (tap.reason === "rushing") worked = !rushing;
-      else if (tap.reason === "no_pause") worked = pausedAt > tap.at;
-      else if (tap.reason === "long_turn") worked = moment.now - turn > tap.at;
-      else if (tap.reason === "too_quiet") worked = !quiet;
-      else worked = this.engine.disfluenciesBetween(tap.at, after) === 0;
+      let post: number | undefined;
+      if (tap.reason === "rushing") {
+        worked = !rushing;
+        post = pace?.sps;
+      } else if (tap.reason === "no_pause") {
+        worked = pausedAt > tap.at;
+        post = sincePause;
+      } else if (tap.reason === "long_turn") {
+        worked = moment.now - turn > tap.at;
+        post = turn;
+      } else if (tap.reason === "too_quiet") {
+        worked = !quiet;
+        post = volume?.db ?? undefined;
+      } else {
+        worked = this.engine.disfluenciesBetween(tap.at, after) === 0;
+        post = this.engine.recentFillers(moment.now);
+      }
       const outcome: Outcome = worked ? "worked" : "no_change";
-      this.engine.resolve(tap, outcome);
-      outcomes.push({ id: tap.id, outcome });
+      this.engine.resolve(tap, outcome, post);
+      if (!tap.holdout) outcomes.push({ id: tap.id, outcome });
     }
 
     // The motor vibrates the moment a tap is delivered: mask the bone sensor for it.
@@ -495,7 +560,7 @@ export class CueSession {
     this.likeChecks.push(...likeChecks);
     const signals: Signals = {
       fillersLastMinute: this.engine.fillerRate(moment.now),
-      paceBaseline: this.paceBaseline,
+      paceBaseline: this.knownBaseline(),
       paceLimit,
       secondsSincePause: sincePause,
       turnSeconds: turn,
@@ -529,12 +594,21 @@ export class CueSession {
     if (speakingSecondsOf(words) >= this.config.paceBaselineSec) this.paceBaseline = median(this.paceSamples);
   }
 
+  /**
+   * The wearer's normal pace: from earlier sessions when the plan has it (so it holds from the first
+   * word), else learned from this session's first minute.
+   */
+  private knownBaseline(): number | null {
+    return this.modePlan()?.paceBaselineSps ?? this.paceBaseline;
+  }
+
   /** Rushing threshold: relative to the wearer's normal once learned (SOFTWARE.md §8). */
   paceLimit(): number {
     const c = this.config;
-    if (c.paceMode === "custom" || this.paceBaseline === null) return c.paceThreshold;
+    const baseline = this.knownBaseline();
+    if (c.paceMode === "custom" || baseline === null) return c.paceThreshold;
     const rise = c.mode === "presentation" ? PACE_RISE.presentation : PACE_RISE.conversation;
-    return Math.min(PACE_CEILING, Math.max(PACE_FLOOR, this.paceBaseline * rise));
+    return Math.min(PACE_CEILING, Math.max(PACE_FLOOR, baseline * rise));
   }
 
   private rushingActive(words: Word[], pace: Pace | null, limit: number): boolean {
@@ -546,7 +620,10 @@ export class CueSession {
     }
     if (pace.sps > limit) this.paceAboveSince ??= now;
     // A borderline pace has to hold for the full time; far over the limit, half of it is proof enough.
-    const sustain = this.config.paceSustainSec * (pace.sps >= limit * PACE_CLEAR ? 0.5 : 1);
+    // The "sustained" strategy waits for a longer stretch of rushing before it says anything.
+    const base =
+      this.modePlan()?.behaviors.rushing.strategy === "sustained" ? SUSTAINED_RUSH_SEC : this.config.paceSustainSec;
+    const sustain = base * (pace.sps >= limit * PACE_CLEAR ? 0.5 : 1);
     return this.paceAboveSince !== null && now - this.paceAboveSince >= sustain;
   }
 

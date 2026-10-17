@@ -188,7 +188,7 @@ export default function DeviceModel({
 
       const css = getComputedStyle(document.documentElement);
       const colors = {
-        cue: new THREE.Color(css.getPropertyValue("--cue").trim() || "#2437d8"),
+        cue: new THREE.Color(css.getPropertyValue("--cue").trim() || "#a47a47"),
         neutral: new THREE.Color(css.getPropertyValue("--neutral").trim() || "#5f5b56"),
       };
 
@@ -282,7 +282,7 @@ export default function DeviceModel({
       const scheme = window.matchMedia("(prefers-color-scheme: dark)");
       const recolor = () => {
         const s = getComputedStyle(document.documentElement);
-        colors.cue.set(s.getPropertyValue("--cue").trim() || "#2437d8");
+        colors.cue.set(s.getPropertyValue("--cue").trim() || "#a47a47");
         colors.neutral.set(s.getPropertyValue("--neutral").trim() || "#5f5b56");
       };
       scheme.addEventListener("change", recolor);
