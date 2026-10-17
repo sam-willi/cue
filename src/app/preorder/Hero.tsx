@@ -32,25 +32,20 @@ function Letters({ text, start }: { text: string; start: number }) {
 /**
  * The opening, set like a poster: the headline arrives letter by letter, right-aligned, with the
  * product cut-outs tilted around it and running off the page. Once the words land, the graphite
- * Cue taps, once, and the answer appears under the headline.
+ * Cue taps, once.
  */
 export default function Hero({ placesLeft }: { placesLeft: number | null }) {
-  const [tapped, setTapped] = useState(false);
   const [play, setPlay] = useState<CuePlay | null>(null);
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const revealed = reduce ? 300 : 120 + 20 * 32 + 600;
     const tap = window.setTimeout(() => setPlay({ pattern: "tap", n: 1 }), revealed);
-    const note = window.setTimeout(() => setTapped(true), revealed + 180);
-    return () => {
-      window.clearTimeout(tap);
-      window.clearTimeout(note);
-    };
+    return () => window.clearTimeout(tap);
   }, []);
 
   return (
-    <section id="hero" className={`${s.hero} ${tapped ? s.caught : ""}`}>
+    <section id="hero" className={s.hero}>
       <div className={s.stage}>
         <Cutout
           color="graphite"
@@ -73,9 +68,6 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
               <Letters text="speaking." start={10} />
             </span>
           </h1>
-          <p className={s.caughtNote} aria-hidden="true">
-            <span className={s.dot} /> one tap. you’ll suck less.
-          </p>
         </div>
       </div>
 
