@@ -1,4 +1,5 @@
 import { modeRules, PRESENTATION, isPresentation, type CueConfig } from "./config";
+import { behaviorOf, SUSTAINED_RETAP_SCALE, type CoachedBehavior, type ModePlan, type Strategy } from "./plan";
 import type { BehaviorType, CueDecision, SpeechEvent } from "./types";
 
 /**
@@ -16,6 +17,10 @@ import type { BehaviorType, CueDecision, SpeechEvent } from "./types";
  *  - Only confident detections count (§14).
  *  - It checks whether each tap worked (the user paused, slowed, spoke up); if it did,
  *    it waits longer before tapping for that behavior again (§13, §17).
+ *  - With a personal coaching plan (`plan.ts`, written by continuous learning), each behavior can
+ *    be switched off at the wearer's request, tapped less often, coached with another strategy,
+ *    and, now and then, held back on purpose (a "holdout") so Cue can tell whether its taps help
+ *    or whether the wearer would have corrected course anyway.
  */
 
 export type TapReason =
@@ -27,6 +32,17 @@ export interface TapRecord {
   reason: TapReason;
   at: number;
   outcome?: Outcome;
+  behavior: CoachedBehavior;
+  strategy: Strategy;
+  /** True when the tap was due but held back on purpose, to compare against real taps. */
+  holdout?: boolean;
+  /**
+   * The behavior's measure just before the tap and once its outcome was judged: pace in
+   * syllables/s for rushing, fillers in the last 30 s, seconds without a pause, turn length in
+   * seconds, or speaking level in dBFS.
+   */
+  pre?: number;
+  post?: number;
 }
 
 export const DISFLUENCIES: BehaviorType[] = ["filler_um", "filler_uh", "filler_like", "filler_lowkey", "filler_custom"];
@@ -54,6 +70,8 @@ const MAX_WAIT_FOR_BREAK = 3;
 const MAX_WAIT_FOR_BREAK_RUSHING = 1;
 /** The rate window for filler density, seconds. */
 const DENSITY_WINDOW = 60;
+/** Fillers counted this far back (s) to describe the speech just before a filler tap. */
+const PRE_FILLER_WINDOW = 30;
 
 export interface Moment {
   /** Engine-clock time of the latest speech. */
@@ -63,15 +81,35 @@ export interface Moment {
 }
 
 export class DecisionEngine {
-  readonly taps: TapRecord[] = [];
+  /** Every tap that was due: delivered taps and holdouts, in order. */
+  readonly records: TapRecord[] = [];
   private evidence: { t: number; weight: number }[] = []; // counted disfluencies
   private evidenceSince = -Infinity; // disfluencies before the last pattern tap don't count again
   private lastTapAt = -Infinity;
   private lastTapByReason = new Map<TapReason, TapRecord>();
+  private lastTapByBehavior = new Map<CoachedBehavior, number>();
   /** Per sustained behavior: when its current episode started waiting, and whether it's been handled. */
   private episodes = new Map<BehaviorType, { waitingSince: number; handledAt: number | null; loggedHold: boolean }>();
 
-  constructor(private config: () => CueConfig) {}
+  constructor(
+    private config: () => CueConfig,
+    private plan: () => ModePlan | null = () => null,
+    private random: () => number = Math.random,
+  ) {}
+
+  /** Taps actually delivered (holdouts left out). */
+  get taps(): TapRecord[] {
+    return this.records.filter((t) => !t.holdout);
+  }
+
+  private behaviorPlan(b: CoachedBehavior) {
+    return this.plan()?.behaviors[b] ?? null;
+  }
+
+  /** The strategy in use for a behavior: the plan's, or the default. */
+  strategyFor(b: CoachedBehavior): Strategy {
+    return this.behaviorPlan(b)?.strategy ?? (b === "rushing" ? "prompt" : b === "fillers" ? "cluster" : "standard");
+  }
 
   /** A disfluency was detected. Returns its decision: tapped as a pattern, or held. */
   considerDisfluency(event: SpeechEvent, m: Moment): CueDecision {
@@ -106,7 +144,9 @@ export class DecisionEngine {
       const counted = this.evidence.filter((e) => e.t > this.evidenceSince).map((e) => e.t);
       const inCluster = counted.filter((t) => t >= m.now - c.clusterWindowSec);
       const inMinute = counted.filter((t) => t >= m.now - DENSITY_WINDOW);
-      if (inCluster.length >= c.clusterCount) {
+      // The "rate" strategy leaves clusters alone and taps only for a high rate: fewer taps.
+      const clusters = this.strategyFor("fillers") !== "rate";
+      if (clusters && inCluster.length >= c.clusterCount) {
         reason = "filler_cluster";
         why = `${inCluster.length} in ${Math.max(1, Math.round(m.now - inCluster[0]))} s`;
       } else if (inMinute.length >= c.densityPerMin) {
@@ -117,14 +157,17 @@ export class DecisionEngine {
           event,
           delivered: false,
           withheldReason: "not_a_pattern",
-          trigger: `${inCluster.length} of ${c.clusterCount} within ${c.clusterWindowSec} s`,
+          trigger: clusters
+            ? `${inCluster.length} of ${c.clusterCount} within ${c.clusterWindowSec} s`
+            : `${inMinute.length} of ${c.densityPerMin} in a minute`,
         };
       }
     }
     const cooldown = this.cooldownFor(reason, m.now);
     if (cooldown) return { event, delivered: false, withheldReason: "cooldown", trigger: why || undefined };
+    const pre = this.evidence.filter((e) => e.t >= m.now - PRE_FILLER_WINDOW).length;
     this.evidenceSince = m.now;
-    return this.tap(event, reason, m.now, why);
+    return this.tap(event, reason, m.now, why, pre);
   }
 
   /**
@@ -142,7 +185,12 @@ export class DecisionEngine {
     this.episodes.set(type, state);
     const reason = type as TapReason;
     // Still the same episode after a tap: only tap again if it persists well past it (§13).
-    if (state.handledAt !== null && m.now - state.handledAt < c.reTapAfterSec) return null;
+    const behavior = behaviorOf(type);
+    const reTap =
+      c.reTapAfterSec *
+      (this.behaviorPlan(behavior)?.gapScale ?? 1) *
+      (this.strategyFor(behavior) === "sustained" ? SUSTAINED_RETAP_SCALE : 1);
+    if (state.handledAt !== null && m.now - state.handledAt < reTap) return null;
 
     const ev = event();
     const held = this.gate(ev) ?? (this.cooldownFor(reason, m.now) ? "cooldown" : undefined);
@@ -156,17 +204,23 @@ export class DecisionEngine {
     if (!m.atBreak && m.now - state.waitingSince < maxWait) return null;
     state.handledAt = m.now;
     state.waitingSince = m.now;
-    return this.tap(ev, reason, m.now, "");
+    return this.tap(ev, reason, m.now, "", preMeasure(ev));
   }
 
-  /** Record how a tap turned out, once its outcome window has passed. */
-  resolve(tap: TapRecord, outcome: Outcome) {
+  /** Record how a tap (or a holdout) turned out, once its outcome window has passed. */
+  resolve(tap: TapRecord, outcome: Outcome, post?: number) {
     tap.outcome = outcome;
+    if (post !== undefined) tap.post = post;
   }
 
-  /** Taps whose outcome window has passed but haven't been judged yet. */
+  /** Taps and holdouts whose outcome window has passed but haven't been judged yet. */
   due(now: number): TapRecord[] {
-    return this.taps.filter((t) => !t.outcome && now - t.at >= this.config().outcomeWindowSec);
+    return this.records.filter((t) => !t.outcome && now - t.at >= this.config().outcomeWindowSec);
+  }
+
+  /** Counted disfluencies in the 30 s before `now`, the same measure a filler tap records as `pre`. */
+  recentFillers(now: number): number {
+    return this.evidence.filter((e) => e.t >= now - PRE_FILLER_WINDOW && e.t <= now).length;
   }
 
   /** Disfluencies counted in (from, to]. */
@@ -182,6 +236,7 @@ export class DecisionEngine {
   private gate(event: SpeechEvent): CueDecision["withheldReason"] {
     const c = this.config();
     if (!c.categories[CATEGORY[event.type]]) return "category_off";
+    if (this.behaviorPlan(behaviorOf(event.type))?.enabled === false) return "preference";
     if (event.type === "too_quiet" && !c.volumeCues[c.mode]) return "category_off";
     if (isPresentation(c) && (PRESENTATION.notLive as readonly BehaviorType[]).includes(event.type)) return "mode_off";
     if (event.confidence < c.minConfidence) return "low_confidence";
@@ -201,14 +256,41 @@ export class DecisionEngine {
     // If the last tap for this same behavior worked, give the user more room before the next.
     const last = this.lastTapByReason.get(reason);
     if (last?.outcome === "worked" && now - last.at < base * WORKED_PATIENCE) return true;
+    // A plan that taps a behavior less often keeps a longer gap between its own taps.
+    const behavior = behaviorOfReason(reason);
+    const scale = this.behaviorPlan(behavior)?.gapScale ?? 1;
+    const lastSame = this.lastTapByBehavior.get(behavior);
+    if (scale > 1 && lastSame !== undefined && now - lastSame < base * scale) return true;
     return false;
   }
 
-  private tap(event: SpeechEvent, reason: TapReason, now: number, why: string): CueDecision {
-    const record: TapRecord = { id: event.id, reason, at: now };
-    this.taps.push(record);
+  private tap(event: SpeechEvent, reason: TapReason, now: number, why: string, pre?: number): CueDecision {
+    const behavior = behaviorOf(event.type);
+    const strategy = this.strategyFor(behavior);
+    const record: TapRecord = { id: event.id, reason, at: now, behavior, strategy, pre };
+    this.records.push(record);
+    // A holdout: the tap was due, and is held back on purpose so its outcome can be compared with
+    // real taps'. It still counts as handled (the episode, the filler pattern) but not as a tap,
+    // so it doesn't start a cooldown the wearer never felt.
+    const holdoutRate = this.behaviorPlan(behavior)?.holdoutRate ?? 0;
+    if (holdoutRate > 0 && this.random() < holdoutRate) {
+      record.holdout = true;
+      return { event, delivered: false, withheldReason: "holdout", trigger: why || undefined, tapReason: reason, strategy };
+    }
     this.lastTapAt = now;
     this.lastTapByReason.set(reason, record);
-    return { event, delivered: true, trigger: why || undefined, tapReason: reason };
+    this.lastTapByBehavior.set(behavior, now);
+    return { event, delivered: true, trigger: why || undefined, tapReason: reason, strategy };
   }
+}
+
+const behaviorOfReason = (r: TapReason): CoachedBehavior =>
+  r === "filler" || r.startsWith("filler_") ? "fillers" : (r as CoachedBehavior);
+
+/** The behavior's measure at the moment a sustained cue is due, from the event that describes it. */
+function preMeasure(ev: SpeechEvent): number | undefined {
+  if (ev.type === "rushing") return ev.pace?.sps;
+  if (ev.type === "too_quiet") return ev.level?.db;
+  if (ev.type === "no_pause" || ev.type === "long_turn") return ev.end - ev.start;
+  return undefined;
 }
