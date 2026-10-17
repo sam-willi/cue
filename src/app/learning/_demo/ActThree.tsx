@@ -65,7 +65,10 @@ export default function ActThree() {
         <span aria-hidden>▶</span> {busy ? "Running 20 sessions…" : run ? "Run again" : "Run 20 sessions"}
       </button>
       {run && ex && (
-        <div className="mt-6 flex max-w-3xl flex-col gap-3" aria-live="polite">
+        <div
+          className="mt-6 flex max-w-3xl flex-col gap-3 [--old-strategy:var(--neutral)] dark:[--old-strategy:#7d7871]"
+          aria-live="polite"
+        >
           <div className={CARD}>
             <p className="text-label font-semibold">Slow-down taps, session by session</p>
             <div className="mt-4">

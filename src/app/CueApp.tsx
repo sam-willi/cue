@@ -1004,8 +1004,8 @@ export default function CueApp() {
                           ? "italic text-muted/70"
                           : d
                             ? d.delivered
-                              ? "rounded bg-cue-soft px-1 text-cue"
-                              : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
+                              ? "rounded bg-cue-soft px-1 text-cue-ink"
+                              : "rounded px-1 text-cue-ink outline-1 outline-dashed outline-cue"
                             : undefined
                       }
                     >
@@ -1200,8 +1200,8 @@ export default function CueApp() {
                       const fix = corrected.get(wordKey(w.start));
                       const base = d
                         ? d.delivered
-                          ? "rounded bg-cue-soft px-1 text-cue"
-                          : "rounded px-1 text-cue outline-1 outline-dashed outline-cue"
+                          ? "rounded bg-cue-soft px-1 text-cue-ink"
+                          : "rounded px-1 text-cue-ink outline-1 outline-dashed outline-cue"
                         : c
                           ? "rounded bg-surface-2 px-1"
                           : "";
@@ -1255,7 +1255,7 @@ export default function CueApp() {
                         <li key={key} className="py-4 text-body">
                           <p className="font-medium">
                             {capitalize(labelFor(d.event))}{" "}
-                            <span className={`font-normal ${d.delivered ? "text-cue" : "text-muted"}`}>
+                            <span className={`font-normal ${d.delivered ? "text-cue-ink" : "text-muted"}`}>
                               {d.delivered
                                 ? `tapped${d.trigger ? `: ${d.trigger}` : ""}${
                                     outcomes[d.event.id] === "worked"
@@ -1467,7 +1467,7 @@ export default function CueApp() {
                               type="button"
                               aria-pressed={marked}
                               onClick={() => toggleFillerMark(w.start)}
-                              className={`rounded px-1 ${marked ? "bg-cue text-bg" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
+                              className={`rounded px-1 ${marked ? "bg-cue text-on-cue" : "hover:bg-surface-2"} ${now ? "outline-2 outline-text" : ""}`}
                             >
                               {w.text}
                             </button>{" "}
@@ -2297,10 +2297,10 @@ function TranscriptKey() {
       aria-label="What the transcript markings mean"
     >
       <li>
-        <span className="rounded bg-cue-soft px-1 text-cue">like</span> cued
+        <span className="rounded bg-cue-soft px-1 text-cue-ink">like</span> cued
       </li>
       <li>
-        <span className="rounded px-1 text-cue outline-1 outline-dashed outline-cue">like</span> noticed, held back
+        <span className="rounded px-1 text-cue-ink outline-1 outline-dashed outline-cue">like</span> noticed, held back
       </li>
       <li>
         <span className="rounded bg-surface-2 px-1 text-text">like</span> not a filler

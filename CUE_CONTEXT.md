@@ -2,7 +2,7 @@
 
 > **Purpose:** This document is the canonical source of truth for coding, hardware, design, research, marketing, and strategy agents working on Cue. Software behavior is specified in [`SOFTWARE.md`](./SOFTWARE.md); visual design in [`DESIGN.md`](./DESIGN.md). Read it before proposing or implementing work. If another artifact conflicts with this one, use this document unless a human owner explicitly supersedes it.
 >
-> **Last updated:** 2026-10-05 (see §26 Decision log)  
+> **Last updated:** 2026-10-17 (see §26 Decision log)  
 > **Maturity:** Product concept / validation and prototyping  
 > **Not a claim of:** production readiness, medical efficacy, patent clearance, manufacturability, or validated technical feasibility.
 
@@ -783,6 +783,10 @@ Cue is a **single, discreet behind-the-ear (BTE) device** with a satin metallic 
 ## 26. Decision log
 
 Changes to **[CONFIRMED]** decisions, newest first (rule 10 in §24).
+
+### 2026-10-17 — Champagne gold
+
+28. **Champagne gold is Cue's one accent color, everywhere.** Amends `DESIGN.md` §7, where cobalt was the provisional product accent. *Rationale:* owner request: the soft gold first used on the preorder page, echoing the Champagne colorway, is the brand color, not the purple-reading cobalt. *Consequences:* gold marks coaching cues and selected state in the app, and is the accent for the site and brand work. Because the soft gold (`#A47A47`) is 3.5:1 on bone, it is for marks and fills; accent text on light uses a deeper step (`#7F5D33`), dark mode uses `#D9B98A` for both, and text on a gold fill is ink. Cobalt, oxblood and chartreuse are retired as accents. Audience landing pages keep their own palettes, and the report keeps its area colors (decision 26).
 
 ### 2026-10-16 — Continuous learning
 

@@ -54,7 +54,7 @@ export default function TapsChart({
                 height={H - PAD.top - PAD.bottom + 6}
                 fill="var(--cue-soft)"
               />
-              <text x={bandFrom + 4} y={PAD.top - 12} fill="var(--cue)" fontWeight={600}>
+              <text x={bandFrom + 4} y={PAD.top - 12} fill="var(--cue-ink)" fontWeight={600}>
                 Testing
               </text>
             </>
@@ -69,7 +69,7 @@ export default function TapsChart({
                 stroke="var(--cue)"
                 strokeWidth={1.5}
               />
-              <text x={bandTo + 4} y={PAD.top - 12} fill="var(--cue)" fontWeight={600}>
+              <text x={bandTo + 4} y={PAD.top - 12} fill="var(--cue-ink)" fontWeight={600}>
                 Adopted
               </text>
             </>
@@ -84,7 +84,8 @@ export default function TapsChart({
           ))}
           {run.sessions.map((s) => {
             const cx = x(s.index) + (slot - bar) / 2;
-            const fill = s.strategy === "sustained" ? "var(--cue)" : "var(--neutral)";
+            // The old strategy is gray (--old-strategy, set by the act), darker than the gold on ink.
+            const fill = s.strategy === "sustained" ? "var(--cue)" : "var(--old-strategy)";
             if (s.index > shown) return null;
             return (
               <g key={s.index}>
@@ -120,7 +121,7 @@ export function TapsLegend() {
   return (
     <ul className="flex flex-wrap gap-x-5 gap-y-1 text-caption text-muted">
       <li className="flex items-center gap-1.5">
-        <span className="size-2.5 rounded-sm bg-neutral" /> Tap after a few seconds of rushing
+        <span className="size-2.5 rounded-sm bg-[var(--old-strategy)]" /> Tap after a few seconds of rushing
       </li>
       <li className="flex items-center gap-1.5">
         <span className="size-2.5 rounded-sm bg-cue" /> Tap only for longer stretches

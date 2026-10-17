@@ -236,7 +236,7 @@ export function CueUpdateCard({ learning }: { learning: Learning }) {
       className="cue-card mt-8 w-full rounded-[28px] border border-line bg-surface p-6 text-left sm:p-7"
       role="status"
     >
-      <p className="flex items-center gap-2 text-caption font-medium uppercase tracking-[0.08em] text-cue">
+      <p className="flex items-center gap-2 text-caption font-medium uppercase tracking-[0.08em] text-cue-ink">
         <span aria-hidden className="size-2 rounded-full bg-cue" />
         {update.label}
         {which === "sandbox" && (

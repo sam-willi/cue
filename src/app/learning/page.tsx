@@ -36,7 +36,7 @@ export default function LearningDemoPage() {
         />
       </Link>
       <header className="mt-12 sm:mt-20">
-        <p className="text-label font-medium uppercase tracking-[0.08em] text-cue">Continuous learning</p>
+        <p className="text-label font-medium uppercase tracking-[0.08em] text-cue-ink">Continuous learning</p>
         <h1 className="mt-3 text-display-xl-m font-semibold tracking-[-0.03em] sm:text-display-xl">Cue learns you.</h1>
         <p className="mt-5 max-w-2xl text-body-lg-m text-muted sm:text-body-lg">
           Every session teaches Cue something about how you speak, and the next session is coached differently because

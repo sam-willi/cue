@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Tokens from DESIGN.md §7 and §19. One accent family per composition: cobalt marks
+ * Tokens from DESIGN.md §7 and §19. One accent family per composition: champagne gold marks
  * coaching cues and selected state; everything else is warm neutral.
  */
 :root {
@@ -13,8 +13,15 @@
   --muted: #5f5b56; /* stone-700: secondary text, passes AA on bone/white */
   --neutral: #5f5b56; /* meters, confirmations (non-accent emphasis) */
   --neutral-soft: rgba(159, 154, 147, 0.28); /* warm-gray-500 wash */
-  --cue: #2437d8; /* signal-cobalt */
-  --cue-soft: rgba(36, 55, 216, 0.1);
+  /*
+   * Champagne gold, the brand accent everywhere (owner, 2026-10-17). The soft gold is for marks,
+   * fills, rings and outlines (3.5:1 on bone, past the 3:1 non-text minimum); accent text uses
+   * the deeper step (5.4:1), and text on a gold fill is ink (4.9:1).
+   */
+  --cue: #a47a47; /* champagne-gold */
+  --cue-ink: #7f5d33; /* champagne-deep */
+  --cue-soft: rgba(201, 165, 116, 0.16);
+  --on-cue: #111111;
   /*
    * The report's area colors (CUE_CONTEXT.md decision 26): a rainbow, in order round the score
    * ring. Checked with a palette validator on both themes' backgrounds: every neighboring pair
@@ -42,8 +49,10 @@
     --muted: #b9b4ac; /* warm gray, lifted */
     --neutral: #c9c4bc;
     --neutral-soft: rgba(201, 196, 188, 0.18);
-    --cue: #8c9bff; /* cobalt, lifted for contrast on ink (provisional) */
-    --cue-soft: rgba(140, 155, 255, 0.16);
+    /* Gold, lifted for ink: one step serves marks and text (10:1 on ink). */
+    --cue: #d9b98a; /* champagne-lifted */
+    --cue-ink: #d9b98a;
+    --cue-soft: rgba(217, 185, 138, 0.16);
     /* The same rainbow, lifted for the dark background. */
     --area-pauses: #ff453a;
     --area-pace: #ff9f0a;
@@ -63,7 +72,9 @@
   --color-neutral: var(--neutral);
   --color-neutral-soft: var(--neutral-soft);
   --color-cue: var(--cue);
+  --color-cue-ink: var(--cue-ink);
   --color-cue-soft: var(--cue-soft);
+  --color-on-cue: var(--on-cue);
   /* The primary button and field outlines; landing themes below restyle them. */
   --color-action: var(--action, var(--text));
   --color-on-action: var(--on-action, var(--bg));

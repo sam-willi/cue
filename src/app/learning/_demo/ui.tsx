@@ -5,7 +5,7 @@ import { STEPS, type Step } from "./shared";
 /** A numbered step from the loop, as a small badge. */
 export function StepBadge({ step }: { step: Step }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-cue-soft py-1 pl-1 pr-2.5 text-label font-medium text-cue">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-cue-soft py-1 pl-1 pr-2.5 text-label font-medium text-cue-ink">
       <span className="flex size-5 items-center justify-center rounded-full bg-surface font-mono text-caption">
         {STEPS.indexOf(step) + 1}
       </span>
@@ -48,7 +48,7 @@ export function Act({
 export function CueSays({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="rounded-card border border-cue/30 bg-cue-soft p-5">
-      <p className="text-label font-semibold text-cue">{label}</p>
+      <p className="text-label font-semibold text-cue-ink">{label}</p>
       <div className="mt-2 text-body">{children}</div>
     </div>
   );

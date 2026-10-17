@@ -16,7 +16,7 @@ export default function Loop() {
       <ol className="grid gap-6 lg:grid-cols-6 lg:gap-4">
         {STEPS.map((s, k) => (
           <li key={s} className="relative rounded-card border border-line bg-surface p-4">
-            <span className="flex size-7 items-center justify-center rounded-full bg-cue-soft font-mono text-label text-cue">
+            <span className="flex size-7 items-center justify-center rounded-full bg-cue-soft font-mono text-label text-cue-ink">
               {k + 1}
             </span>
             <h3 className="mt-2 text-title-m font-semibold">{s}</h3>
@@ -24,7 +24,7 @@ export default function Loop() {
             {k < STEPS.length - 1 && (
               <span
                 aria-hidden
-                className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-cue lg:-right-3.5 lg:bottom-auto lg:left-auto lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
+                className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-cue-ink lg:-right-3.5 lg:bottom-auto lg:left-auto lg:top-1/2 lg:-translate-y-1/2 lg:translate-x-0"
               >
                 <span className="lg:hidden">↓</span>
                 <span className="hidden lg:inline">→</span>
@@ -34,7 +34,7 @@ export default function Loop() {
         ))}
       </ol>
       <div className="mt-3 flex items-center gap-2 rounded-card border border-dashed border-cue/40 px-4 py-3 text-body-sm text-muted">
-        <span aria-hidden className="text-title text-cue">
+        <span aria-hidden className="text-title text-cue-ink">
           ↺
         </span>
         Back to Observe: the next session is coached with the new plan, and Cue learns from that one too.

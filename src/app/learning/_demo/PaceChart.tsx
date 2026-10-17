@@ -100,7 +100,12 @@ export default function PaceChart({
             />
           </g>
           {learned && (
-            <text x={x(learned.t) + 6} y={y(Math.max(learned.wpm, before.wpm)) - 6} fill="var(--cue)" fontWeight={600}>
+            <text
+              x={x(learned.t) + 6}
+              y={y(Math.max(learned.wpm, before.wpm)) - 6}
+              fill="var(--cue-ink)"
+              fontWeight={600}
+            >
               Cue learns their pace
             </text>
           )}

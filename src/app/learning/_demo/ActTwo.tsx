@@ -60,7 +60,7 @@ export default function ActTwo() {
                 aria-pressed={rating === r.value}
                 onClick={() => rate(r.value)}
                 className={`${CHIP} ${
-                  rating === r.value ? "border-cue bg-cue text-bg" : "border-field bg-surface hover:border-cue"
+                  rating === r.value ? "border-cue bg-cue text-on-cue" : "border-field bg-surface hover:border-cue"
                 }`}
               >
                 {r.label}

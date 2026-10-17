@@ -3,7 +3,7 @@
 > **Purpose:** Canonical visual and interaction design guidance for Cue. Product, brand, UI, marketing, industrial-design, and image-generation work should follow this file together with [`CUE_CONTEXT.md`](./CUE_CONTEXT.md).
 >
 > **Status:** Direction approved; production artwork remains to be drawn and validated.  
-> **Last updated:** 2026-10-05 (five haptic cues, the 3D device view, and dark-mode app tokens synced with `CUE_CONTEXT.md` §26; see §25)
+> **Last updated:** 2026-10-17 (champagne gold is the brand accent everywhere, replacing cobalt; `CUE_CONTEXT.md` §26 decision 28; see §25)
 
 ## Contents
 
@@ -281,24 +281,28 @@ Never:
 
 ### Accent palette
 
-**[PROVISIONAL]** Use only one primary accent family in a given composition.
+**[CONFIRMED — owner, 2026-10-17]** Cue has one accent: **champagne gold**, the satin warm gold of the Champagne colorway. Use it everywhere the brand needs an accent: the product app, the website, campaigns and packaging. It replaces cobalt.
 
-| Token | Hex | Character | Recommended use |
-|---|---:|---|---|
-| `signal-cobalt` | `#2437D8` | Clear, capable, digital | Links, selected states, restrained campaign accent |
-| `signal-oxblood` | `#7A1E2C` | Mature, editorial, assured | Special brand moments and premium packaging |
-| `signal-chartreuse` | `#B7E533` | Energetic, visible, youthful | Tiny hardware/UI signal only; never large backgrounds |
+| Token | Hex | Use |
+|---|---:|---|
+| `champagne-gold` | `#A47A47` | The accent on light backgrounds: coaching cues, selected states, rings, dots, chart marks, fills, focus outlines. 3.5:1 on bone (past the 3:1 non-text minimum), so not for small text. |
+| `champagne-deep` | `#7F5D33` | Accent **text** on light backgrounds (5.4:1 on bone, 6.0:1 on white). |
+| `champagne-lifted` | `#D9B98A` | The accent on dark backgrounds, for marks and text alike (10:1 on ink). |
+| `champagne-soft` | `rgba(201, 165, 116, 0.16)` | Tinted backgrounds behind accent text or chips (`rgba(217, 185, 138, 0.16)` on dark). |
+| `satin` | gradient `#F1E1C5` → `#D6B588` → `#C49D6B` → `#ECD8B4` | Special tags only, like the preorder saving, with `#2B2114` text. |
 
-Default recommendation: start with **cobalt** for product UI. Keep oxblood and chartreuse as controlled campaign or colorway accents until brand testing identifies a clear preference.
+Text on a solid gold fill is ink (`#111111`, 4.9:1), never bone or white.
+
+**Retired:** `signal-cobalt` (`#2437D8`, lifted `#8C9BFF`) was the provisional product accent until 2026-10-17. `signal-oxblood` (`#7A1E2C`) and `signal-chartreuse` (`#B7E533`) are not used as accents.
 
 ### Color rules
 
 - The primary identity is neutral; accents support it rather than define it.
 - Accent should normally occupy less than 10% of a composition.
-- Never apply all three accents simultaneously.
+- Never pair gold with a second accent color. The report's area colors (`CUE_CONTEXT.md` decision 26) are the one exception.
 - Do not use pastel rainbow gradients as shorthand for Gen Z.
 - Meet WCAG contrast requirements for functional text and controls.
-- **[PROVISIONAL]** In the product app, cobalt marks coaching cues and selected state only. Meters, touch-control confirmations, and corrections stay neutral (ink / stone / warm gray). In dark mode cobalt is lifted (`#8C9BFF`) to keep contrast on ink surfaces; validate with the brand team.
+- In the product app, gold marks coaching cues and selected state only. Meters, touch-control confirmations, and corrections stay neutral (ink / stone / warm gray). Accent text uses `champagne-deep` on light and `champagne-lifted` on dark; marks and fills use `champagne-gold` on light. In code: `--cue` (marks), `--cue-ink` (text), `--cue-soft` (tints), `--on-cue` (text on a gold fill).
 - **[PROVISIONAL]** Dark-mode app tokens (`src/app/globals.css`), alongside `ink-950` background, `ink-800` surface and `bone-50` text:
 
   | App token | Hex | Use |
@@ -307,7 +311,8 @@ Default recommendation: start with **cobalt** for product UI. Keep oxblood and c
   | `--line` | `#48453F` | Borders and dividers |
   | `--muted` | `#B9B4AC` | Secondary text (warm gray, lifted) |
   | `--neutral` | `#C9C4BC` | Meters and confirmations (non-accent emphasis) |
-  | `--cue` | `#8C9BFF` | Coaching cues and selected state (cobalt, lifted) |
+  | `--cue`, `--cue-ink` | `#D9B98A` | Coaching cues, selected state and accent text (champagne, lifted) |
+  | `--cue-soft` | `rgba(217, 185, 138, 0.16)` | Tinted backgrounds behind accent text |
 - Warm gray is not suitable for small text on bone without a contrast check.
 
 ## 8. Typography
@@ -486,7 +491,7 @@ Motion should feel like a breath or a gentle cue—not an alarm.
   | Slow down | Slow steps (three pulses) | Rushing |
   | Speak up | Long push | Too quiet |
 - **Touch-control confirmations** (long press = Cue on/off, double tap = Conversation/Presentation mode) are **ramps**: a vibration that swells or fades with no sharp onset, shown on the device as a **neutral glow with no rings**, so they can't be mistaken for coaching. Rising = on / Conversation, falling = off, two swells = Presentation.
-- **Noticed ring (testing aid):** a faint warm-gray ring from the motor means "noticed, not a pattern yet": a filler was detected but did not tap. It is neutral, never cobalt.
+- **Noticed ring (testing aid):** a faint warm-gray ring from the motor means "noticed, not a pattern yet": a filler was detected but did not tap. It is neutral, never gold.
 - Do not add vibration patterns beyond these without user testing.
 
 ## 12. UI design principles
@@ -610,7 +615,7 @@ Cue speaks like a thoughtful, socially aware coach: direct, calm, encouraging, a
 - Use `ink-950`/`ink-800` surfaces rather than pure black everywhere.
 - Use `bone-50` or white for primary text depending on contrast.
 - Adjust warm gray upward in luminance so the secondary logo form remains visible.
-- In the product app, lift secondary neutrals the same way: `#33312E` secondary surface, `#48453F` lines, `#B9B4AC` muted text, `#C9C4BC` neutral meters and confirmations, and cobalt lifted to `#8C9BFF` (§7).
+- In the product app, lift secondary neutrals the same way: `#33312E` secondary surface, `#48453F` lines, `#B9B4AC` muted text, `#C9C4BC` neutral meters and confirmations, and champagne gold lifted to `#D9B98A` (§7).
 - Use a dedicated reverse logo; do not invert the raster concept automatically.
 - Generated design-review images must use an explicit opaque background so they remain visible in both light and dark chat interfaces.
 
@@ -741,7 +746,7 @@ Every final logo asset must pass:
 - Redraw and approve the production vector logo.
 - Perform trademark and similarity screening.
 - Select or license the long-term brand typeface.
-- Test cobalt, oxblood, chartreuse, and monochrome treatments with target users.
+- Test the champagne gold accent and monochrome treatments with target users.
 - Create horizontal, symbol-only, one-color, reversed, and small-size masters.
 - Define exact app component tokens after the first product prototype exists. *(Partly done: color and type tokens live in `src/app/globals.css`; component tokens are not yet defined.)*
 - Validate industrial-design materials, finishes, dimensions, and colorways.
@@ -752,6 +757,10 @@ Every final logo asset must pass:
 Cue’s identity is built around **two interlocking voices creating space**. Use the approved two-form symbol and lowercase wordmark direction, but treat the included PNG as concept art pending a professional vector redraw. Keep the system warm-neutral, restrained, calm, and highly legible. Gen Z relevance should come from taste and confidence—not trend clichés. Always depict a single, elegant behind-the-ear (BTE) device; prioritize one clear idea, supportive language, accessible contrast, consistent geometry, and honest technical representation.
 
 ## 25. Change log
+
+### 2026-10-17
+
+- **Champagne gold is the brand accent everywhere** (owner, `CUE_CONTEXT.md` §26 decision 28). It began as the preorder page's accent (2026-10-16) and replaces cobalt across the app, the site and future brand work. §7 records the steps: `#A47A47` for marks, `#7F5D33` for accent text on light, `#D9B98A` on dark, ink on gold fills. The app's `--cue` tokens in `src/app/globals.css` now carry it; the preorder page no longer overrides them. Audience landing pages keep their own palettes (2026-10-11). Earlier entries below that mention cobalt describe what was true then.
 
 ### 2026-10-11
 
