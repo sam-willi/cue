@@ -213,29 +213,6 @@
     transform: translateY(0);
   }
 }
-.caughtNote {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-  font-size: 16px;
-  color: var(--muted);
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity 450ms var(--ease-arrive) 300ms,
-    transform 450ms var(--ease-arrive) 300ms;
-}
-.caught .caughtNote {
-  opacity: 1;
-  transform: none;
-}
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--cue);
-}
 
 /* ---------- Product cut-outs, placed like collage pieces ---------- */
 
