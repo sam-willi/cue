@@ -125,7 +125,9 @@ export default function CueShowcase() {
           view="render"
           alt="Cue in Silver, a slim crescent with a touch area near one end"
           play={play}
-          speed={-0.05}
+          speed={0.1}
+          spin={-4}
+          bob={1.3}
           sizes="(max-width: 860px) 90vw, 50vw"
           className={s.showcaseDevice}
         />

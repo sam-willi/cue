@@ -52,7 +52,8 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
           view="render"
           alt="Cue in Graphite"
           priority
-          speed={-0.14}
+          speed={0.12}
+          spin={3}
           delay={250}
           play={play}
           sizes="(max-width: 760px) 70vw, 46vw"
@@ -99,13 +100,27 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
 
       {/* Two more finishes tumble in below, one off each edge. */}
       <div className={s.tumble} aria-hidden="true">
-        <Cutout color="silver" view="render" alt="" speed={-0.06} delay={500} sizes="40vw" className={s.heroSilver} />
+        <Cutout
+          color="silver"
+          view="render"
+          alt=""
+          speed={0.22}
+          spin={-5}
+          bob={2.2}
+          delay={120}
+          tapOnArrive
+          sizes="40vw"
+          className={s.heroSilver}
+        />
         <Cutout
           color="champagne"
           view="render"
           alt=""
-          speed={0.04}
-          delay={650}
+          speed={-0.08}
+          spin={7}
+          bob={4.1}
+          delay={260}
+          tapOnArrive
           sizes="40vw"
           className={s.heroChampagne}
         />

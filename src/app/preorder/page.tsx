@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BALANCE, CONCEPT_NOTE, OFFER } from "@/lib/preorder/offer";
 import { batchState } from "@/lib/preorder/stripe";
 import CueShowcase from "./CueShowcase";
+import Cutout from "./Cutout";
 import Cursor from "./Cursor";
 import Hero from "./Hero";
 import { Colorways, Reveal, StickyBar } from "./Pieces";
@@ -165,7 +166,28 @@ export default async function PreorderPage() {
             <p className={s.conceptNote}>{CONCEPT_NOTE}</p>
           </section>
 
-          <section className={`${s.wrap} ${s.section}`}>
+          <section className={`${s.wrap} ${s.section} ${s.drifting}`}>
+            <Cutout
+              color="graphite"
+              view="side"
+              alt=""
+              speed={0.35}
+              spin={-10}
+              bob={3.3}
+              sizes="15vw"
+              className={s.infoDrifterLeft}
+            />
+            <Cutout
+              color="silver"
+              view="render"
+              alt=""
+              speed={-0.15}
+              spin={6}
+              bob={1.8}
+              tapOnArrive
+              sizes="20vw"
+              className={s.infoDrifterRight}
+            />
             <div className={s.info}>
               {INFO.map((line, i) => (
                 <Reveal key={i} text={line} className={i === INFO.length - 1 ? s.quietP : undefined} />
@@ -173,7 +195,17 @@ export default async function PreorderPage() {
             </div>
           </section>
 
-          <section className={`${s.wrap} ${s.section}`} aria-labelledby="offer-title">
+          <section className={`${s.wrap} ${s.section} ${s.drifting}`} aria-labelledby="offer-title">
+            <Cutout
+              color="champagne"
+              view="side"
+              alt=""
+              speed={0.3}
+              spin={9}
+              bob={0.7}
+              sizes="20vw"
+              className={s.offerDrifter}
+            />
             <span className={s.eyebrow}>The batch 1 offer</span>
             <h2 id="offer-title" className={s.h2} style={{ marginBottom: 48 }}>
               early is cheaper.
@@ -238,7 +270,39 @@ export default async function PreorderPage() {
                 </details>
               ))}
             </div>
-            <div className={s.closer}>
+            <div className={`${s.closer} ${s.drifting}`}>
+              <Cutout
+                color="graphite"
+                alt=""
+                speed={0.2}
+                spin={-7}
+                bob={0.4}
+                tapOnArrive
+                sizes="20vw"
+                className={s.closerGraphite}
+              />
+              <Cutout
+                color="silver"
+                view="side"
+                alt=""
+                speed={-0.12}
+                spin={8}
+                bob={2.6}
+                delay={120}
+                sizes="12vw"
+                className={s.closerSilver}
+              />
+              <Cutout
+                color="champagne"
+                alt=""
+                speed={0.28}
+                spin={5}
+                bob={4.4}
+                delay={240}
+                tapOnArrive
+                sizes="18vw"
+                className={s.closerChampagne}
+              />
               <h2 className={s.h2}>say less, um.</h2>
               <Deal className={s.closerDeal} />
               <ReserveButton>
