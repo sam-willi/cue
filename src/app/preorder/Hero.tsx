@@ -74,8 +74,7 @@ export default function Hero({ placesLeft }: { placesLeft: number | null }) {
       <div className={`${s.wrap} ${s.heroIntro}`}>
         <div>
           <p className={s.lede}>
-            <strong>Cue sits behind your ear and taps you, privately,</strong> when a speaking habit shows up. For
-            people who’d rather be writing code than giving the talk.
+            <strong>Cue sits behind your ear and taps you, privately,</strong> when a speaking habit shows up.
           </p>
           <div className={s.actions}>
             <ReserveButton>
