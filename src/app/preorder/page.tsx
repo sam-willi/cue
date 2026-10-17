@@ -1,10 +1,10 @@
 import { Analytics } from "@vercel/analytics/next";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { BALANCE, CONCEPT_NOTE, OFFER } from "@/lib/preorder/offer";
 import { batchState } from "@/lib/preorder/stripe";
 import CueShowcase from "./CueShowcase";
+import Logo from "./Logo";
 import Cutout from "./Cutout";
 import Cursor from "./Cursor";
 import Hero from "./Hero";
@@ -88,29 +88,6 @@ const FAQ = [
   },
 ];
 
-function Logo() {
-  return (
-    <>
-      <Image
-        className="dark:hidden"
-        src="/brand/cue-logo-horizontal-fullcolor-light.png"
-        alt="Cue"
-        width={104}
-        height={23}
-        priority
-      />
-      <Image
-        className="hidden dark:block"
-        src="/brand/cue-logo-horizontal-fullcolor-dark.png"
-        alt="Cue"
-        width={104}
-        height={23}
-        priority
-      />
-    </>
-  );
-}
-
 export default async function PreorderPage() {
   const batch = await batchState();
   const places = batch?.left ?? null;
@@ -137,9 +114,14 @@ export default async function PreorderPage() {
           <div className={`${s.wrap} ${s.headerRow}`}>
             <Logo />
             <div className={s.headerRight}>
+              <a className={s.headerDemo} href="/preorder/try" target="_blank" rel="noopener">
+                try the demo <span aria-hidden="true">↗</span>
+              </a>
               <span className={s.headerBatch}>{batchLine}</span>
               <Save className={s.headerSave} />
-              <ReserveButton>reserve · ${OFFER.deposit} down</ReserveButton>
+              <ReserveButton>
+                reserve<span className={s.headerPrice}> · ${OFFER.deposit} down</span>
+              </ReserveButton>
             </div>
           </div>
         </header>
