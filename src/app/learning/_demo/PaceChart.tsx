@@ -1,42 +1,43 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useId } from "react";
 import type { Trace } from "@/lib/learning/demo";
+import { useWidth } from "./hooks";
 
 const H = 150;
 const PAD = { left: 34, right: 8, top: 22, bottom: 22 };
-
-/** A y range, words a minute, that fits every trace given, so charts side by side compare. */
-export function paceDomain(...traces: Trace[]): [number, number] {
-  const all = traces.flatMap((t) => [...t.pace, ...t.limit].map((p) => p.wpm));
-  return [Math.floor((Math.min(...all) - 10) / 20) * 20, Math.ceil((Math.max(...all) + 10) / 20) * 20];
-}
-
-export function useWidth() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, width] as const;
-}
+/** A change of slow-down point mid-session worth pointing out, words a minute. */
+const NOTABLE_SHIFT = 5;
 
 const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.round(t % 60)).padStart(2, "0")}`;
 
-/** Pace through a session (area color), the slow-down point in force (dashed, Cue), and each tap. */
-export default function PaceChart({ trace, domain }: { trace: Trace; domain: [number, number] }) {
+/**
+ * Pace through a session (area color), the slow-down point in force (dashed, Cue), and each tap,
+ * drawn up to `progress` of the session so a session can play out.
+ */
+export default function PaceChart({
+  trace,
+  domain,
+  progress = 1,
+}: {
+  trace: Trace;
+  domain: [number, number];
+  progress?: number;
+}) {
   const [ref, width] = useWidth();
+  const clip = useId();
   const [lo, hi] = domain;
+  const now = progress * trace.duration;
   const x = (t: number) => PAD.left + (t / trace.duration) * (width - PAD.left - PAD.right);
   const y = (wpm: number) => PAD.top + ((hi - wpm) / (hi - lo)) * (H - PAD.top - PAD.bottom);
   const line = (pts: { t: number; wpm: number }[]) => pts.map((p) => `${x(p.t)},${y(p.wpm)}`).join(" ");
   const ticks = [lo, (lo + hi) / 2, hi];
   const minutes = Array.from({ length: Math.floor(trace.duration / 60) + 1 }, (_, k) => k * 60);
-  const rushing = trace.taps.filter((t) => t.behavior === "rushing");
+  const total = trace.taps.filter((t) => t.behavior === "rushing").length;
+  const taps = trace.taps.filter((t) => t.behavior === "rushing" && t.t <= now);
+  // Without a learned pace, a session learns one after a minute of speech: the step in the line.
+  const [, before, after] = trace.limit;
+  const learned = after && Math.abs(after.wpm - before.wpm) >= NOTABLE_SHIFT && now >= after.t ? after : null;
 
   return (
     <div ref={ref} className="w-full">
@@ -45,9 +46,14 @@ export default function PaceChart({ trace, domain }: { trace: Trace; domain: [nu
           width={width}
           height={H}
           role="img"
-          aria-label={`Pace over ${mmss(trace.duration)}, with ${rushing.length} slow-down taps`}
+          aria-label={`Pace over ${mmss(trace.duration)}, with ${total} slow-down taps`}
           className="block overflow-visible text-caption"
         >
+          <defs>
+            <clipPath id={clip}>
+              <rect x={0} y={0} width={x(now)} height={H} />
+            </clipPath>
+          </defs>
           {ticks.map((v) => (
             <g key={v}>
               <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeWidth={1} />
@@ -62,7 +68,7 @@ export default function PaceChart({ trace, domain }: { trace: Trace; domain: [nu
             </text>
           ))}
           {/* Taps sit on a strip along the top, at the moment they were felt. */}
-          {rushing.map((tap) => (
+          {taps.map((tap) => (
             <g key={tap.t}>
               <line
                 x1={x(tap.t)}
@@ -76,21 +82,31 @@ export default function PaceChart({ trace, domain }: { trace: Trace; domain: [nu
               <circle cx={x(tap.t)} cy={8} r={5} fill="var(--cue)" />
             </g>
           ))}
-          <polyline
-            points={line(trace.limit)}
-            fill="none"
-            stroke="var(--cue)"
-            strokeWidth={1.5}
-            strokeDasharray="5 4"
-          />
-          <polyline
-            points={line(trace.pace)}
-            fill="none"
-            stroke="var(--area-pace)"
-            strokeWidth={2.5}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+          <g clipPath={`url(#${clip})`}>
+            <polyline
+              points={line(trace.limit)}
+              fill="none"
+              stroke="var(--cue)"
+              strokeWidth={1.5}
+              strokeDasharray="5 4"
+            />
+            <polyline
+              points={line(trace.pace)}
+              fill="none"
+              stroke="var(--area-pace)"
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          </g>
+          {learned && (
+            <text x={x(learned.t) + 6} y={y(Math.max(learned.wpm, before.wpm)) - 6} fill="var(--cue)" fontWeight={600}>
+              Cue learns their pace
+            </text>
+          )}
+          {progress > 0 && progress < 1 && (
+            <line x1={x(now)} x2={x(now)} y1={PAD.top} y2={H - PAD.bottom} stroke="var(--muted)" strokeWidth={1} />
+          )}
         </svg>
       )}
     </div>

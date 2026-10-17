@@ -1,7 +1,7 @@
 "use client";
 
 import type { ManySessions } from "@/lib/learning/demo";
-import { useWidth } from "./PaceChart";
+import { useWidth } from "./hooks";
 
 const H = 190;
 const PAD = { left: 26, right: 6, top: 26, bottom: 22 };
@@ -9,9 +9,20 @@ const PAD = { left: 26, right: 6, top: 26, bottom: 22 };
 /**
  * Slow-down taps per session: filled for taps felt, outlined for taps Cue held back to measure.
  * Bars in Cue's color used the new strategy. The band marks the experiment, from the session Cue
- * started it to the one it adopted the new strategy.
+ * started it to the one it adopted the new strategy. Only the first `shown` sessions are drawn, so
+ * the run can play out.
  */
-export default function TapsChart({ run, started, adopted }: { run: ManySessions; started: number; adopted: number }) {
+export default function TapsChart({
+  run,
+  started,
+  adopted,
+  shown = run.sessions.length,
+}: {
+  run: ManySessions;
+  started: number;
+  adopted: number;
+  shown?: number;
+}) {
   const [ref, width] = useWidth();
   const n = run.sessions.length;
   const max = Math.max(...run.sessions.map((s) => s.rushingTaps + s.rushingHoldouts));
@@ -34,20 +45,35 @@ export default function TapsChart({ run, started, adopted }: { run: ManySessions
           aria-label={`Slow-down taps in each of ${n} sessions. Cue tested a new strategy after session ${started} and adopted it after session ${adopted}.`}
           className="block overflow-visible text-caption"
         >
-          <rect
-            x={bandFrom}
-            y={PAD.top - 6}
-            width={bandTo - bandFrom}
-            height={H - PAD.top - PAD.bottom + 6}
-            fill="var(--cue-soft)"
-          />
-          <text x={bandFrom + 4} y={PAD.top - 12} fill="var(--cue)" fontWeight={600}>
-            Testing
-          </text>
-          <line x1={bandTo} x2={bandTo} y1={PAD.top - 6} y2={H - PAD.bottom} stroke="var(--cue)" strokeWidth={1.5} />
-          <text x={bandTo + 4} y={PAD.top - 12} fill="var(--cue)" fontWeight={600}>
-            Adopted
-          </text>
+          {shown > started && (
+            <>
+              <rect
+                x={bandFrom}
+                y={PAD.top - 6}
+                width={bandTo - bandFrom}
+                height={H - PAD.top - PAD.bottom + 6}
+                fill="var(--cue-soft)"
+              />
+              <text x={bandFrom + 4} y={PAD.top - 12} fill="var(--cue)" fontWeight={600}>
+                Testing
+              </text>
+            </>
+          )}
+          {shown > adopted && (
+            <>
+              <line
+                x1={bandTo}
+                x2={bandTo}
+                y1={PAD.top - 6}
+                y2={H - PAD.bottom}
+                stroke="var(--cue)"
+                strokeWidth={1.5}
+              />
+              <text x={bandTo + 4} y={PAD.top - 12} fill="var(--cue)" fontWeight={600}>
+                Adopted
+              </text>
+            </>
+          )}
           {ticks.map((v) => (
             <g key={v}>
               <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeWidth={1} />
@@ -59,6 +85,7 @@ export default function TapsChart({ run, started, adopted }: { run: ManySessions
           {run.sessions.map((s) => {
             const cx = x(s.index) + (slot - bar) / 2;
             const fill = s.strategy === "sustained" ? "var(--cue)" : "var(--neutral)";
+            if (s.index > shown) return null;
             return (
               <g key={s.index}>
                 <rect x={cx} y={y(s.rushingTaps)} width={bar} height={y(0) - y(s.rushingTaps)} rx={2} fill={fill} />
