@@ -116,7 +116,10 @@ export default function CueShowcase() {
           ))}
         </ul>
         <p className={s.feelNote}>
-          {canVibrate ? "Tap one to feel it on your phone." : "Choose one to play it. On a phone, you’ll feel it."}
+          {canVibrate ? "Tap one to feel it on your phone." : "Choose one to play it. On a phone, you’ll feel it."}{" "}
+          <a className={s.tryLink} href="/preorder/try" target="_blank" rel="noopener">
+            Or try it with your voice <span aria-hidden="true">↗</span>
+          </a>
         </p>
       </div>
       <div className={s.deviceStage}>

@@ -144,14 +144,28 @@
   font-size: 14px;
   color: var(--muted);
 }
+.headerDemo {
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+}
+.headerDemo:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .headerRight .button {
   min-height: 40px;
   padding: 0 16px;
   font-size: 14px;
 }
 @media (max-width: 640px) {
-  .headerBatch {
+  .headerBatch,
+  .headerPrice {
     display: none;
+  }
+  .headerRight {
+    gap: 14px;
   }
 }
 
@@ -605,6 +619,115 @@
   .tapGrid {
     grid-template-columns: 1fr;
     gap: 40px;
+  }
+}
+
+/* ---------- Voice demo ---------- */
+
+/* The device the voice demo's taps are drawn on, floating like the hero's. */
+.voiceDevice {
+  position: relative;
+  height: 280px;
+  margin-bottom: 8px;
+}
+.voiceCutout {
+  --r: -14deg;
+  left: 50%;
+  top: 0;
+  width: 200px;
+  margin-left: -100px;
+}
+
+.voice {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 48px;
+  align-items: start;
+  padding: 48px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.voiceStage {
+  min-height: 260px;
+  padding: 24px;
+  border-radius: 16px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.liveWords {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.4;
+  letter-spacing: -0.015em;
+}
+.liveWords .hint {
+  color: var(--muted);
+}
+.liveWord {
+  animation: wordIn 260ms var(--ease-arrive);
+}
+.liveWord.filler {
+  text-decoration: underline;
+  text-decoration-color: var(--cue);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+@keyframes wordIn {
+  from {
+    opacity: 0;
+  }
+}
+.voiceBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.voiceCues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 34px;
+  margin-top: 12px;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 500;
+  animation: wordIn 220ms var(--ease-arrive);
+}
+.privacy {
+  margin: 16px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.levelDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--cue);
+  transition: transform 80ms linear;
+}
+@media (max-width: 860px) {
+  .voice {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding: 24px;
   }
 }
 
@@ -1791,6 +1914,40 @@
     transform: scale(0.8);
     letter-spacing: 0.02em;
   }
+}
+
+/* ---------- The demo page (/preorder/try) ---------- */
+
+.tryPage {
+  padding-block: 120px 64px;
+}
+.tryIntro {
+  max-width: 640px;
+  margin-bottom: 48px;
+}
+.tryNext {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 64px;
+  padding-top: 32px;
+  border-top: 1px solid var(--line);
+}
+.tryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: none;
+}
+.tryLink span {
+  transition: transform 220ms var(--ease-arrive);
+}
+.tryLink:hover span {
+  transform: translateX(3px);
 }
 
 /* ---------- Thank-you page ---------- */
